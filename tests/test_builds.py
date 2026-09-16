@@ -7,31 +7,12 @@
 - o equipamento respeita nivel, vocacao e slot;
 - as 8 builds x 8 niveis geram em menos de 10 s.
 """
-import time
 import unittest
 
 import helpers
 from baiakvault import builds, formulas as F, sim
 
-_PLANNER = None
-_PLANS = None
-_SECONDS = None
-
-
-def planner():
-    """As 8 builds x 8 niveis, calculadas uma vez para a bateria toda (e cronometradas)."""
-    global _PLANNER, _PLANS, _SECONDS
-    if _PLANNER is None:
-        cat = helpers.real_catalog()
-        started = time.perf_counter()
-        pl = builds.Planner(cat)
-        plans = {}
-        for voc, goal in builds.BUILDS:
-            for level in builds.LEVELS:
-                plans[(voc, goal, level)] = pl.plan(voc, goal, level)
-        _SECONDS = time.perf_counter() - started
-        _PLANNER, _PLANS = pl, plans
-    return _PLANNER, _PLANS
+planner = helpers.planner
 
 
 class Simulator(unittest.TestCase):
@@ -99,7 +80,7 @@ class Optimizer(unittest.TestCase):
 
     def test_all_64_builds_in_under_ten_seconds(self):
         self.assertEqual(len(self.plans), 64)
-        self.assertLess(_SECONDS, 10.0, "8 builds x 8 niveis levaram %.1f s" % _SECONDS)
+        self.assertLess(helpers.PLAN_SECONDS, 10.0, "8 builds x 8 niveis levaram %.1f s" % helpers.PLAN_SECONDS)
 
     def test_tree_respects_budget_max_rank_prerequisites_and_vocation(self):
         for (voc, goal, level), b in self.plans.items():

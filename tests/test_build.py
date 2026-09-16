@@ -16,7 +16,7 @@ def _pages(result):
 
 
 def _local_links(text):
-    return [m for m in re.findall(r'href="([^"]+)"', text)
+    return [m.split("#", 1)[0] for m in re.findall(r'href="([^"]+)"', text)
             if not m.startswith(("http://", "https://", "#"))]
 
 
@@ -25,7 +25,8 @@ class BuildEmptyVault(unittest.TestCase):
     def setUpClass(cls):
         cls.out = helpers.temp_dir() / "site"
         db_path = helpers.temp_dir() / "vault.db"
-        cls.result = build.build(cls.out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW)
+        cls.result = build.build(cls.out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW,
+                                 plans=helpers.planner()[1])
 
     def test_pages_exist(self):
         for rel in ("index.html", "hunts/index.html", "charms/index.html",
@@ -37,8 +38,10 @@ class BuildEmptyVault(unittest.TestCase):
         for page in _pages(self.result):
             text = page.read_text(encoding="utf-8")
             self.assertRegex(text, r"<title>[^<]*BaiakVault</title>", page)
-            self.assertIn("estilo.css", text, page)
             self.assertIn('<meta name="viewport"', text, page)
+            # os cartoes de print sao de proposito autonomos (fundo branco, 390 px, CSS embutido)
+            if page.parent.name != "print":
+                self.assertIn("estilo.css", text, page)
 
     def test_no_none_nan_undefined_anywhere(self):
         for page in _pages(self.result):
@@ -61,7 +64,7 @@ class BuildEmptyVault(unittest.TestCase):
     def test_hunts_index_warns_about_indices(self):
         text = (self.out / "hunts" / "index.html").read_text(encoding="utf-8")
         self.assertIn("eficiencia, nao XP/h", text)
-        self.assertEqual(text.count('<a href="') - 3, 79)  # 3 do menu + 79 hunts
+        self.assertEqual(text.count('<a href="') - 4, 79)  # 4 do menu + 79 hunts
 
     def test_charms_page_has_all_24(self):
         text = (self.out / "charms" / "index.html").read_text(encoding="utf-8")
@@ -90,7 +93,8 @@ class BuildWithCharacter(unittest.TestCase):
         conn, vault, db_path = helpers.temp_vault(with_fixture=True)
         conn.close()
         cls.out = helpers.temp_dir() / "site"
-        cls.result = build.build(cls.out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW)
+        cls.result = build.build(cls.out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW,
+                                 plans=helpers.planner()[1])
 
     def test_character_page_exists_and_index_links_to_it(self):
         page = self.out / "personagens" / "teste-knight.html"

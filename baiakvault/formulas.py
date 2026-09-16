@@ -173,7 +173,7 @@ CLEAVE_ADJACENT = _c("cleave_adjacent_targets", 2, SOURCE_CONVENTION,
 EXECUTE_TIME_SHARE = _c("execute_time_share", 0.25, SOURCE_CONVENTION,
                         "fraccao do tempo em que o alvo esta abaixo de 25 % do HP (Executioner / Culling Shot)")
 MANA_REGEN_BASE = _c("mana_regen_base_per_s", None, SOURCE_CONVENTION,
-                     "a regeneracao base de mana e do servidor: nao esta no cliente nem no guia. Fica desconhecida (None) "
+                     "a regeneracao base de mana e do servidor: nao esta no cliente nem no guia. Fica desconhecida "
                      "e a rotacao avalia-se pela mana que gasta e pela autonomia da pool cheia",
                      "desconhecido nao e zero: nao entra em conta nenhuma")
 HP_REGEN_BASE = _c("hp_regen_base_per_s", None, SOURCE_CONVENTION,

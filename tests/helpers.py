@@ -2,6 +2,7 @@
 temporaria carregada com a fixture. Sem personagens reais em lado nenhum."""
 import json
 import tempfile
+import time
 from pathlib import Path
 
 from baiakvault import catalog, db
@@ -17,6 +18,28 @@ def real_catalog():
     if _CATALOG is None:
         _CATALOG = catalog.load(ROOT / "data" / "catalogo")
     return _CATALOG
+
+
+_PLANNER = None
+_PLANS = None
+PLAN_SECONDS = None
+
+
+def planner():
+    """`(Planner, {(voc, goal, level): build})` — as 8 builds x 8 niveis, calculadas uma vez
+    para a bateria toda (uns 8 s) e cronometradas em `PLAN_SECONDS`."""
+    global _PLANNER, _PLANS, PLAN_SECONDS
+    if _PLANNER is None:
+        from baiakvault import builds
+        started = time.perf_counter()
+        pl = builds.Planner(real_catalog())
+        plans = {}
+        for voc, goal in builds.BUILDS:
+            for level in builds.LEVELS:
+                plans[(voc, goal, level)] = pl.plan(voc, goal, level)
+        PLAN_SECONDS = time.perf_counter() - started
+        _PLANNER, _PLANS = pl, plans
+    return _PLANNER, _PLANS
 
 
 def temp_dir():

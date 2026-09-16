@@ -13,12 +13,17 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from . import builds as builds_module
 from . import catalog as catalog_module
 from . import db as db_module
 from . import html as h
 from . import notes
+from . import pages_builds
 
 DEFAULT_OUT = Path(__file__).resolve().parent.parent / "docs"
+# A validacao cruzada e escrita a mao (com o que `scripts/validar_guia.py` mede) e vive no repo;
+# o build copia-a para `docs/builds/` e gera a versao HTML.
+VALIDATION_MD = DEFAULT_OUT / "builds" / "validacao.md"
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
@@ -82,7 +87,10 @@ def render_index(cat, characters, generated_at):
                 ])))
         parts.append("</div>")
     parts.append("<h2>Atalhos</h2>")
-    parts.append('<ul><li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
+    parts.append('<ul><li><a href="builds/index.html">Builds</a> — as 8 builds (vocacao + objectivo) por nivel: '
+                 "arvore por ordem de compra, equipamento BiS, rotacao do Helper e numeros do simulador; "
+                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>'
+                 '<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
                  '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li></ul>'
                  % (len(cat.hunts), len(cat.charms)))
     parts.append('<p class="mudo"><small>Catalogo do jogo visto a %s. Gerado a %s.</small></p>'
@@ -381,8 +389,19 @@ def _write(path, text):
     return path
 
 
-def build(out_dir=None, db_path=None, catalog_dir=None, now=None):
-    """Gera o site inteiro. Devolve `{"files": [...], "seconds": float, "out": Path}`."""
+def build_plans(cat, planner=None):
+    """As 8 builds x 8 niveis pelo `builds.Planner` (uns 8 s). `{(voc, goal, level): build}`."""
+    planner = planner or builds_module.Planner(cat)
+    plans = {}
+    for voc, goal in builds_module.BUILDS:
+        for level in builds_module.LEVELS:
+            plans[(voc, goal, level)] = planner.plan(voc, goal, level)
+    return plans
+
+
+def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, with_builds=True):
+    """Gera o site inteiro. Devolve `{"files": [...], "seconds": float, "out": Path}`.
+    `plans` ja calculados poupam os ~8 s do optimizador (os testes passam-nos)."""
     started = time.perf_counter()
     out = Path(out_dir or DEFAULT_OUT)
     cat = catalog_module.load(catalog_dir)
@@ -403,6 +422,23 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None):
         for c in characters:
             written.append(_write(out / "personagens" / (c["slug"] + ".html"),
                                   render_character(cat, vault, c, generated_at)))
+        if with_builds:
+            plans = plans or build_plans(cat)
+            written.append(_write(out / "builds" / "index.html", pages_builds.render_index(cat, plans, generated_at)))
+            for voc, goal in builds_module.BUILDS:
+                by_level = {lv: plans[(voc, goal, lv)] for lv in builds_module.LEVELS}
+                written.append(_write(out / "builds" / (pages_builds.slug(voc, goal) + ".html"),
+                                      pages_builds.render_build(cat, voc, goal, by_level, generated_at)))
+                for lv in builds_module.LEVELS:
+                    written.append(_write(out / "print" / ("helper-%s-%d.html" % (pages_builds.slug(voc, goal), lv)),
+                                          pages_builds.render_print(cat, plans[(voc, goal, lv)], generated_at)))
+            md = VALIDATION_MD if VALIDATION_MD.is_file() else (out / "builds" / "validacao.md")
+            if md.is_file():
+                text = md.read_text(encoding="utf-8")
+                if md != out / "builds" / "validacao.md":
+                    written.append(_write(out / "builds" / "validacao.md", text))
+                written.append(_write(out / "builds" / "validacao.html",
+                                      pages_builds.render_validation(text, generated_at)))
     finally:
         conn.close()
     return {"files": written, "seconds": time.perf_counter() - started, "out": out,

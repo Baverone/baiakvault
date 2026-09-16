@@ -41,6 +41,10 @@ td.n,th.n{text-align:right;white-space:nowrap}
 footer{margin-top:32px;color:#6f7680;font-size:12px;border-top:1px solid #2a2f38;padding-top:10px}
 code{background:#11141a;padding:1px 4px;border-radius:4px;font-size:12px}
 small{font-size:12px}
+section.nivel{border-top:2px solid #2a2f38;margin-top:18px;padding-top:6px}
+h4{font-size:14px;margin:6px 0 4px;color:#c9c9c9}
+details summary{cursor:pointer;color:#9fd0ff}
+.kv table{font-size:12px}
 """
 
 
@@ -101,6 +105,7 @@ def pct_of_100k(chance):
 
 def nav(root, here=""):
     links = (("index.html", "Inicio", "inicio"),
+             ("builds/index.html", "Builds", "builds"),
              ("hunts/index.html", "Hunts", "hunts"),
              ("charms/index.html", "Charms", "charms"))
     parts = []
