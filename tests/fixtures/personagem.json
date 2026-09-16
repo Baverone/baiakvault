@@ -1,0 +1,36 @@
+{
+  "_nota": "Personagem de exemplo SO para os testes. Nao e nenhum personagem do Andre; os dele entram pela vault.db e nunca por aqui.",
+  "character": {
+    "name": "Teste Knight",
+    "vocation": "EK",
+    "level": 312,
+    "current_hunt": "Cobras",
+    "vip": 1,
+    "goal": "tank",
+    "notes": "fixture",
+    "source": "manual",
+    "seen_at": "2026-09-16"
+  },
+  "tree": [
+    {"node_key": "k_fury", "rank": 5, "source": "captura", "seen_at": "2026-09-16"},
+    {"node_key": "k_toughness", "rank": 2, "source": "captura", "seen_at": "2026-09-16"}
+  ],
+  "equipment": [
+    {"slot": "shield", "item_key": "eldritch tome", "upgrade_level": 2, "imbuements": ["vampirism"], "source": "manual"},
+    {"slot": "weapon", "item_key": null, "source": "manual"},
+    {"slot": "backpack", "item_key": "ghost backpack", "source": "manual"}
+  ],
+  "charms": [
+    {"charm_key": "wound", "tier": 2, "assigned_creature_key": "cobra_vizier", "source": "manual"},
+    {"charm_key": "dodge", "tier": 1, "assigned_creature_key": null, "source": "manual"}
+  ],
+  "charm_points": {"points_available": 350, "points_spent": null, "source": "captura", "seen_at": "2026-09-16"},
+  "bestiary": [
+    {"creature_key": "cobra_vizier", "kills": 1200, "source": "captura", "seen_at": "2026-09-16"},
+    {"creature_key": "Cobra Scout", "kills": 40, "source": "manual"}
+  ],
+  "readings": [
+    {"at": "2026-09-16 10:00:00", "level": 312, "xp": 500000000, "gold": 12345678, "stamina": 2400, "hunt": "cobra-cave", "source": "manual"},
+    {"at": "2026-09-16 11:00:00", "level": 312, "xp": null, "gold": null, "stamina": null, "hunt": null, "source": "captura"}
+  ]
+}
