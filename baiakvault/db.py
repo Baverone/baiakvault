@@ -23,11 +23,14 @@ from . import catalog as catalog_module
 
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "data" / "vault.db"
 SOURCES = ("manual", "captura")
-# Os objectivos que o Andre pediu, por vocacao (16/09/2026); o primeiro de cada
-# lista e o que ele nomeou primeiro e serve de omissao quando o goal esta NULL.
-GOALS_BY_VOCATION = {"knight": ("tank", "damage"), "druid": ("heal", "damage"),
-                     "sorcerer": ("damage",), "paladin": ("damage",), "monk": ("support", "damage")}
-GOALS = ("damage", "tank", "heal", "support")
+# Os objectivos por vocacao; o primeiro de cada lista e a omissao quando o goal esta
+# NULL. Desde 16/09/2026 (ordem 6, pedido do Andre das 12:20) a omissao e «best» — a
+# melhor build possivel da vocacao (DPS sujeito a aguentar e a sustentar a mana);
+# os objectivos de 16/09 (ordem 2) ficam disponiveis.
+GOALS_BY_VOCATION = {"knight": ("best", "tank", "damage"), "druid": ("best", "heal", "damage"),
+                     "sorcerer": ("best", "damage"), "paladin": ("best", "damage"),
+                     "monk": ("best", "support", "damage")}
+GOALS = ("best", "damage", "tank", "heal", "support")
 # O catalogo so da slot aos itens que o cliente marca como equipaveis; mochila
 # e municao nao tem slot la mas existem no boneco (decisao 16/09/2026).
 EXTRA_SLOTS = ("backpack", "ammo")
@@ -67,7 +70,29 @@ ALTER TABLE character_charm_points ADD COLUMN slot_limit INTEGER CHECK (slot_lim
 ALTER TABLE character_charm_points ADD COLUMN expansion INTEGER CHECK (expansion IS NULL OR expansion IN (0, 1));
 ALTER TABLE character_charm_points ADD COLUMN echoes INTEGER CHECK (echoes IS NULL OR echoes >= 0);
 """
-MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3]
+# v4 (16/09/2026, ordem 6): o objectivo «best» entra no CHECK (a tabela reconstroi-se
+# como na v2; os valores existentes ficam, NULL continua a ser «a omissao da vocacao»).
+_SCHEMA_V4 = """
+CREATE TABLE characters_v4 (
+    id           INTEGER PRIMARY KEY,
+    name         TEXT NOT NULL UNIQUE,
+    slug         TEXT NOT NULL UNIQUE,
+    vocation     TEXT CHECK (vocation IN ('knight','monk','paladin','sorcerer','druid')),
+    level        INTEGER CHECK (level IS NULL OR level >= 1),
+    current_hunt TEXT,
+    vip          INTEGER CHECK (vip IN (0, 1)),
+    goal         TEXT CHECK (goal IN ('best','damage','tank','heal','support')),
+    notes        TEXT,
+    source       TEXT CHECK (source IN ('manual','captura')),
+    seen_at      TEXT,
+    updated_at   TEXT NOT NULL
+);
+INSERT INTO characters_v4 SELECT id, name, slug, vocation, level, current_hunt, vip, goal,
+    notes, source, seen_at, updated_at FROM characters;
+DROP TABLE characters;
+ALTER TABLE characters_v4 RENAME TO characters;
+"""
+MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4]
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
@@ -220,7 +245,7 @@ class Vault:
                 raise VaultError("vocacao desconhecida: %r" % vocation)
             vocation = normalized
         if goal is not None and goal not in GOALS:
-            raise VaultError("goal tem de ser damage/tank/heal/support, nao %r" % goal)
+            raise VaultError("goal tem de ser %s, nao %r" % ("/".join(GOALS), goal))
         if vip is not None:
             if isinstance(vip, bool):
                 vip = int(vip)

@@ -36,7 +36,8 @@ PRINT_NEIGHBOURS = 5
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
-GOAL_LABEL = {"damage": "dano", "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
+GOAL_LABEL = {"best": "melhor (DPS que aguenta e sustenta a mana)", "damage": "dano",
+              "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
 INDEX_WARNING = ("Os indices de XP e de loot sao a conta que o proprio jogo faz para ordenar "
                  "as hunts: <b>XP por ponto de vida a abater — eficiencia, nao XP/h</b>. Uma hunt "
                  "de bichos gordos rende pouco no indice e muito por kill. XP/h e gold/h "
@@ -99,10 +100,14 @@ def render_index(cat, characters, generated_at, advice_by_slug=None):
                 ])))
         parts.append("</div>")
     parts.append("<h2>Atalhos</h2>")
-    parts.append('<ul><li><a href="builds/index.html">Builds</a> — as 8 builds (vocacao + objectivo) por nivel: '
+    best_links = " · ".join('<a href="builds/%s-best.html">%s</a>' % (voc, h.esc(VOCATION_LABEL[voc]))
+                            for voc, goal in builds_module.BUILDS if goal == "best")
+    parts.append('<ul><li><a href="builds/index.html">Builds</a> — a build <b>melhor</b> de cada vocacao (%s): '
+                 "o maior DPS do ciclo que aguenta o pack e o boss e sustenta a mana, por nivel — "
                  "arvore por ordem de compra, equipamento BiS, rotacao do Helper e numeros do simulador; "
-                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>'
-                 '<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
+                 "as 8 builds por objectivo (dano, tank, cura, support) ficam la tambem; "
+                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>' % best_links)
+    parts.append('<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
                  '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li></ul>'
                  % (len(cat.hunts), len(cat.charms)))
     parts.append('<p class="mudo"><small>Catalogo do jogo visto a %s. Gerado a %s.</small></p>'
@@ -439,7 +444,7 @@ def _write(path, text):
 
 
 def build_plans(cat, planner=None):
-    """As 8 builds x 8 niveis pelo `builds.Planner` (uns 8 s). `{(voc, goal, level): build}`."""
+    """As builds (5 «best» + 8 por objectivo) x 8 niveis pelo `builds.Planner`. `{(voc, goal, level): build}`."""
     planner = planner or builds_module.Planner(cat)
     plans = {}
     for voc, goal in builds_module.BUILDS:

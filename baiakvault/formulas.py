@@ -129,6 +129,15 @@ USES_MANA_POTIONS = _c("uses_mana_potions", {
     "knight": False, "paladin": True, "sorcerer": True, "druid": True, "monk": False,
 }, SOURCE_CLIENT, BUNDLE + " — `j0[voc].usesManaPotions`",
     "o Helper do knight e do monk nao bebe pocao de mana")
+# O ambito do roubo de vida/mana do equipamento: o cliente so acumula `lifeLeech`/
+# `manaLeech` (a aplicacao e do servidor); a unica frase que o descreve e a dos
+# charms Vampiric Embrace / Void's Call. Ate 16/09/2026 o simulador creditava o
+# leech a todo o dano, areas incluidas (ordem 6, supervisao).
+LEECH_SCOPE = _c("leech_scope", "ataque normal + magias de alvo unico (strike); nunca areas nem curas",
+                 SOURCE_CLIENT,
+                 BUNDLE + " — texto dos charms Vampiric Embrace / Void's Call (bruto/charms.json): «so vale se o "
+                 "seu equipamento ja da roubo de vida [/mana], e so no ataque normal e nas magias de alvo unico»",
+                 "e a melhor evidencia que ha sobre o leech do equipamento; a formula e do servidor")
 
 # --- guia -----------------------------------------------------------------------
 ARMOR_DENOMINATOR = _c("armor_denominator", 520, SOURCE_GUIDE, GUIDE_PLANNER + " — `j/(j+520)*100`")

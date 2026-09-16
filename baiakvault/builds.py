@@ -33,14 +33,20 @@ import time
 from . import formulas as F
 from . import sim
 
-BUILDS = (("knight", "tank"), ("knight", "damage"), ("druid", "heal"), ("druid", "damage"),
+# A build «melhor» por vocacao (pedido do Andre, 16/09/2026 12:20) vem primeiro e e a
+# omissao; as oito anteriores ficam disponiveis.
+BUILDS = (("knight", "best"), ("druid", "best"), ("sorcerer", "best"), ("paladin", "best"), ("monk", "best"),
+          ("knight", "tank"), ("knight", "damage"), ("druid", "heal"), ("druid", "damage"),
           ("sorcerer", "damage"), ("paladin", "damage"), ("monk", "support"), ("monk", "damage"))
 LEVELS = (50, 100, 200, 300, 500, 800, 1200, 1500)
-GOAL_LABEL = {"damage": "dano", "tank": "tank", "heal": "cura", "support": "support"}
+GOAL_LABEL = {"best": "melhor", "damage": "dano", "tank": "tank", "heal": "cura", "support": "support"}
 GOAL_ASKED = {("knight", "tank"): "Sobreviver", ("knight", "damage"): "Dar dano",
               ("druid", "heal"): "Curar bastante", ("druid", "damage"): "Dar dano",
               ("sorcerer", "damage"): "Dar dano", ("paladin", "damage"): "Dar dano",
-              ("monk", "support"): "Curar (support)", ("monk", "damage"): "Dar dano"}
+              ("monk", "support"): "Curar (support)", ("monk", "damage"): "Dar dano",
+              ("knight", "best"): "A melhor possivel", ("druid", "best"): "A melhor possivel",
+              ("sorcerer", "best"): "A melhor possivel", ("paladin", "best"): "A melhor possivel",
+              ("monk", "best"): "A melhor possivel"}
 SLOTS = ("weapon", "shield", "helmet", "armor", "legs", "boots", "amulet", "ring")
 SECONDARY_DPS_EXPONENT = 0.3
 TTD_CAP = 600.0
@@ -49,6 +55,24 @@ EQUIPMENT_PASSES = 1
 ROTATION_POOL = 5
 MIN_LEVEL = 8
 USELESS_IMBUEMENTS = ("increase speed",)  # nao entra em metrica nenhuma
+# «best»: DPS do ciclo sujeito a aguentar o pack e o boss e a sustentar a mana (e, no
+# druid, a curar o knight). Cada condicao falhada corta a metrica pela fraccao em que
+# falha, elevada a BEST_PENALTY_POWER — uma penalizacao e nao um corte seco, para o
+# guloso ter por onde subir a partir da arvore vazia (16/09/2026, ordem 6).
+BEST_PENALTY_POWER = 2.0
+# Poupar para um no caro: o caminho so espera `wait` niveis sem comprar nada quando o
+# pacote rende pelo menos (1 + SAVE_MARGIN) x o que os mesmos pontos rendem nos outros
+# nos, os dois medidos no simulador ao nivel em que se chega la. Pacotes que esperam
+# ate SAVE_CHECK_MIN_WAIT niveis (ranks de small) nao passam pelo teste. Recusado, o
+# no so se reconsidera quando os pequenos ja renderem SAVE_RETRY_DROP menos por ponto
+# do que a alternativa rendia (limita o numero de testes). Decisao de 16/09/2026
+# (ordem 6): a regra «espera <= 15 % do nivel ou <= 60 niveis» proposta na supervisao
+# proibiria para sempre qualquer notable acima de 60 pontos (o caminho nunca tem pontos
+# por gastar), por isso compara-se o integral no tempo, que e o que ela queria aproximar.
+SAVE_CHECK_MIN_WAIT = 20
+SAVE_MARGIN = 0.10
+SAVE_RETRY_DROP = 0.20
+SAVE_RETRY_SHARE = 0.25   # so se volta a testar depois de gastar 25 % do custo do no desde a recusa
 
 
 # --- alvo de referencia ---------------------------------------------------------------------
@@ -92,9 +116,13 @@ def evaluate(profile, target, rotation, boss_rotation=None, heal=None, attackers
     boss = sim.simulate(profile, target, boss_rotation or rotation, boss=True, heal=heal)
     dps_cycle = sim.cycle_dps(pack.dps, boss.dps, target)
     n_att = attackers if attackers is not None else target.pack
+    # o pack inteiro em cima, com as curas e as pocoes do Helper: e o «aguenta» da build
+    # «best» (o `ttd_pack` analitico abaixo ignora curas e pocoes e fica na pagina)
+    full = sim.simulate(profile, target, rotation, boss=False, heal=heal, attackers=n_att)
     pressure_pack, max_hit, _ = sim.pressure(profile, target, boss=False, attackers=n_att)
     _, boss_max_hit, _ = sim.pressure(profile, target, boss=True)
-    leech_hps = pack.dps * profile.bonuses["lifeLeech"] / 100.0 * F.LEECH_EFFECTIVE_FACTOR
+    # so o dano que rouba (ataque normal + strikes; `F.LEECH_SCOPE`), nao o DPS todo
+    leech_hps = pack.leech_hps
     hps_self, heal_spell = sim.sustained_hps(profile)
     hps_friend, friend_spell = sim.sustained_hps(profile, friend=True)
     # tempo ate morrer, com tecto de 10 min: quando o leech cobre a pressao o
@@ -110,24 +138,59 @@ def evaluate(profile, target, rotation, boss_rotation=None, heal=None, attackers
     return {
         "dps_pack": pack.dps, "dps_boss": boss.dps, "dps_cycle": dps_cycle, "auto_dps": pack.auto_dps,
         "hps_self": hps_self, "hps_friend": hps_friend, "heal_spell": heal_spell, "friend_spell": friend_spell,
-        "hps_sim": pack.hps, "leech_hps": leech_hps,
+        "hps_sim": pack.hps, "leech_hps": leech_hps, "leech_dps": pack.leech_dps,
         "pressure_one": pack.pressure, "pressure_pack": pressure_pack, "max_hit": max_hit,
         "boss_max_hit": boss_max_hit, "ttd_pack": ttd_pack, "ttd_one": ttd_one, "ehp": ehp,
         "mitigated_share": mitigated_share, "hp_max": profile.hp_max, "mana_max": profile.mana_max,
         "hp_regen_flat": profile.bonuses["hpRegenFlat"], "armor": profile.armor, "defense": profile.defense,
-        "mana_demand": pack.mana_demand, "mana_income": pack.mana_income, "mana_empty_at": pack.mana_empty_at,
+        "mana_demand": pack.mana_demand, "mana_demand_attacks": pack.mana_demand_attacks,
+        "mana_income": pack.mana_income, "mana_empty_at": pack.mana_empty_at,
         "mana_end": pack.mana_end, "boss_mana_empty_at": boss.mana_empty_at,
         "hp_potions": pack.hp_potions, "mana_potions": pack.mana_potions,
         "gold_per_hour": pack.gold_per_hour, "boss_gold_per_hour": boss.gold_per_hour,
         "hp_min": pack.hp_min, "death_at": pack.death_at, "boss_death_at": boss.death_at,
         "casts": pack.casts, "boss_casts": boss.casts,
+        "uses_mana_potions": profile.uses_mana_potions,
+        "survive_pack_s": sim.time_to_death(full, TTD_CAP), "survive_boss_s": sim.time_to_death(boss, TTD_CAP),
+        "full_death_at": full.death_at, "full_hp_min": full.hp_min, "full_hp_potions": full.hp_potions,
+        "full_mana_demand": full.mana_demand, "attackers_full": n_att,
+        # a pressao do pack sobre o knight da party, quando o alvo a traz (druid «best»)
+        "ally_pressure": getattr(target, "ally_pressure", None),
     }
+
+
+def best_constraints(metrics):
+    """As condicoes da build «melhor», cada uma como fraccao cumprida (1 = cumprida):
+    aguentar o pack inteiro e o boss mais de 10 min (o simulador de 60 s com as
+    curas e as pocoes do Helper, tendencia da vida extrapolada), mana sustentavel
+    (knight/monk sem pocoes: o que o leech e os itens repoem cobre o que a rotacao
+    gasta; mages/paladin com pocoes: a mana nao se esgota nos 60 s) e, quando o alvo
+    traz `ally_pressure` (o druid a curar o knight da party), a cura aliada
+    sustentavel cobre a pressao do pack sobre o knight."""
+    out = {}
+    out["survive_pack"] = max(0.01, min(1.0, metrics["survive_pack_s"] / TTD_CAP))
+    out["survive_boss"] = max(0.01, min(1.0, metrics["survive_boss_s"] / TTD_CAP))
+    if metrics.get("uses_mana_potions"):
+        empty = metrics.get("mana_empty_at")
+        out["mana"] = 1.0 if empty is None else max(0.01, empty / 60.0)
+    else:
+        demand = metrics.get("full_mana_demand", metrics["mana_demand"])   # com as curas do pack inteiro
+        out["mana"] = 1.0 if demand <= 0 else min(1.0, metrics["mana_income"] / demand)
+    ally = metrics.get("ally_pressure")
+    if ally:
+        out["heal_ally"] = min(1.0, metrics["hps_friend"] / ally)
+    return out
 
 
 def score_of(metrics, goal):
     dps = max(1e-6, metrics["dps_cycle"])
     if goal == "damage":
         return dps
+    if goal == "best":
+        factor = 1.0
+        for frac in best_constraints(metrics).values():
+            factor *= max(1e-3, frac) ** BEST_PENALTY_POWER
+        return dps * factor
     if goal == "tank":
         # EHP (vida a dividir pelo que passa da mitigacao, com o pack em cima) x
         # sustain (o leech e a regen cobrem ate 100 % da pressao: no maximo
@@ -149,10 +212,24 @@ def default_heal(profile):
 
 
 # --- rotacao -------------------------------------------------------------------------------
-def choose_rotation(profile, target, boss=False, runes=False, top=ROTATION_POOL, size=4):
+def rotation_value(r, profile, goal):
+    """O que uma rotacao vale: o DPS dos 60 s; na build «best» cortado pela
+    fraccao da mana que nao se sustenta (knight/monk sem pocoes: o que o leech
+    repoe contra o que se gasta; os outros: se a mana se esgota nos 60 s)."""
+    if goal != "best":
+        return r.dps
+    if profile.uses_mana_potions:
+        frac = 1.0 if r.mana_empty_at is None else max(0.01, r.mana_empty_at / 60.0)
+    else:
+        frac = 1.0 if r.mana_demand <= 0 else min(1.0, r.mana_income / r.mana_demand)
+    return r.dps * max(1e-3, frac) ** BEST_PENALTY_POWER
+
+
+def choose_rotation(profile, target, boss=False, runes=False, top=ROTATION_POOL, size=4, goal=None):
     """Escolhe ate 4 feiticos por forca bruta entre os `top` melhores por
     lancamento: o conjunto que o simulador diz render mais DPS (no cenario
-    pedido) e a ordem de prioridade = dano por lancamento decrescente."""
+    pedido; na «best», DPS sustentavel — `rotation_value`) e a ordem de
+    prioridade = dano por lancamento decrescente."""
     spells = sim.attack_spells(profile, runes=runes)
     if not spells:
         return [], None
@@ -164,9 +241,10 @@ def choose_rotation(profile, target, boss=False, runes=False, top=ROTATION_POOL,
         for combo in itertools.combinations(pool, k):
             slots = rotation_slots(profile, target, list(combo))
             r = sim.simulate(profile, target, slots, boss=boss, heal=heal)
+            value = rotation_value(r, profile, goal)
             # empate (ate 0,5 %): mais feiticos no Helper e melhor, cobre mais situacoes
-            if best is None or r.dps > best[0] * 1.005:
-                best = (r.dps, slots, r)
+            if best is None or value > best[0] * 1.005:
+                best = (value, slots, r)
     return best[1], best[2]
 
 
@@ -216,10 +294,12 @@ def best_ammo(cat, weapon, level):
     return max(pool, key=lambda i: F.ammo_attack(i["nome"], i.get("ataque")))
 
 
-def choose_imbuements(item, goal, target):
+def choose_imbuements(item, goal, target, vocation=None):
     """Que imbuement por em cada slot do item, pelo objectivo: dano -> Strike
     (critico), depois Vampirism; tank -> proteccao do elemento dominante da
-    hunt, depois Vampirism; cura/support -> Void (mana leech), depois Vampirism.
+    hunt, depois Vampirism; cura/support -> Void (mana leech), depois Vampirism;
+    «best» como dano, mas no knight/monk (sem pocoes de mana) o Void primeiro:
+    a mana e uma restricao e o leech so vale no ataque normal e nos strikes.
     So o que a categoria do item permite (cliente)."""
     cats = item.get("imbuement_categorias") or []
     n = item.get("imbuement_slots") or 0
@@ -227,7 +307,10 @@ def choose_imbuements(item, goal, target):
         return []
     dominant = target.dominant_element()
     prot_name = "elemental protection " + dominant
+    if goal == "best":
+        goal = "damage" if (vocation is None or F.USES_MANA_POTIONS.get(vocation, True)) else "sustain"
     prefs = {
+        "sustain": ["mana leech", "life leech", "critical hit", prot_name],
         "damage": ["critical hit", "life leech", "mana leech", prot_name],
         "tank": [prot_name, "life leech", "critical hit", "mana leech"],
         "heal": ["mana leech", "life leech", prot_name, "critical hit"],
@@ -261,13 +344,13 @@ def optimize_equipment(cat, vocation, level, goal, tree, target, rotation=None, 
     equipment = {}
     alternatives = {}
     prof = sim.Profile(cat, vocation, level, tree, equipment)
-    rot = rotation or choose_rotation(prof, target)[0]
+    rot = rotation or choose_rotation(prof, target, goal=goal)[0]
 
     def metric_for(eq):
         # a metrica do objectivo, com empates (ate 0,5 %) decididos pela
         # sobrevivencia: entre duas armas iguais em DPS fica a que da mais EHP
         p = sim.Profile(cat, vocation, level, tree, eq)
-        r = rot if rot else choose_rotation(p, target)[0]
+        r = rot if rot else choose_rotation(p, target, goal=goal)[0]
         m = evaluate(p, target, r)
         s = score_of(m, goal)
         return (round(math.log(max(1e-9, s)) / 0.005), m["ehp"] * m["ttd_pack"]), m
@@ -289,7 +372,7 @@ def optimize_equipment(cat, vocation, level, goal, tree, target, rotation=None, 
                     trial = {k: v for k, v in equipment.items() if k != "shield"}
                 else:
                     trial = dict(equipment)
-                imbs = choose_imbuements(item, goal, target)
+                imbs = choose_imbuements(item, goal, target, vocation)
                 trial[slot] = {"item": item, "up": 0, "imbuements": _imb_keys(cat, imbs), "imbuement_cats": imbs}
                 if slot == "weapon" and vocation == "paladin":
                     ammo = best_ammo(cat, item, level)
@@ -367,18 +450,24 @@ def unlock_path(node, ranks, adj, node_by_id):
 
 
 class TreeStep:
-    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point")
+    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point", "saving")
 
-    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point):
+    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point, saving=None):
         self.node_id, self.rank, self.cost = node_id, rank, cost
         self.cumulative, self.level, self.score, self.gain_per_point = cumulative, level, score, gain_per_point
+        # so no passo que fecha uma poupanca longa: {"wait", "from_level", "gain_pct",
+        # "alt_gain_pct", "alt"} — o que a espera rende face a gastar os mesmos pontos
+        # nos outros nos (ver SAVE_*)
+        self.saving = saving
 
 
 def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target_at, start_ranks=None,
-                  level_of=None):
+                  level_of=None, exclude=(), check_saving=True):
     """Caminho guloso de compra ate `budget` pontos. `equipment_at(level)`,
     `rotation_at(level, profile)` e `target_at(level)` dao o contexto do nivel
-    em que cada ponto se gasta (level = pontos gastos, minimo 8, ou `level_of`)."""
+    em que cada ponto se gasta (level = pontos gastos, minimo 8, ou `level_of`).
+    `exclude` sao nos que nao se compram; `check_saving` liga o teste da
+    poupanca (SAVE_*), que se desliga na chamada aninhada que calcula a alternativa."""
     tree = cat.tree_by_vocation[vocation]
     node_by_id = {n["id"]: n for n in tree["nos"]}
     adj = _adjacency(cat, vocation)
@@ -439,14 +528,36 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
         gain = (s / max(1e-9, baseline(level)) - 1.0) / cost
         return gain, cost, purchases, s, level
 
+    def saving_verdict(nid, cost, s, level):
+        """Poupar `cost` pontos para este pacote (chega-se la ao `level`) contra
+        gastar os mesmos pontos nos outros nos, avaliados os dois no mesmo
+        nivel e contexto. Devolve (poupa?, ganho %, ganho % da alternativa,
+        alternativa). Decisao de 16/09/2026 (ordem 6), ver SAVE_MARGIN."""
+        alt_ranks, alt_steps = optimize_tree(
+            cat, vocation, goal, spent + cost, equipment_at, rotation_at, target_at, start_ranks=ranks,
+            level_of=lambda pts: level, exclude=set(exclude) | {nid}, check_saving=False)
+        base = max(1e-9, baseline(level))
+        gain_pct = (s / base - 1.0) * 100.0
+        alt_pct = (score_with(level, alt_ranks) / base - 1.0) * 100.0 if alt_steps else 0.0
+        alt = [(st.node_id, st.rank) for st in alt_steps]
+        return gain_pct >= alt_pct * (1.0 + SAVE_MARGIN), gain_pct, alt_pct, alt
+
     # Guloso preguicoso: a fila guarda o ultimo ganho/ponto conhecido de cada no.
     # Tira-se o topo; se o valor e velho, re-avalia-se e reinsere-se; se ja e
     # fresco (calculado neste estado) compra-se. Cada estado re-avalia no
     # maximo N nos, por isso termina.
-    heap = [(-math.inf, nid) for nid in node_by_id]
+    heap = [(-math.inf, nid) for nid in node_by_id if nid not in exclude]
     heapq.heapify(heap)
     fresh = {}
-    while heap:
+    parked = {}     # no -> ganho/ponto da alternativa: poupanca recusada neste estado, fora da fila ate se comprar algo
+    no_test = set()  # nos que voltam a fila sem mais nada compravel: entram sem o teste (a alternativa e nada)
+    last_rejected = {}   # no -> pontos gastos quando a poupanca foi recusada
+    while heap or parked:
+        if not heap:
+            for pid, alt_pp in parked.items():
+                heapq.heappush(heap, (-alt_pp, pid))
+                no_test.add(pid)
+            parked = {}
         neg_gain, nid = heapq.heappop(heap)
         node = node_by_id[nid]
         if ranks.get(nid, 0) >= (node.get("rank_maximo") or 1):
@@ -462,14 +573,41 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
             if heap and gain < -heap[0][0]:
                 heapq.heappush(heap, (-gain, nid))
                 continue
+        saving = None
+        wait = level - level_for(spent)
+        if check_saving and node.get("tipo") != "small" and wait > SAVE_CHECK_MIN_WAIT and nid not in no_test:
+            # poupar N niveis sem comprar nada so quando rende mais do que os
+            # pequenos pelos mesmos pontos; senao o no sai da fila ate se comprar
+            # outra coisa (senao ficava a ocupar o topo) e so se volta a testar
+            # quando o melhor dos outros tiver caido SAVE_RETRY_DROP e ja se
+            # gastaram SAVE_RETRY_SHARE do custo dele desde a recusa
+            best_other = -heap[0][0] if heap else gain
+            if spent - last_rejected.get(nid, -math.inf) < cost * SAVE_RETRY_SHARE:
+                fresh.pop(nid, None)
+                parked[nid] = min(gain, best_other) * (1.0 - SAVE_RETRY_DROP)
+                continue
+            ok, gain_pct, alt_pct, alt = saving_verdict(nid, cost, s, level)
+            if not ok:
+                fresh.pop(nid, None)
+                last_rejected[nid] = spent
+                parked[nid] = min(gain, best_other) * (1.0 - SAVE_RETRY_DROP)
+                continue
+            saving = {"wait": wait, "from_level": level_for(spent), "gain_pct": gain_pct,
+                      "alt_gain_pct": alt_pct, "alt": alt}
         for pid, r in purchases:
             c = F.tree_rank_cost(node_by_id[pid], r - 1)
             spent += c
             ranks[pid] = r
-            steps.append(TreeStep(pid, r, c, spent, level_for(spent), s, gain))
+            steps.append(TreeStep(pid, r, c, spent, level_for(spent), s, gain,
+                                  saving if pid == nid else None))
         fresh = {}
         baselines = {}
         contexts = {}
+        no_test = set()
+        # os que esperavam por outro estado voltam a fila com a chave da alternativa
+        for pid, alt_pp in parked.items():
+            heapq.heappush(heap, (-alt_pp, pid))
+        parked = {}
         heapq.heappush(heap, (-gain, nid))
     return ranks, steps
 
@@ -483,7 +621,7 @@ def next_purchase(cat, vocation, goal, level, ranks, equipment, target, rotation
     spent = sum(F.tree_total_cost(node_by_id[k], v) for k, v in ranks.items() if k in node_by_id)
     budget = F.tree_budget(level)
     prof = sim.Profile(cat, vocation, level, ranks, equipment)
-    rot = rotation or choose_rotation(prof, target)[0]
+    rot = rotation or choose_rotation(prof, target, goal=goal)[0]
     current = score_of(evaluate(prof, target, rot), goal)
     out = []
     for nid, node in node_by_id.items():
@@ -508,7 +646,7 @@ def next_purchase(cat, vocation, goal, level, ranks, equipment, target, rotation
 
 # --- a build inteira -----------------------------------------------------------------------
 class Planner:
-    """Calcula e guarda as oito builds: um caminho de arvore por (vocacao,
+    """Calcula e guarda as builds: um caminho de arvore por (vocacao,
     objectivo), equipamento e rotacao nos niveis representativos, e a build
     completa por nivel. `plan(vocation, goal, level)` responde a qualquer nivel."""
 
@@ -519,7 +657,8 @@ class Planner:
         self._targets = {}
         self._equipment = {}   # (voc, goal, checkpoint) -> equipment
         self._rotation = {}    # (voc, goal, checkpoint) -> (hunt rotation, boss rotation)
-        self._paths = {}       # (voc, goal) -> (ranks, steps)
+        self._paths = {}       # (voc, goal, hunt ou None) -> (ranks, steps)
+        self._ally = {}        # (hunt, checkpoint) -> pressao do pack sobre o knight «best»
         self.timings = {}
 
     # contexto por nivel: usa o checkpoint (nivel representativo) mais alto <= nivel
@@ -527,14 +666,45 @@ class Planner:
         below = [lv for lv in self.levels if lv <= level]
         return max(below) if below else self.levels[0]
 
-    def target(self, level):
-        hunt = self.hunt_by_level.get(level) or reference_hunt(self.cat, level)
+    def target(self, level, hunt_id=None, strict=False):
+        """A hunt de referencia do nivel; com `hunt_id` (a hunt dele), essa — mas
+        so a partir do nivel minimo dela (salvo `strict`): abaixo, o caminho segue
+        as hunts que o jogo recomenda (senao a arvore de um nivel 8 optimizava-se
+        para uma hunt de 500 em que morre ao segundo, e comprava so sobrevivencia)."""
+        hunt = hunt_id
+        if hunt and not strict and (self.cat.hunt_by_id[hunt].get("nivel_minimo") or 0) > level:
+            hunt = None
+        hunt = hunt or self.hunt_by_level.get(level) or reference_hunt(self.cat, level)
         if hunt not in self._targets:
             self._targets[hunt] = sim.Target(self.cat, hunt)
         return self._targets[hunt]
 
-    def _tree_prefix(self, vocation, goal, budget):
-        ranks, steps = self._paths.get((vocation, goal), ({}, []))
+    def target_for(self, vocation, goal, level, hunt_id=None, strict=False):
+        """O alvo de uma build: a hunt de referencia do nivel (ou `hunt_id`, a hunt
+        dele; `strict` = mesmo abaixo do nivel minimo dela) e, no druid «best», a
+        pressao do pack sobre o knight «best» da mesma party (mesmo nivel
+        representativo e hunt) — e o que a cura aliada tem de cobrir."""
+        target = self.target(level, hunt_id, strict)
+        if vocation == "druid" and goal == "best":
+            return sim.with_ally(target, self.ally_pressure(target.hunt_id, level))
+        return target
+
+    def ally_pressure(self, hunt_id, level):
+        """A pressao do pack sobre o knight «best» ao nivel representativo: na hunt
+        de referencia do nivel (o knight «best» generico desse checkpoint — um
+        proxy, nao se calcula um knight por cada hunt de referencia) ou, se a hunt
+        e a dele, nessa."""
+        cp = self.checkpoint(level)
+        reference = hunt_id == self.target(level).hunt_id
+        key = (None if reference else hunt_id, cp)
+        if key not in self._ally:
+            self._ally[key] = None   # guarda contra recursao (o knight nao precisa do druid)
+            knight = self.plan("knight", "best", cp, hunt_id=key[0])
+            self._ally[key] = knight["metrics"]["pressure_pack"]
+        return self._ally[key]
+
+    def _tree_prefix(self, vocation, goal, budget, hunt_id=None):
+        ranks, steps = self._paths.get((vocation, goal, hunt_id), ({}, []))
         out = {}
         for st in steps:
             if st.cumulative > budget:
@@ -542,61 +712,67 @@ class Planner:
             out[st.node_id] = st.rank
         return out
 
-    def equipment_at(self, vocation, goal, level, ranks=None):
+    def equipment_at(self, vocation, goal, level, ranks=None, hunt_id=None):
         """O equipamento do checkpoint (nivel representativo) <= nivel. Calcula-se
         uma vez, com a arvore que o caminho tem ao chegar la, e serve o caminho
-        e as paginas — e o que torna as 64 builds possiveis em segundos."""
+        e as paginas — e o que torna as builds todas possiveis em segundos."""
         cp = self.checkpoint(level)
-        key = (vocation, goal, cp)
+        key = (vocation, goal, cp, hunt_id)
         if key not in self._equipment:
-            tree = dict(ranks) if ranks is not None else self._tree_prefix(vocation, goal, F.tree_budget(cp))
-            target = self.target(cp)
+            tree = dict(ranks) if ranks is not None else self._tree_prefix(vocation, goal, F.tree_budget(cp), hunt_id)
+            target = self.target_for(vocation, goal, cp, hunt_id)
             eq, alts, _ = optimize_equipment(self.cat, vocation, cp, goal, tree, target)
             self._equipment[key] = (eq, alts)
         return self._equipment[key][0]
 
-    def rotation_at(self, vocation, goal, level, profile):
+    def rotation_at(self, vocation, goal, level, profile, hunt_id=None):
         cp = self.checkpoint(level)
-        key = (vocation, goal, cp)
+        key = (vocation, goal, cp, hunt_id)
         if key not in self._rotation:
-            target = self.target(cp)
-            hunt_rot, _ = choose_rotation(profile, target, boss=False)
-            boss_rot, _ = choose_rotation(profile, target, boss=True)
+            target = self.target_for(vocation, goal, cp, hunt_id)
+            hunt_rot, _ = choose_rotation(profile, target, boss=False, goal=goal)
+            boss_rot, _ = choose_rotation(profile, target, boss=True, goal=goal)
             self._rotation[key] = (hunt_rot, boss_rot)
         return self._rotation[key][0]
 
-    def path(self, vocation, goal, budget=None):
-        key = (vocation, goal)
+    def path(self, vocation, goal, budget=None, hunt_id=None):
+        """O caminho de compra de (vocacao, objectivo): pela hunt de referencia de
+        cada nivel, ou, com `hunt_id`, pela hunt dele a todos os niveis — a arvore
+        acompanha o elemento da hunt (na Livraria FIRE o sorcerer nao compra
+        nos de fogo), decisao de 16/09/2026 (ordem 6)."""
+        key = (vocation, goal, hunt_id)
         if key not in self._paths:
             t0 = time.perf_counter()
             budget = budget or F.tree_budget(max(self.levels))
             self._paths[key] = ({}, [])
             ranks, steps = optimize_tree(
                 self.cat, vocation, goal, budget,
-                equipment_at=lambda lv, ranks: self.equipment_at(vocation, goal, lv, ranks),
-                rotation_at=lambda lv, prof: self.rotation_at(vocation, goal, lv, prof),
-                target_at=self.target,
+                equipment_at=lambda lv, ranks: self.equipment_at(vocation, goal, lv, ranks, hunt_id),
+                rotation_at=lambda lv, prof: self.rotation_at(vocation, goal, lv, prof, hunt_id),
+                target_at=lambda lv: self.target_for(vocation, goal, lv, hunt_id),
                 level_of=lambda points: max(MIN_LEVEL, min(max(self.levels), points)))
             self._paths[key] = (ranks, steps)
             self.timings[key] = time.perf_counter() - t0
         return self._paths[key]
 
     def plan(self, vocation, goal, level, hunt_id=None):
-        """A build completa a um nivel. Dicionario pronto para a pagina."""
+        """A build completa a um nivel (na hunt de referencia do nivel, ou na
+        `hunt_id` dele — caminho, equipamento e rotacao todos por essa hunt).
+        Dicionario pronto para a pagina."""
         cat = self.cat
-        self.path(vocation, goal)
+        self.path(vocation, goal, hunt_id=hunt_id)
         budget = F.tree_budget(level)
-        tree = self._tree_prefix(vocation, goal, budget)
-        target = sim.Target(cat, hunt_id) if hunt_id else self.target(level)
-        steps = [st for st in self._paths[(vocation, goal)][1] if st.cumulative <= budget]
-        key = (vocation, goal, level)
-        if key in self._equipment and not hunt_id:
+        tree = self._tree_prefix(vocation, goal, budget, hunt_id)
+        target = self.target_for(vocation, goal, level, hunt_id, strict=True)   # a hunt dele, mesmo abaixo do minimo
+        steps = [st for st in self._paths[(vocation, goal, hunt_id)][1] if st.cumulative <= budget]
+        key = (vocation, goal, level, hunt_id)
+        if key in self._equipment and self.target(level, hunt_id).hunt_id == target.hunt_id:
             eq, alts = self._equipment[key]
         else:
             eq, alts, _ = optimize_equipment(cat, vocation, level, goal, tree, target)
         prof = sim.Profile(cat, vocation, level, tree, eq)
-        hunt_rot, _ = choose_rotation(prof, target, boss=False)
-        boss_rot, _ = choose_rotation(prof, target, boss=True)
+        hunt_rot, _ = choose_rotation(prof, target, boss=False, goal=goal)
+        boss_rot, _ = choose_rotation(prof, target, boss=True, goal=goal)
         heal = default_heal(prof)
         # o que o caminho deixa por gastar (a poupar para um notable) gasta-se
         # agora ao nivel da pagina, e depois uma melhoria local: se desviar os
@@ -605,16 +781,16 @@ class Planner:
         tree, improved = local_improve(cat, vocation, goal, level, tree, steps + fill_steps, eq, target,
                                        hunt_rot, boss_rot, heal)
         prof = sim.Profile(cat, vocation, level, tree, eq)
-        hunt_rot, hunt_sim = choose_rotation(prof, target, boss=False)
-        boss_rot, boss_sim = choose_rotation(prof, target, boss=True)
-        boss_rot_runes, boss_sim_runes = choose_rotation(prof, target, boss=True, runes=True)
+        hunt_rot, hunt_sim = choose_rotation(prof, target, boss=False, goal=goal)
+        boss_rot, boss_sim = choose_rotation(prof, target, boss=True, goal=goal)
+        boss_rot_runes, boss_sim_runes = choose_rotation(prof, target, boss=True, runes=True, goal=goal)
         heal = default_heal(prof)
         metrics = evaluate(prof, target, hunt_rot, boss_rot, heal)
         alternatives = tree_alternatives(cat, vocation, goal, level, tree, steps + fill_steps, eq, target,
                                          hunt_rot, boss_rot, heal)
         spent = sum(F.tree_total_cost(cat.node_by_id[k], v) for k, v in tree.items())
         next_step = None
-        path_steps = self._paths[(vocation, goal)][1]
+        path_steps = self._paths[(vocation, goal, hunt_id)][1]
         for st in path_steps:
             if st.cumulative > budget:
                 next_step = st

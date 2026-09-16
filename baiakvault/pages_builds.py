@@ -104,14 +104,20 @@ def _drop_sources(cat, item, root):
 def render_index(cat, plans, generated_at):
     root = "../"
     parts = ["<h1>Builds</h1>",
-             '<p class="mudo">As oito builds pedidas a 16/09/2026: vocacao + objectivo, para qualquer '
-             "nivel (aqui os representativos). Cada uma tem a arvore por ordem de compra, o equipamento "
-             "BiS por slot, a rotacao para o Helper e os numeros do simulador. <b>Os numeros sao "
+             '<p class="mudo">Primeiro a build <b>melhor</b> de cada vocacao (pedido de 16/09/2026): o maior '
+             "DPS do ciclo na hunt de referencia que aguenta o pack e o boss (&gt; 10 min) com a mana "
+             "sustentavel — knight e monk sem pocoes de mana (cliente), mages com o custo em gold a vista; "
+             "o druid ainda com a cura ao knight da party garantida. Depois as oito builds por objectivo. "
+             "Tudo para qualquer nivel (aqui os representativos): arvore por ordem de compra, equipamento "
+             "BiS por slot, rotacao para o Helper e numeros do simulador. <b>Os numeros sao "
              "estimativas</b>: as formulas dos feiticos e da arvore sao as do cliente do jogo; o resto "
              'vem do guia ou e convencao nossa, e esta marcado (ver a seccao «Fontes» de cada build e a '
              '<a href="validacao.html">validacao cruzada</a>).</p>']
+    first_by_goal = next(b for b in B.BUILDS if b[1] != "best")
     for voc, goal in B.BUILDS:
         s = slug(voc, goal)
+        if (voc, goal) == first_by_goal:
+            parts.append('<h2 class="separador">As builds por objectivo</h2>')
         parts.append('<h2><a href="%s.html">%s</a></h2>' % (s, h.esc(title(voc, goal))))
         rows = []
         for level in B.LEVELS:
@@ -140,6 +146,8 @@ def render_index(cat, plans, generated_at):
                  "(«&gt; 10 min» quando o leech cobre a pressao). <b>mana/s</b>: o que a rotacao gasta contra o que "
                  "o leech e os itens repoem — a regeneracao base do servidor nao esta em fonte nenhuma e conta a "
                  "zero, por isso «gasta &gt; ganha» quer dizer «depende de regen/pocoes», nao «impossivel». "
+                 "O roubo de vida e de mana so conta no ataque normal e nas magias de alvo unico, nunca nas "
+                 "areas (cliente: texto dos charms Vampiric Embrace / Void's Call). "
                  "<b>supplies</b>: pocoes que o Helper beberia com estes limiares, em gold por hora.</p></div>")
     parts.append(h.source_line("simulador do BaiakVault (formulas do cliente + guia + convencoes marcadas)", cat.seen_at()))
     return h.page("Builds — BaiakVault", "".join(parts), root=root, here="builds", generated_at=generated_at)
@@ -174,6 +182,10 @@ def render_build(cat, vocation, goal, plans_by_level, generated_at, extra_by_lev
 
 def _metric_text(goal):
     return {
+        "best": "DPS efectivo no ciclo (57 normais + boss x3 HP) sujeito a aguentar o pack (> 10 min) e o boss "
+                "e a sustentar a mana (knight/monk sem pocoes; os outros sem esgotar a mana); no druid, a cura "
+                "aliada sustentavel tem de cobrir a pressao do pack sobre o knight «melhor» da party. Cada "
+                "condicao falhada corta o DPS pela fraccao em que falha, ao quadrado",
         "damage": "DPS efectivo no ciclo (57 normais + boss x3 HP)",
         "tank": "EHP com o pack em cima x sustain (leech ate cobrir a pressao) x DPS^0,3",
         "heal": "cura/s sustentavel em 60 s (propria + metade da aliada) x DPS^0,3",
@@ -219,6 +231,8 @@ def render_level_section(cat, b, root, extra=""):
         out.append('<p class="aviso">⚠ No simulador o personagem morre (hunt aos %s s, boss aos %s s) — com esta '
                    "build a hunt de referencia e demasiado forte a solo; e o que o simulador diz, nao um erro da pagina.</p>"
                    % (h.fmt(m.get("death_at")), h.fmt(m.get("boss_death_at"))))
+    if b["goal"] == "best":
+        out.append(_constraints_block(m))
     out.append(_tree_block(cat, b))
     out.append(_equipment_block(cat, b, root))
     out.append(_helper_block(cat, b, root))
@@ -226,6 +240,42 @@ def render_level_section(cat, b, root, extra=""):
     out.append(_alternatives_block(cat, b))
     out.append("</section>")
     return "".join(out)
+
+
+CONSTRAINT_LABEL = {
+    "survive_pack": "aguenta o pack &gt; 10 min",
+    "survive_boss": "aguenta o boss (60 s do simulador)",
+    "mana": "mana sustentavel",
+    "heal_ally": "cura aliada cobre a pressao do pack sobre o knight",
+}
+
+
+def _constraints_block(m):
+    """As condicoes da build «melhor» e o que o simulador diz de cada uma."""
+    cons = B.best_constraints(m)
+    rows = []
+    for key, frac in cons.items():
+        if key == "mana":
+            if m.get("uses_mana_potions"):
+                detail = ("a mana nao se esgota nos 60 s (com pocoes; custo em «supplies»)" if frac >= 1
+                          else "a mana esgota-se aos %s s mesmo com pocoes" % h.fmt(m.get("mana_empty_at")))
+            else:
+                detail = "gasta %s (rotacao + curas com o pack inteiro) / ganha %s mana/s sem pocoes (cliente: o Helper nao as bebe)" % (
+                    _n(m["full_mana_demand"], 1), _n(m["mana_income"], 1))
+        elif key == "heal_ally":
+            detail = "cura aliada sustentavel %s/s contra %s/s de pressao sobre o knight «melhor» ao mesmo nivel" % (
+                _n(m["hps_friend"]), _n(m["ally_pressure"]))
+        elif key == "survive_boss":
+            detail = "aguenta %s o boss (x1,5 dano), com curas e pocoes" % _seconds(m["survive_boss_s"])
+        else:
+            detail = "aguenta %s com o pack inteiro (%d) em cima, com curas e pocoes; vida minima %s" % (
+                _seconds(m["survive_pack_s"]), m.get("attackers_full") or 0, _n(m["full_hp_min"]))
+        rows.append([CONSTRAINT_LABEL[key], "cumprida" if frac >= 1 else "<b>falha a %s</b>" % _pct(frac * 100, 0), detail])
+    ok = all(f >= 1 for f in cons.values())
+    return ('<div class="cartao"><h4>Condicoes da build «melhor»%s</h4>%s</div>'
+            % ("" if ok else ' <span class="aviso">— nem todas cumpridas: a metrica da build (nao o DPS mostrado) '
+                              'esta cortada por isso; e o melhor que o optimizador encontrou a este nivel</span>',
+               h.table(["condicao", "estado", "o que o simulador diz"], rows)))
 
 
 def _mana_verdict(m):
@@ -269,10 +319,17 @@ def _tree_block(cat, b):
                "porque cada nivel da um ponto — cliente). Um no fechado abre-se com um rank nos vizinhos, "
                "e esses ranks estao na ordem.</p>")
     out.append(h.table(["no", "rank", "ate ao nivel"], rows, numeric=(2,)))
+    savings = [st for st in steps if getattr(st, "saving", None)]
+    if savings:
+        out.append('<p class="mudo">Onde o caminho poupa em vez de comprar pequenos (so quando rende pelo menos '
+                   "%s%% mais do que os mesmos pontos nos outros nos, medidos no simulador ao nivel em que se "
+                   "chega la): %s.</p>" % (_n(B.SAVE_MARGIN * 100), "; ".join(_saving_text(cat, st) for st in savings)))
     if b["next_step"] is not None:
         ns = b["next_step"]
-        out.append('<p class="aviso">O caminho esta a poupar para <b>%s</b> (%s pontos, chega ao nivel %s).</p>'
-                   % (h.esc(_node_name(cat, ns.node_id)), _n(ns.cost), _n(ns.cumulative)))
+        sv = getattr(ns, "saving", None)
+        out.append('<p class="aviso">O caminho esta a poupar para <b>%s</b> (%s pontos, chega ao nivel %s)%s.</p>'
+                   % (h.esc(_node_name(cat, ns.node_id)), _n(ns.cost), _n(ns.cumulative),
+                      (" — " + _saving_text(cat, ns)) if sv else ""))
     if fill:
         out.append('<p class="mudo">Os pontos que sobram a este nivel, gastos agora (atrasam o proximo notable em '
                    "%s niveis): %s.</p>" % (_n(sum(st.cost for st in fill)),
@@ -290,6 +347,18 @@ def _tree_block(cat, b):
         for nid, r in final], numeric=(1, 3)))
     out.append("</details>")
     return "".join(out)
+
+
+def _saving_text(cat, st):
+    """«poupar N niveis (do A ao B) para X rende +Y % face a +Z % de comprar pequenos (…)»."""
+    sv = st.saving
+    alt = {}
+    for nid, rank in sv["alt"]:
+        alt[nid] = rank
+    alt_text = ", ".join("%s %d" % (_node_name(cat, nid), r) for nid, r in alt.items()) or "nada compravel"
+    return h.esc("poupar %d niveis (do %d ao %d) para %s rende %+.1f%% face a %+.1f%% de comprar pequenos (%s)"
+                 % (sv["wait"], sv["from_level"], st.level, _node_name(cat, st.node_id), sv["gain_pct"],
+                    sv["alt_gain_pct"], alt_text)).replace(".", ",")
 
 
 def _effect_text(node):
@@ -602,7 +671,9 @@ def engine_numbers(cat, ref=validation.REFERENCE):
             "tree_points": sum(F.tree_total_cost(cat.node_by_id[k], r) for k, r in ref["tree"].items()),
             "hp_max": prof.hp_max, "mana_max": prof.mana_max, "magic_level": prof.skills["magic"],
             "dps_pack": m["dps_pack"], "dps_boss": m["dps_boss"], "dps_cycle": m["dps_cycle"],
-            "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand"]}
+            # so a rotacao: a conta a mao nao simula as curas (que desde 16/09/2026 acontecem
+            # tambem no perfil de referencia, porque o leech deixou de curar pelas areas)
+            "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand_attacks"]}
 
 
 def validation_rows(cat):
