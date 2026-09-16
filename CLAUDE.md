@@ -39,23 +39,30 @@ formulario local do proprio BaiakVault (ordem 2).
     baiakvault/            pacote Python (stdlib)
       catalog.py           le data/catalogo, indexa por chave, valida contagens e referencias
       schema.sql, db.py    esquema da vault.db (migracoes por PRAGMA user_version) e o Vault: unico sitio que escreve
-      build.py             o gerador: catalogo + vault.db -> docs/
+      build.py             o gerador: catalogo + vault.db (+ motor) -> docs/
       html.py              moldura, menu, tabelas, fmt (None -> «?»)
       notes.py             as notas BiS do canal CharllonLobo, por id de hunt, com o video
+      formulas.py          as formulas do cliente (HP, arvore, feiticos) e as constantes com fonte
+      sim.py               simulador de 60 s (Profile, Target, rotacao, pressao)
+      builds.py            o optimizador: Planner.plan(vocacao, objectivo, nivel[, hunt]) -> a build
+      pages_builds.py      paginas builds/, cartoes print/ e validacao
+      advisor.py           o «proximo passo» de um personagem (puro: catalogo + estado + Planner)
+      serve.py             docs/ + modo de edicao em /editar (unica porta de escrita)
       __main__.py          py -m baiakvault build | check | serve
     data/catalogo/         os JSON do jogo (copia do ai-pc) + bruto/charms.json
     data/vault.db          os dados DELE. Vai no git. So o Vault escreve
+    data/serve.token       token de escrita do serve (nasce no 1.o arranque; fora do git)
     docs/                  o site gerado (Pages serve main:/docs). Com .nojekyll
     scripts/actualizar_catalogo.py   recopia e valida o catalogo a partir do ai-pc
-    tests/                 unittest, sem rede; fixture de personagem de exemplo
+    tests/                 unittest, sem rede; fixtures: personagem.json (1) e personagens.json (1 por vocacao)
     capturas/              Win+Shift+S do Andre (fora do git)
 
 ## Como correr
 
-    py -m baiakvault build          # gera docs/ (< 1 s)
+    py -m baiakvault build          # gera docs/ (~10 s: as 64 builds do Planner; < 1 s sem elas)
     py -m baiakvault check          # valida catalogo + BD; sai != 0 se algo estiver mal
-    py -m baiakvault serve          # serve docs/ em http://127.0.0.1:8774/ (so leitura na ordem 1)
-    py -m unittest discover -s tests
+    py -m baiakvault serve          # docs/ em http://127.0.0.1:8774/ e o modo de edicao em /editar
+    py -m unittest discover -s tests   # ~30 s (o Planner corre uma vez, em helpers.planner())
     py scripts\actualizar_catalogo.py   # quando o jogo actualizar (a extraccao faz-se no ai-pc)
 
 **Portos fixos no PC**: 8770 riftvault, 8771 mtgvault, 8773 o Treinador
@@ -76,7 +83,7 @@ antigo. **O BaiakVault usa o 8774.** Nao se trocam.
 - Comentarios explicam porque, nao o que. Decisoes com data aqui.
 - Sem «None»/«nan»/«undefined» em pagina nenhuma (ha um teste a garantir).
 
-## Esquema da vault.db (v1)
+## Esquema da vault.db (v2)
 
 Chaves sao as dos catalogos e validam-se ao escrever (chave desconhecida =
 `VaultError`, nao insercao). `source` e 'manual' ou 'captura'; NULL onde nao
@@ -85,7 +92,7 @@ escreveu.
 
 | tabela | chave | o que guarda |
 |---|---|---|
-| `characters` | name (unico), slug | vocation, level, current_hunt (hunts.id), vip 0/1, goal damage/tank/sustain, notes |
+| `characters` | name (unico), slug | vocation, level, current_hunt (hunts.id), vip 0/1, goal (v2: damage/tank/heal/support, so os da vocacao), notes |
 | `character_tree` | (character_id, node_key) | rank; node_key = arvore.id (ex. `k_fury`), tem de ser da vocacao do personagem, rank <= maximo |
 | `character_equipment` | (character_id, slot) | item_key = itens.nome em minusculas, item_name, upgrade_level, imbuements_json, attributes_json. Slots do catalogo + `backpack`/`ammo` |
 | `character_charms` | (character_id, charm_key) | tier 1..3, assigned_creature_key (bestiario.chave) |
@@ -119,6 +126,44 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
 - **16/09/2026** — Notas do canal (`notes.py`) sao opiniao, saem sempre com o
   id do video e «nao medido» ao lado. XP/h e gold/h nao existem em fonte
   nenhuma e ficam «?» ate haver leituras.
+- **16/09/2026 (ordem 2-builds)** — As 8 builds pedidas: knight tank|damage,
+  druid heal|damage, sorcerer damage, paladin damage, monk support|damage.
+  Metricas: damage = DPS do ciclo (57 normais + boss x3 HP); tank = EHP x
+  (1 + sustain) x DPS^0,3; heal/support = cura/s sustentavel em 60 s (propria
+  + metade da aliada) x DPS^0,3. Arvore por guloso preguicoso (ganho relativo
+  por ponto, com caminho de desbloqueio); equipamento por slot no simulador
+  entre os 20 candidatos do pre-filtro; rotacao por forca bruta ate 4
+  feiticos. Constantes sem fonte no cliente ficam marcadas «convencao ⚠»
+  (`formulas.CONSTANTS`) e a regen base do servidor e desconhecida (None, nao
+  entra). Os cartoes `print/` sao de proposito autonomos (sem `estilo.css`).
+- **16/09/2026 (ordem 2-personagens)** — **Objectivos por vocacao** (esquema
+  v2): knight `tank`|`damage`, druid `heal`|`damage`, sorcerer `damage`,
+  paladin `damage`, monk `support`|`damage`; omissao = o primeiro (o que ele
+  listou primeiro); `sustain` antigo migra para essa omissao. Mudar de vocacao
+  com um objectivo que deixa de valer repoe a omissao da nova.
+- **16/09/2026** — **Regras do advisor** (`advisor.py`): a referencia e
+  `Planner.plan(voc, goal, nivel exacto, hunt actual)`; cada accao mede-se no
+  simulador **com a arvore e o equipamento dele** (ganho % na metrica do
+  objectivo). Ordem: medido antes de nao medido; entre medidos por ganho %;
+  respec so se a recomendada render >= 5 % com a arvore dele toda gasta, e vale
+  metade (custa gold); charm (0,5) e bestiario (0,25) a seguir; «falta
+  preencher» (max. 2) fecha a lista; max. 7 linhas; ganhos < 0,5 % nao entram.
+  Arvore com pontos por gastar: `builds.next_purchase` (ganho por ponto, com o
+  caminho de desbloqueio na propria sugestao); sem pontos: o que comprar no
+  nivel seguinte. Charms: o tipo do objectivo (damage -> offensive, resto ->
+  defensive), subir um que ja tem antes de abrir outro, depois chance/ponto;
+  so os que cabem nos pontos (senao «juntar pontos para»). Bestiario: «perto de
+  fechar» = faltam <= 30 % da meta. Upgrade desconhecido conta a 0 e diz-se;
+  tier de imbuement desconhecido conta ao minimo e diz-se; mochila nao entra;
+  skill nao registado = o tipico do guia (marcado). O Andre vai querer afinar
+  estes pesos: estao todos em constantes no topo do `advisor.py`.
+- **16/09/2026** — **`serve` como unica porta de escrita**: POST exige sempre
+  o token de `data/serve.token` (a pagina aberta de 127.0.0.1 mete-o nos
+  formularios; de fora escreve-se a mao). Formularios sem JavaScript; em
+  branco = «nao sei» (nao mexe), 0 = afirmacao; arvore e charms gravam-se em
+  bloco, tudo ou nada (`set_tree_nodes`, `replace_charms`); apagar exige o
+  nome exacto. Cada escrita regenera o site sem as paginas das builds
+  (`build(with_builds=False)`, ~1 s), com o `Planner` em memoria.
 
 ## Fontes
 

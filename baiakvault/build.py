@@ -377,7 +377,8 @@ def render_equipment_section(cat, equipment, plan):
         rec = plan_eq.get(e["slot"])
         rows.append([
             h.esc(advisor.SLOT_LABEL.get(e["slot"], e["slot"])),
-            h.esc(e["item_name"] or e["item_key"]) if (e["item_name"] or e["item_key"]) else h.UNKNOWN,
+            # a linha existe sem item: ele disse que o slot esta vazio (nao e «nao sei»)
+            h.esc(e["item_name"] or e["item_key"]) if (e["item_name"] or e["item_key"]) else '<span class="mudo">vazio</span>',
             h.fmt(item.get("nivel")),
             h.fmt(e["upgrade_level"]),
             (h.esc(", ".join(str(x) for x in imb)) if imb else '<span class="mudo">nenhum</span>')
