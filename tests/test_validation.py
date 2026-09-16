@@ -31,15 +31,18 @@ class HandVsEngine(unittest.TestCase):
             self.assertTrue(ok, "%s: a mao %s, simulador %s (%s %%)" % (label, hand, engine, diff))
 
     def test_hand_numbers_match_the_page_of_2026_09_16(self):
-        # os numeros que builds/sorcerer-damage.html publicava ao nivel 50 a 16/09/2026
+        # os numeros que builds/sorcerer-damage.html publicava ao nivel 50 a 16/09/2026 (manha);
+        # desde a ordem 7 (tarde) o dano leva o factor da IA de combate: sem ranks de Battle
+        # Tactics ao nivel 50 a chance de decisao perfeita e 50 % -> factor 0,8 (convencao 60 %)
         hand = dict((k, a) for k, _, a, _, _, _ in self.rows)
+        self.assertAlmostEqual(hand["ai_quality"], 0.8)
         self.assertEqual(round(hand["heal_per_cast"]), 446)
         self.assertEqual(hand["tree_points"], 50)
         self.assertEqual(round(hand["hp_max"]), 350)
         self.assertEqual(round(hand["mana_max"]), 1622)
-        self.assertEqual(round(hand["dps_pack"]), 487)
-        self.assertEqual(round(hand["dps_boss"]), 168)
-        self.assertEqual(round(hand["dps_cycle"]), 427)
+        self.assertEqual(round(hand["dps_pack"]), 390)   # 487 x 0,8
+        self.assertEqual(round(hand["dps_boss"]), 135)   # 168,x x 0,8
+        self.assertEqual(round(hand["dps_cycle"]), 342)  # 427 x 0,8
 
     def test_compare_flags_a_difference_instead_of_hiding_it(self):
         hand = validation.hand_calculation(self.cat)
@@ -62,7 +65,7 @@ class HandVsEngine(unittest.TestCase):
         self.assertNotIn("DIFERENTE", md)
         self.assertNotIn("por preencher", md)
         # uma linha por build e nivel, com a curva do guia ao lado
-        self.assertEqual(md.count("| x"), 64)
+        self.assertEqual(md.count("| x"), 104)   # 13 builds x 8 niveis
         self.assertAlmostEqual(validation.guide_dps(100), 7.012 * 100 ** 0.948, places=6)
         self.assertIsNone(FORBIDDEN.search(md))
         html = pages_builds.render_validation(md, "2026-09-16 12:00:00")

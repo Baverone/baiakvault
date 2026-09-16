@@ -15,6 +15,8 @@ Cada numero que sai daqui tem uma fonte em `formulas.py`. O que la esta como
 bichos uma area apanha, a regen base desconhecida) e o que torna estes
 numeros uma estimativa e nao uma medicao — a pagina diz isso.
 """
+import copy
+
 from . import formulas as F
 
 ELEMENTS = F.ELEMENTS
@@ -187,6 +189,11 @@ class Profile:
         self.skills = base
         self.bonuses = bon
         self.specials = specials
+        # a IA de combate (cliente u4e): nivel + ranks de Battle Tactics -> chance de
+        # decisao perfeita; o que uma imperfeita vale e convencao (F.TACTICS_IMPERFECT_FACTOR)
+        self.tactics = F.battle_tactics(level, specials.get("tactics", 0))
+        self.ai_quality = F.tactics_quality(self.tactics["aim_chance"])
+        self.ai_taken = F.tactics_taken(self.tactics["aim_chance"])
 
         shield = (self.equipment.get("shield") or {}).get("item")
         ammo = (self.equipment.get("ammo") or {}).get("item")
@@ -248,7 +255,7 @@ class Profile:
         """Dano medio de um golpe `base` do elemento contra `resist` {el: %}."""
         bon = self.bonuses
         pierce = self.specials.get("element_pierce", 0.0)
-        mult = self.crit()
+        mult = self.crit() * self.ai_quality   # a mira da IA pesa em todo o dano que sai
         if is_spell:
             mult *= 1 + bon["spellDmgPct"] / 100.0
         if self.specials.get("execute"):
@@ -367,6 +374,15 @@ class Target:
         return max(ELEMENTS, key=lambda el: self.incoming[el])
 
 
+def with_ally(target, ally_pressure):
+    """O mesmo alvo com a pressao do pack sobre o knight da party (`ally_pressure`,
+    dano/s mitigado): e o que a cura aliada do druid «best» tem de cobrir. Copia
+    rasa — os alvos partilham-se entre builds."""
+    out = copy.copy(target)
+    out.ally_pressure = ally_pressure
+    return out
+
+
 def creature_pressure(creature):
     """Dano/s e maior golpe por elemento de UM monstro, pela conta do cliente
     (K0e): dano base medio / 2 s + habilidades media x chance / intervalo."""
@@ -414,7 +430,9 @@ def pressure(profile, target, boss=False, attackers=1):
     mit = mitigation(profile, target, boss)
     inc = target.boss_incoming if boss else target.incoming
     mx = target.boss_max_hit if boss else target.max_hit
-    dps_in = sum(inc[el] * mit[el] for el in ELEMENTS) * attackers
+    # o posicionamento da IA (Battle Tactics) pesa no dano/s que entra — convencao
+    # simetrica da do dano que sai (F.tactics_taken); o maior golpe nao muda
+    dps_in = sum(inc[el] * mit[el] for el in ELEMENTS) * attackers * profile.ai_taken
     max_hit = max(mx[el] * mit[el] for el in ELEMENTS)
     return dps_in, max_hit, mit
 
@@ -444,10 +462,10 @@ def heal_spells(profile, friend=False):
             and (bool(s.get("alvo_da_cura")) == friend)]
 
 
-def spell_targets(spell, pack, boss):
+def spell_targets(spell, pack, boss, search_radius=1):
     if boss or spell["tipo"] != "area":
         return 1
-    return F.area_targets(spell.get("raio"), pack)
+    return F.area_targets(spell.get("raio"), pack, search_radius)
 
 
 def spell_damage(profile, spell, target, boss):
@@ -468,7 +486,7 @@ def _spell_damage(profile, spell, target, boss):
     element = F.spell_element(spell["palavras"])
     resist = target.boss_resist if boss else target.resist
     one = profile.hit_vs(base, element, resist, is_spell=True)
-    n = spell_targets(spell, target.pack, boss)
+    n = spell_targets(spell, target.pack, boss, profile.tactics["cast_search_radius"])
     chain = spell.get("cadeia")
     if chain and not boss:
         n = max(n, min(target.pack, int(chain.get("targets") or 1)))
@@ -520,6 +538,7 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
     hp_potions = mana_potions = 0
     gold = 0.0
     mana_spent = 0.0
+    mana_attacks = 0.0   # so a rotacao (sem as curas): e o que a validacao a mao confere
     mana_min = mana
     hp_min = hp
     empty_at = None
@@ -532,8 +551,13 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
         if not sp.get("formula_dano"):
             continue
         skip = sp["tipo"] == "area" and not boss and cat_pack < slot.min_mobs
+        # o roubo de vida/mana so vale no ataque normal e nas magias de alvo unico
+        # (`strike`), nunca nas areas — e o que o cliente diz nos textos dos charms
+        # Vampiric Embrace / Void's Call (ver LEECH_SCOPE); ate 16/09/2026 creditava-se
+        # a todo o dano e o knight «sustentava» 125 mana/s de Fierce Berserk
         slots.append((len(slots), sp["palavras"], sp["mana"], max(1, int(round(sp["cooldown_ms"] / 1000.0))),
-                      spell_damage(profile, sp, target, boss), sp.get("custo_gold") or 0, skip))
+                      spell_damage(profile, sp, target, boss), sp.get("custo_gold") or 0, skip,
+                      sp["tipo"] == "strike"))
     n_slots = len(slots)
     cd_ready = [0] * n_slots
     n_casts = [0] * n_slots
@@ -559,6 +583,9 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
     hp_pot_cost = hp_pot["cost"] if hp_pot else 0
     mana_pot_mana = (mana_pot.get("mana") or 0) if mana_pot else 0
     mana_pot_cost = mana_pot["cost"] if mana_pot else 0
+    leech_dealt = 0.0   # a parte do dano que rouba vida/mana: ataque normal + strikes
+    mid = int(seconds) // 2
+    hp_mid = hp
     for t in range(int(seconds)):
         # o que entra e o que regenera neste segundo
         hp += hp_regen - dps_in
@@ -570,23 +597,28 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
                 mana -= auto_mana_per_s
             else:
                 dealt_now = 0.0
+        leech_now = dealt_now
         # feiticos de ataque, por prioridade, um por cooldown de grupo
         if t >= gcd_attack:
-            for i, words, cost, cd, dmg, gold_cost, skip in slots:
+            for i, words, cost, cd, dmg, gold_cost, skip, leeches in slots:
                 if skip or cd_ready[i] > t or mana < cost:
                     continue
                 mana -= cost
                 mana_spent += cost
+                mana_attacks += cost
                 cd_ready[i] = t + cd
                 gcd_attack = t + gcd_attack_s
                 n_casts[i] += 1
                 cast_log.append((t, words))
                 dealt_now += dmg
+                if leeches:
+                    leech_now += dmg
                 gold += gold_cost
                 break
         dealt += dealt_now
-        hp += dealt_now * life_leech
-        mana += dealt_now * mana_leech
+        leech_dealt += leech_now
+        hp += leech_now * life_leech
+        mana += leech_now * mana_leech
         # cura propria
         if heal_spell and t >= gcd_heal and hp < heal_below and heal_ready <= t and mana >= heal_mana:
             mana -= heal_mana
@@ -631,20 +663,38 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
             empty_at = t
         if hp <= 0 and death_at is None:
             death_at = t
-    for i, words, cost, cd, dmg, gold_cost, skip in slots:
+        if t == mid:
+            hp_mid = hp   # para extrapolar a tendencia da vida na 2.a metade (best_constraints)
+    for i, words, cost, cd, dmg, gold_cost, skip, leeches in slots:
         if n_casts[i]:
             casts[words] = n_casts[i]
     if heal_casts:
         casts[heal_spell["palavras"]] = heal_casts
-    income = mp_regen + (dealt / seconds) * mana_leech
+    income = mp_regen + (leech_dealt / seconds) * mana_leech
     return SimResult(
         seconds=seconds, boss=boss, dps=dealt / seconds, dealt=dealt, casts=casts, cast_log=cast_log,
-        healed=healed, hps=healed / seconds, hp_min=hp_min, hp_end=hp, hp_max=hp_max, death_at=death_at,
+        leech_dps=leech_dealt / seconds, leech_hps=(leech_dealt / seconds) * life_leech,
+        healed=healed, hps=healed / seconds, hp_min=hp_min, hp_end=hp, hp_mid=hp_mid, hp_max=hp_max, death_at=death_at,
+        attackers=attackers,
         mana_end=mana, mana_min=mana_min, mana_max=mana_max, mana_spent=mana_spent,
-        mana_demand=mana_spent / seconds, mana_income=income, mana_empty_at=empty_at,
+        mana_demand=mana_spent / seconds, mana_demand_attacks=mana_attacks / seconds, mana_income=income,
+        mana_empty_at=empty_at,
         hp_potions=hp_potions, mana_potions=mana_potions, gold=gold, gold_per_hour=gold * 3600.0 / seconds,
         pressure=dps_in, max_hit=max_hit, auto_dps=auto_per_s,
     )
+
+
+def time_to_death(result, cap=600.0):
+    """Quanto tempo o simulador diz que se aguenta, a partir dos 60 s com curas
+    e pocoes: morreu = quando; a vida estavel ou a subir na 2.a metade = o tecto
+    («> 10 min»); a descer = extrapola-se a tendencia da 2.a metade."""
+    if result.death_at is not None:
+        return float(result.death_at)
+    half = result.seconds / 2.0
+    slope = (result.hp_mid - result.hp_end) / half   # vida perdida por segundo na 2.a metade
+    if slope <= 1e-9:
+        return cap
+    return min(cap, result.seconds + result.hp_end / slope)
 
 
 def cycle_dps(dps_pack, dps_boss, target):

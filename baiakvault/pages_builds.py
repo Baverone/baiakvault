@@ -104,14 +104,20 @@ def _drop_sources(cat, item, root):
 def render_index(cat, plans, generated_at):
     root = "../"
     parts = ["<h1>Builds</h1>",
-             '<p class="mudo">As oito builds pedidas a 16/09/2026: vocacao + objectivo, para qualquer '
-             "nivel (aqui os representativos). Cada uma tem a arvore por ordem de compra, o equipamento "
-             "BiS por slot, a rotacao para o Helper e os numeros do simulador. <b>Os numeros sao "
+             '<p class="mudo">Primeiro a build <b>melhor</b> de cada vocacao (pedido de 16/09/2026): o maior '
+             "DPS do ciclo na hunt de referencia que aguenta o pack e o boss (&gt; 10 min) com a mana "
+             "sustentavel — knight e monk sem pocoes de mana (cliente), mages com o custo em gold a vista; "
+             "o druid ainda com a cura ao knight da party garantida. Depois as oito builds por objectivo. "
+             "Tudo para qualquer nivel (aqui os representativos): arvore por ordem de compra, equipamento "
+             "BiS por slot, rotacao para o Helper e numeros do simulador. <b>Os numeros sao "
              "estimativas</b>: as formulas dos feiticos e da arvore sao as do cliente do jogo; o resto "
              'vem do guia ou e convencao nossa, e esta marcado (ver a seccao «Fontes» de cada build e a '
              '<a href="validacao.html">validacao cruzada</a>).</p>']
+    first_by_goal = next(b for b in B.BUILDS if b[1] != "best")
     for voc, goal in B.BUILDS:
         s = slug(voc, goal)
+        if (voc, goal) == first_by_goal:
+            parts.append('<h2 class="separador">As builds por objectivo</h2>')
         parts.append('<h2><a href="%s.html">%s</a></h2>' % (s, h.esc(title(voc, goal))))
         rows = []
         for level in B.LEVELS:
@@ -140,6 +146,8 @@ def render_index(cat, plans, generated_at):
                  "(«&gt; 10 min» quando o leech cobre a pressao). <b>mana/s</b>: o que a rotacao gasta contra o que "
                  "o leech e os itens repoem — a regeneracao base do servidor nao esta em fonte nenhuma e conta a "
                  "zero, por isso «gasta &gt; ganha» quer dizer «depende de regen/pocoes», nao «impossivel». "
+                 "O roubo de vida e de mana so conta no ataque normal e nas magias de alvo unico, nunca nas "
+                 "areas (cliente: texto dos charms Vampiric Embrace / Void's Call). "
                  "<b>supplies</b>: pocoes que o Helper beberia com estes limiares, em gold por hora.</p></div>")
     parts.append(h.source_line("simulador do BaiakVault (formulas do cliente + guia + convencoes marcadas)", cat.seen_at()))
     return h.page("Builds — BaiakVault", "".join(parts), root=root, here="builds", generated_at=generated_at)
@@ -174,6 +182,10 @@ def render_build(cat, vocation, goal, plans_by_level, generated_at, extra_by_lev
 
 def _metric_text(goal):
     return {
+        "best": "DPS efectivo no ciclo (57 normais + boss x3 HP) sujeito a aguentar o pack (> 10 min) e o boss "
+                "e a sustentar a mana (knight/monk sem pocoes; os outros sem esgotar a mana); no druid, a cura "
+                "aliada sustentavel tem de cobrir a pressao do pack sobre o knight «melhor» da party. Cada "
+                "condicao falhada corta o DPS pela fraccao em que falha, ao quadrado",
         "damage": "DPS efectivo no ciclo (57 normais + boss x3 HP)",
         "tank": "EHP com o pack em cima x sustain (leech ate cobrir a pressao) x DPS^0,3",
         "heal": "cura/s sustentavel em 60 s (propria + metade da aliada) x DPS^0,3",
@@ -205,6 +217,7 @@ def render_level_section(cat, b, root, extra=""):
         ("supplies (hunt / boss)", "%s / %s gold/h — %d pocoes de vida e %d de mana por minuto"
          % (h.kk(m["gold_per_hour"]), h.kk(m["boss_gold_per_hour"]), m["hp_potions"], m["mana_potions"])),
         ("skills assumidos", _skills_text(prof)),
+        ("tactica (IA de combate)", _tactics_text(prof)),
     ]) + "</div>")
     if target.resist_fallback or target.resist_unknown:
         bits = []
@@ -219,6 +232,8 @@ def render_level_section(cat, b, root, extra=""):
         out.append('<p class="aviso">⚠ No simulador o personagem morre (hunt aos %s s, boss aos %s s) — com esta '
                    "build a hunt de referencia e demasiado forte a solo; e o que o simulador diz, nao um erro da pagina.</p>"
                    % (h.fmt(m.get("death_at")), h.fmt(m.get("boss_death_at"))))
+    if b["goal"] == "best":
+        out.append(_constraints_block(m))
     out.append(_tree_block(cat, b))
     out.append(_equipment_block(cat, b, root))
     out.append(_helper_block(cat, b, root))
@@ -226,6 +241,69 @@ def render_level_section(cat, b, root, extra=""):
     out.append(_alternatives_block(cat, b))
     out.append("</section>")
     return "".join(out)
+
+
+CONSTRAINT_LABEL = {
+    "survive_pack": "aguenta o pack &gt; 10 min",
+    "survive_boss": "aguenta o boss (60 s do simulador)",
+    "mana": "mana sustentavel",
+    "heal_ally": "cura aliada cobre a pressao do pack sobre o knight",
+}
+
+
+def _constraints_block(m):
+    """As condicoes da build «melhor» e o que o simulador diz de cada uma."""
+    cons = B.best_constraints(m)
+    rows = []
+    for key, frac in cons.items():
+        if key == "mana":
+            if m.get("uses_mana_potions"):
+                detail = ("a mana nao se esgota nos 60 s (com pocoes; custo em «supplies»)" if frac >= 1
+                          else "a mana esgota-se aos %s s mesmo com pocoes" % h.fmt(m.get("mana_empty_at")))
+            else:
+                detail = "gasta %s (rotacao + curas com o pack inteiro) / ganha %s mana/s sem pocoes (cliente: o Helper nao as bebe)" % (
+                    _n(m["full_mana_demand"], 1), _n(m["mana_income"], 1))
+        elif key == "heal_ally":
+            detail = "cura aliada sustentavel %s/s contra %s/s de pressao sobre o knight «melhor» ao mesmo nivel" % (
+                _n(m["hps_friend"]), _n(m["ally_pressure"]))
+        elif key == "survive_boss":
+            detail = "aguenta %s o boss (x1,5 dano), com curas e pocoes" % _seconds(m["survive_boss_s"])
+        else:
+            detail = "aguenta %s com o pack inteiro (%d) em cima, com curas e pocoes; vida minima %s" % (
+                _seconds(m["survive_pack_s"]), m.get("attackers_full") or 0, _n(m["full_hp_min"]))
+        rows.append([CONSTRAINT_LABEL[key], "cumprida" if frac >= 1 else "<b>falha a %s</b>" % _pct(frac * 100, 0), detail])
+    ok = all(f >= 1 for f in cons.values())
+    return ('<div class="cartao"><h4>Condicoes da build «melhor»%s</h4>%s</div>'
+            % ("" if ok else ' <span class="aviso">— nem todas cumpridas: a metrica da build (nao o DPS mostrado) '
+                              'esta cortada por isso; e o melhor que o optimizador encontrou a este nivel</span>',
+               h.table(["condicao", "estado", "o que o simulador diz"], rows)))
+
+
+def tactics_summary(prof):
+    """«Tactica: nivel N · X % (raio Y)» com o no e sem ele — o painel do personagem
+    mostra o mesmo (cliente u4e); o que uma decisao imperfeita vale e convencao."""
+    ranks = prof.specials.get("tactics", 0)
+    with_node = prof.tactics
+    without = F.battle_tactics(prof.level, 0)
+    return {"ranks": ranks, "with": with_node, "without": without,
+            "quality_with": prof.ai_quality, "quality_without": F.tactics_quality(without["aim_chance"])}
+
+
+def _tactics_text(prof):
+    t = tactics_summary(prof)
+    w, o = t["with"], t["without"]
+    text = "Tactica: nivel %d · <b>%s</b> (raio %d)" % (w["tier"], _pct(w["aim_chance"] * 100, 1), w["cast_search_radius"])
+    if t["ranks"]:
+        text += (" com Battle Tactics %d; sem o no: nivel %d · %s (raio %d)"
+                 % (t["ranks"], o["tier"], _pct(o["aim_chance"] * 100, 1), o["cast_search_radius"]))
+    else:
+        text += " (sem ranks de Battle Tactics)"
+    text += (' <small class="mudo">— chance de decisao perfeita da IA (cliente u4e); uma imperfeita rende %s do dano '
+             "e apanha o que a perfeita evitaria (convencao ⚠): factor %s no dano%s; kite infinito %s</small>"
+             % (_pct(F.TACTICS_IMPERFECT_FACTOR * 100), ("%.3f" % t["quality_with"]).replace(".", ","),
+                (" (%s sem o no)" % ("%.3f" % t["quality_without"]).replace(".", ",")) if t["ranks"] else "",
+                "sim" if w["infinite_kite"] else "nao (tier 3 destrava)"))
+    return text
 
 
 def _mana_verdict(m):
@@ -269,10 +347,17 @@ def _tree_block(cat, b):
                "porque cada nivel da um ponto — cliente). Um no fechado abre-se com um rank nos vizinhos, "
                "e esses ranks estao na ordem.</p>")
     out.append(h.table(["no", "rank", "ate ao nivel"], rows, numeric=(2,)))
+    savings = [st for st in steps if getattr(st, "saving", None)]
+    if savings:
+        out.append('<p class="mudo">Onde o caminho poupa em vez de comprar pequenos (so quando rende pelo menos '
+                   "%s%% mais do que os mesmos pontos nos outros nos, medidos no simulador ao nivel em que se "
+                   "chega la): %s.</p>" % (_n(B.SAVE_MARGIN * 100), "; ".join(_saving_text(cat, st) for st in savings)))
     if b["next_step"] is not None:
         ns = b["next_step"]
-        out.append('<p class="aviso">O caminho esta a poupar para <b>%s</b> (%s pontos, chega ao nivel %s).</p>'
-                   % (h.esc(_node_name(cat, ns.node_id)), _n(ns.cost), _n(ns.cumulative)))
+        sv = getattr(ns, "saving", None)
+        out.append('<p class="aviso">O caminho esta a poupar para <b>%s</b> (%s pontos, chega ao nivel %s)%s.</p>'
+                   % (h.esc(_node_name(cat, ns.node_id)), _n(ns.cost), _n(ns.cumulative),
+                      (" — " + _saving_text(cat, ns)) if sv else ""))
     if fill:
         out.append('<p class="mudo">Os pontos que sobram a este nivel, gastos agora (atrasam o proximo notable em '
                    "%s niveis): %s.</p>" % (_n(sum(st.cost for st in fill)),
@@ -290,6 +375,18 @@ def _tree_block(cat, b):
         for nid, r in final], numeric=(1, 3)))
     out.append("</details>")
     return "".join(out)
+
+
+def _saving_text(cat, st):
+    """«poupar N niveis (do A ao B) para X rende +Y % face a +Z % de comprar pequenos (…)»."""
+    sv = st.saving
+    alt = {}
+    for nid, rank in sv["alt"]:
+        alt[nid] = rank
+    alt_text = ", ".join("%s %d" % (_node_name(cat, nid), r) for nid, r in alt.items()) or "nada compravel"
+    return h.esc("poupar %d niveis (do %d ao %d) para %s rende %+.1f%% face a %+.1f%% de comprar pequenos (%s)"
+                 % (sv["wait"], sv["from_level"], st.level, _node_name(cat, st.node_id), sv["gain_pct"],
+                    sv["alt_gain_pct"], alt_text)).replace(".", ",")
 
 
 def _effect_text(node):
@@ -378,7 +475,15 @@ def _codex_sets(cat, b):
     return out
 
 
-def _helper_block(cat, b, root):
+def _excluded_text(hc):
+    """A linha «beams: so no boss» (regra do Andre) e o que ficou fora da rotacao de hunt e porque."""
+    bits = ["beams: so no boss (decisao do Andre, 16/09/2026)"]
+    for name, words, why in hc.get("hunt_excluded") or ():
+        bits.append("%s (%s): fora da hunt — %s" % (name, words, why))
+    return '<p class="mudo"><small>%s.</small></p>' % h.esc("; ".join(bits))
+
+
+def _helper_block(cat, b, root, print_link=True):
     hc = b["helper"]
     prof = b["profile"]
     m = b["metrics"]
@@ -413,7 +518,8 @@ def _helper_block(cat, b, root):
         ("Potion de mana · Beber abaixo de (% de mana)",
          ("<b>%s</b> a <b>%d%%</b> <small class=\"mudo\">(padrao do jogo, wiki)</small>" % (h.esc(hc["mana_potion"]), hc["mana_below"]))
          if hc["mana_potion"] else '<span class="mudo">nao bebe (cliente: usesManaPotions=false)</span>'),
-        ("Magias de Ataque — Rotação (ordem = prioridade · ≥N = mín. de mobs)", h.table(["slot", "magia", "≥N"], rot_rows)),
+        ("Magias de Ataque — Rotação (ordem = prioridade · ≥N = mín. de mobs)",
+         h.table(["slot", "magia", "≥N"], rot_rows) + _excluded_text(hc)),
         ("Posição de ataque / Distância do alvo", "%s · <b>%d tile%s</b> <small class=\"mudo\">[canal: EK «nao fazer nada»+menor vida; mages «mais perto» 3 tiles]</small>"
          % (h.esc(hc["position"]), hc["distance"], "s" if hc["distance"] != 1 else "")),
         ("Escudo mágico", ("<b>Mantém utamo vita sempre ativo</b>; Renovar escudo: <b>10%</b> <small class=\"mudo\">[canal 8HFN4cgQW1A]</small>"
@@ -434,8 +540,61 @@ def _helper_block(cat, b, root):
         ("numeros", "DPS %s, maior golpe do boss %s, mana %s" % (_n(m["dps_boss"]), _n(m["boss_max_hit"]),
                                                                  ("esgota aos %d s" % m["boss_mana_empty_at"]) if m["boss_mana_empty_at"] is not None else "aguenta os 60 s")),
     ]) + rune_note + "</div>")
-    out.append('<p><a href="%sprint/helper-%s-%d.html">cartao para copiar (390 px)</a></p>'
-               % (root, slug(prof.vocation, b["goal"]), b["level"]))
+    if print_link:
+        out.append('<p><a href="%sprint/helper-%s-%d.html">cartao para copiar (390 px)</a></p>'
+                   % (root, slug(prof.vocation, b["goal"]), b["level"]))
+    return "".join(out)
+
+
+# As quatro pranchas do canal (video h8KqkibxfOc): opiniao, citada. Uma prancha por
+# rank de Battle Tactics; a prancha so decide ONDE (cliente).
+CANAL_BOARDS = (("encerramento", "fechar o pack: todos colados ao alvo para as areas apanharem tudo"),
+                ("UE", "a party junta no centro para o Ultimate Explosion/areas grandes apanharem o pack inteiro"),
+                ("waves", "em linha atras do tank para os waves/beams cobrirem a frente"),
+                ("main", "a posicao de sempre: tank a frente, mages e paladin a 3 tiles"))
+BOARDS_VIDEO = "h8KqkibxfOc"
+
+
+def render_tactics_block(cat, hunt, plans):
+    """O bloco «Tacticas» de uma hunt: pranchas = ranks de Battle Tactics de cada
+    personagem, o que uma prancha decide (so posicao — cliente) e as quatro do canal."""
+    rows = []
+    for c, b in plans:
+        ranks = b["profile"].specials.get("tactics", 0)
+        t = b["profile"].tactics
+        rows.append([h.esc(c["name"]), "%d" % ranks, "nivel %d · %s (raio %d)" % (t["tier"], _pct(t["aim_chance"] * 100, 1), t["cast_search_radius"]),
+                     "sim" if t["infinite_kite"] else "nao"])
+    out = ["<h3>Tacticas (pranchas)</h3>",
+           '<p class="mudo">Cliente: «Uma prancha por ponto de Battle Tactics … Nunca decide magia, cura nem '
+           "pocao: so ONDE»; «cada rank vale +100 niveis de IA e afia a CHANCE de jogar perfeito — mira, "
+           "posicionamento e reacao (nivel 3 de tatica destrava o kite infinito sem tank)». As pranchas que "
+           "tem sao os ranks de Battle Tactics na arvore registada (build recomendada quando a dele nao esta).</p>"]
+    if rows:
+        out.append(h.table(["personagem", "pranchas (ranks)", "tactica", "kite infinito"], rows))
+    pack = int(hunt.get("max_vivos") or 1)
+    suggested = "UE + main" if pack >= 4 else "main"
+    out.append('<p>As quatro pranchas do canal [%s]: %s. Para esta hunt (%d vivos): <b>%s</b>. '
+               '<b>Exportar as pranchas actuais antes de importar</b> as do canal — a importacao substitui.'
+               '<br><small class="mudo">opiniao do canal CharllonLobo, nao medida</small></p>'
+               % (BOARDS_VIDEO, "; ".join("<b>%s</b> — %s" % (h.esc(n), h.esc(d)) for n, d in CANAL_BOARDS), pack, suggested))
+    return "".join(out)
+
+
+def render_hunt_helper(cat, hunt, plans, root):
+    """Na pagina da hunt: o Helper (rotacao hunt/boss, cura, pocoes) de cada
+    personagem dele que a tem como actual, com as etiquetas do jogo, e as Tacticas."""
+    out = ["<h2>Helper e Tacticas nesta hunt</h2>"]
+    if not plans:
+        out.append('<p class="mudo">O bloco do Helper por vocacao aparece aqui quando um personagem tiver esta '
+                   "hunt como actual (a rotacao e por nivel e equipamento, calcula-se por personagem). "
+                   'As builds genericas estao em <a href="%sbuilds/index.html">Builds</a>.</p>' % root)
+    for c, b in plans:
+        out.append('<h3>%s — %s nivel %d (build recomendada %s)</h3>'
+                   % (h.esc(c["name"]), h.esc(VOCATION_LABEL.get(b["vocation"], b["vocation"])), b["level"],
+                      h.esc(B.GOAL_LABEL.get(b["goal"], b["goal"]))))
+        out.append(_helper_block(cat, b, root, print_link=False))   # o cartao so existe nos niveis representativos
+        out.append('<p class="mudo"><small>%s</small></p>' % _tactics_text(b["profile"]))
+    out.append(render_tactics_block(cat, hunt, plans))
     return "".join(out)
 
 
@@ -508,6 +667,8 @@ def render_print(cat, b, generated_at):
                   ("Potion de vida", "%s · beber abaixo de %d%%" % (h.esc(hc["hp_potion"]), hc["hp_below"])),
                   ("Potion de mana", ("%s · beber abaixo de %d%%" % (h.esc(hc["mana_potion"]), hc["mana_below"])) if hc["mana_potion"] else "nenhuma")]),
             "<h2>Magias de Ataque — Hunt (ordem = prioridade)</h2><ol>%s</ol>" % rot,
+            "<small>beams so no boss (Andre, 16/09/2026)%s</small>"
+            % "".join("; %s fora: %s" % (h.esc(n), h.esc(why.split(":")[0])) for n, w, why in hc.get("hunt_excluded") or ()),
             "<h2>Magias de Ataque — Boss</h2><ol>%s</ol>" % boss,
             "<h2>Posição de ataque</h2>",
             h.kv([("Hunt", "%s · %d tile%s" % (h.esc(hc["position"]), hc["distance"], "s" if hc["distance"] != 1 else "")),
@@ -602,7 +763,9 @@ def engine_numbers(cat, ref=validation.REFERENCE):
             "tree_points": sum(F.tree_total_cost(cat.node_by_id[k], r) for k, r in ref["tree"].items()),
             "hp_max": prof.hp_max, "mana_max": prof.mana_max, "magic_level": prof.skills["magic"],
             "dps_pack": m["dps_pack"], "dps_boss": m["dps_boss"], "dps_cycle": m["dps_cycle"],
-            "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand"]}
+            # so a rotacao: a conta a mao nao simula as curas (que desde 16/09/2026 acontecem
+            # tambem no perfil de referencia, porque o leech deixou de curar pelas areas)
+            "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand_attacks"], "ai_quality": prof.ai_quality}
 
 
 def validation_rows(cat):
@@ -665,6 +828,27 @@ def validation_markdown(cat, plans, rows=None):
             "| o que | guia | cliente | o que se segue |", "|---|---|---|---|"]
     for what, guide, client, follow in validation.DISAGREEMENTS:
         out.append("| %s | %s | %s | %s |" % (what, guide, client, follow))
+    out += ["", "## 4. A IA de combate (Battle Tactics): o que e cliente e o que e convencao", "",
+            "O cliente calcula a IA em `u4e(nivel, ranks)`: `a = floor(nivel/100)`; `tier = a + ranks`; "
+            "`qp = min(10, 0,5 x a) + min(10, ranks)`; **chance de decisao perfeita** = `min(1, 0,5 + 0,025 x qp)` "
+            "(e o «Tactica: nivel N · X %» do painel); **raio de procura dos casts** = `min(1 + floor(qp/7), 3)`; "
+            "reposicionamento minimo = `max(4000, 5000 - 50 x qp)` ms; kite infinito a partir do tier 3. "
+            "Texto do cliente: «cada rank vale +100 niveis de IA e afia a CHANCE de jogar perfeito — mira, "
+            "posicionamento e reacao»; sobre as pranchas: «Nunca decide magia, cura nem pocao: so ONDE».", "",
+            "| o que | valor | fonte |", "|---|---|---|",
+            "| chance de decisao perfeita | 0,5 + 0,025 x qp (tecto 1) | cliente `u4e` |",
+            "| raio de procura dos casts | 1 + floor(qp/7), tecto 3 | cliente `u4e` |",
+            "| o que uma decisao imperfeita rende | %s do dano de uma perfeita; o dano recebido x (1 + %s x imperfeitas) | **convencao ⚠** (`formulas.TACTICS_IMPERFECT_FACTOR`) |"
+            % (_md_num(F.TACTICS_IMPERFECT_FACTOR * 100, 0) + " %", _md_num((1 - F.TACTICS_IMPERFECT_FACTOR), 1)),
+            "| raio de procura -> alvos das areas | soma-se ao raio da magia (raio 1 = 3 alvos, 2 = 5, 3+ = o pack) | **convencao ⚠** (`formulas.TACTICS_RADIUS_TO_TARGETS`) |",
+            "", "| nivel | sem o no | Battle Tactics 5 | Battle Tactics 10 |", "|---|---|---|---|"]
+    for level in B.LEVELS:
+        cells = []
+        for ranks in (0, 5, 10):
+            t = F.battle_tactics(level, ranks)
+            cells.append("%s %% (raio %d, factor %s)" % (_md_num(t["aim_chance"] * 100, 1), t["cast_search_radius"],
+                                                       _md_num(F.tactics_quality(t["aim_chance"]), 3)))
+        out.append("| %d | %s |" % (level, " | ".join(cells)))
     out += ["", "Fontes: guia = `guiabaiakidle.com` (planner, lido a 16/09/2026); cliente = bundle publico "
             "`index-DnzxFejS.js` (09/09/2026). Nada disto foi medido na conta.", ""]
     return "\n".join(out)

@@ -36,7 +36,8 @@ PRINT_NEIGHBOURS = 5
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
-GOAL_LABEL = {"damage": "dano", "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
+GOAL_LABEL = {"best": "melhor (DPS que aguenta e sustenta a mana)", "damage": "dano",
+              "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
 INDEX_WARNING = ("Os indices de XP e de loot sao a conta que o proprio jogo faz para ordenar "
                  "as hunts: <b>XP por ponto de vida a abater — eficiencia, nao XP/h</b>. Uma hunt "
                  "de bichos gordos rende pouco no indice e muito por kill. XP/h e gold/h "
@@ -99,10 +100,14 @@ def render_index(cat, characters, generated_at, advice_by_slug=None):
                 ])))
         parts.append("</div>")
     parts.append("<h2>Atalhos</h2>")
-    parts.append('<ul><li><a href="builds/index.html">Builds</a> — as 8 builds (vocacao + objectivo) por nivel: '
+    best_links = " · ".join('<a href="builds/%s-best.html">%s</a>' % (voc, h.esc(VOCATION_LABEL[voc]))
+                            for voc, goal in builds_module.BUILDS if goal == "best")
+    parts.append('<ul><li><a href="builds/index.html">Builds</a> — a build <b>melhor</b> de cada vocacao (%s): '
+                 "o maior DPS do ciclo que aguenta o pack e o boss e sustenta a mana, por nivel — "
                  "arvore por ordem de compra, equipamento BiS, rotacao do Helper e numeros do simulador; "
-                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>'
-                 '<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
+                 "as 8 builds por objectivo (dano, tank, cura, support) ficam la tambem; "
+                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>' % best_links)
+    parts.append('<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
                  '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li></ul>'
                  % (len(cat.hunts), len(cat.charms)))
     parts.append('<p class="mudo"><small>Catalogo do jogo visto a %s. Gerado a %s.</small></p>'
@@ -146,7 +151,9 @@ def render_hunts_index(cat, generated_at):
                   generated_at=generated_at)
 
 
-def render_hunt(cat, hunt, generated_at, charm_section=""):
+def render_hunt(cat, hunt, generated_at, charm_section="", helper_plans=None):
+    """`helper_plans` = [(personagem, plano do Planner nesta hunt)] — os personagens
+    dele com esta hunt como actual (o plano ja vem do advisor, nao se recalcula)."""
     root = "../"
     parts = ["<h1>%s</h1>" % h.esc(hunt["nome"])]
     note = notes.for_hunt(hunt["id"])
@@ -213,6 +220,7 @@ def render_hunt(cat, hunt, generated_at, charm_section=""):
             parts.append('<p class="mudo">Loot do boss: nao esta no catalogo.</p>')
 
     parts.append(charm_section)
+    parts.append(pages_builds.render_hunt_helper(cat, hunt, helper_plans or [], "../"))
 
     parts.append("<h2>Drops que mais valem</h2>")
     best = hunt.get("drops_que_mais_valem") or []
@@ -439,7 +447,7 @@ def _write(path, text):
 
 
 def build_plans(cat, planner=None):
-    """As 8 builds x 8 niveis pelo `builds.Planner` (uns 8 s). `{(voc, goal, level): build}`."""
+    """As builds (5 «best» + 8 por objectivo) x 8 niveis pelo `builds.Planner`. `{(voc, goal, level): build}`."""
     planner = planner or builds_module.Planner(cat)
     plans = {}
     for voc, goal in builds_module.BUILDS:
@@ -519,8 +527,10 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
             ceiling["_level"] = level
             per_character = [(c, recs[c["slug"]][hunt["id"]]) for c in characters if hunt["id"] in recs[c["slug"]]]
             section = pages_charms.render_hunt_section(cat, "../", per_character, ceiling)
+            helper_plans = [(c, advice_by_slug[c["slug"]]["plan"]) for c in characters
+                            if c.get("current_hunt") == hunt["id"] and advice_by_slug[c["slug"]].get("plan")]
             written.append(_write(out / "hunts" / (hunt["id"] + ".html"),
-                                  render_hunt(cat, hunt, generated_at, section)))
+                                  render_hunt(cat, hunt, generated_at, section, helper_plans)))
         written.append(_write(out / "charms" / "index.html", render_charms(cat, generated_at, characters, states, advice_by_slug)))
         md = CHARMS_MD if CHARMS_MD.is_file() else (out / "charms.md")
         if md.is_file():

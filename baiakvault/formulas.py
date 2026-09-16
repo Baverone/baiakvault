@@ -129,6 +129,40 @@ USES_MANA_POTIONS = _c("uses_mana_potions", {
     "knight": False, "paladin": True, "sorcerer": True, "druid": True, "monk": False,
 }, SOURCE_CLIENT, BUNDLE + " — `j0[voc].usesManaPotions`",
     "o Helper do knight e do monk nao bebe pocao de mana")
+# O ambito do roubo de vida/mana do equipamento: o cliente so acumula `lifeLeech`/
+# `manaLeech` (a aplicacao e do servidor); a unica frase que o descreve e a dos
+# charms Vampiric Embrace / Void's Call. Ate 16/09/2026 o simulador creditava o
+# leech a todo o dano, areas incluidas (ordem 6, supervisao).
+LEECH_SCOPE = _c("leech_scope", "ataque normal + magias de alvo unico (strike); nunca areas nem curas",
+                 SOURCE_CLIENT,
+                 BUNDLE + " — texto dos charms Vampiric Embrace / Void's Call (bruto/charms.json): «so vale se o "
+                 "seu equipamento ja da roubo de vida [/mana], e so no ataque normal e nas magias de alvo unico»",
+                 "e a melhor evidencia que ha sobre o leech do equipamento; a formula e do servidor")
+
+# A IA de combate (cliente `u4e(level, ranks)`): «o comportamento perfeito (mira,
+# posicionamento, kite) existe desde o nivel 1 e a % e a chance de o acertar em cada
+# decisao — o nivel da metade da qualidade (ate 2000) e o no Battle Tactics a outra
+# metade (cada rank vale +100 niveis)». Ate 16/09/2026 (ordem 7) o no era decoracao
+# no motor: `efeito_por_rank` nulo, so `special.tactics`.
+TACTICS_AIM_BASE = _c("tactics_aim_base", 0.5, SOURCE_CLIENT, BUNDLE + " — `u4e`: `aimChance:Math.min(1,.5+.025*i)`",
+                      "chance de decisao perfeita sem nivel nem ranks")
+TACTICS_AIM_PER_QP = _c("tactics_aim_per_qp", 0.025, SOURCE_CLIENT, BUNDLE + " — `u4e`: `.5+.025*i`, i = qp")
+TACTICS_QP_PER_LEVEL_TIER = _c("tactics_qp_per_level_tier", 0.5, SOURCE_CLIENT,
+                               BUNDLE + " — `u4e`: `Math.min(10,a*.5)`, a = floor(nivel/100)", "tecto 10 qp pelo nivel (2000)")
+TACTICS_QP_RANK_CAP = _c("tactics_qp_rank_cap", 10, SOURCE_CLIENT, BUNDLE + " — `u4e`: `Math.min(10,n)`, n = ranks")
+TACTICS_SEARCH_RADIUS_QP = _c("tactics_search_radius_qp", 7, SOURCE_CLIENT,
+                              BUNDLE + " — `u4e`: `castSearchRadius:Math.min(1+Math.floor(i/7),3)`")
+TACTICS_INFINITE_KITE_TIER = _c("tactics_infinite_kite_tier", 3, SOURCE_CLIENT, BUNDLE + " — `u4e`: `infiniteKite:o>=3`, o = tier")
+# O que uma decisao imperfeita vale face a uma perfeita: nem o cliente nem o guia dizem
+# (a IA corre no servidor). Convencao de 16/09/2026 (ordem 7): rende 60 % do dano e apanha
+# o dano que a perfeita evitaria (o factor de dano recebido e o simetrico, 1 + 0,4 x imperfeitas).
+TACTICS_IMPERFECT_FACTOR = _c("tactics_imperfect_factor", 0.6, SOURCE_CONVENTION,
+                              "uma decisao imperfeita da IA rende 60 % do dano de uma perfeita (e apanha o que a perfeita evitaria)",
+                              "o Andre pode medir: DPS com e sem ranks de Battle Tactics")
+TACTICS_RADIUS_TO_TARGETS = _c("tactics_radius_to_targets", True, SOURCE_CONVENTION,
+                               "o `castSearchRadius` (1..3) soma-se ao raio da area para contar os alvos apanhados "
+                               "(raio 1 = 3 alvos, 2 = 5, 3+ = o pack); um raio de procura maior encontra a posicao "
+                               "que apanha mais bichos")
 
 # --- guia -----------------------------------------------------------------------
 ARMOR_DENOMINATOR = _c("armor_denominator", 520, SOURCE_GUIDE, GUIDE_PLANNER + " — `j/(j+520)*100`")
@@ -408,15 +442,42 @@ def tree_respec_gold(points_spent):
     return TREE_RESPEC_BASE + TREE_RESPEC_PER_POINT * points_spent if points_spent > 0 else 0
 
 
-def area_targets(radius, pack):
-    """Quantos bichos uma magia de area apanha — CONVENCAO, limitada ao pack."""
-    if radius is None:
+def area_targets(radius, pack, search_radius=1):
+    """Quantos bichos uma magia de area apanha — CONVENCAO, limitada ao pack.
+    `search_radius` e o `castSearchRadius` da IA (1..3): acima de 1 soma-se ao
+    raio (TACTICS_RADIUS_TO_TARGETS); sem raio (wave/beam) conta como raio 1."""
+    extra = max(0, int(search_radius or 1) - 1) if TACTICS_RADIUS_TO_TARGETS else 0
+    if radius is None and not extra:
         n = AREA_TARGETS[None]
-    elif radius >= 3:
-        n = 9
     else:
-        n = AREA_TARGETS[int(radius)]
+        r = (1 if radius is None else int(radius)) + extra
+        n = 9 if r >= 3 else AREA_TARGETS[r]
     return max(1, min(int(pack or 1), n))
+
+
+def battle_tactics(level, ranks=0):
+    """A IA de combate, cliente `u4e(level, ranks)` a letra: tier, qp, chance de
+    decisao perfeita (`aim_chance`), raio de procura dos casts, intervalo minimo
+    de reposicionamento e kite infinito."""
+    a = math.floor(max(0, level) / 100)
+    n = max(0, int(ranks or 0))
+    tier = a + n
+    qp = min(10, a * TACTICS_QP_PER_LEVEL_TIER) + min(TACTICS_QP_RANK_CAP, n)
+    return {"tier": tier, "qp": qp,
+            "aim_chance": min(1.0, TACTICS_AIM_BASE + TACTICS_AIM_PER_QP * qp),
+            "cast_search_radius": min(1 + math.floor(qp / TACTICS_SEARCH_RADIUS_QP), 3),
+            "reposition_min_ms": max(4000, 5000 - 50 * qp),
+            "infinite_kite": tier >= TACTICS_INFINITE_KITE_TIER}
+
+
+def tactics_quality(aim_chance):
+    """Factor da IA sobre o dano: perfeita rende 1, imperfeita TACTICS_IMPERFECT_FACTOR (convencao)."""
+    return aim_chance + (1.0 - aim_chance) * TACTICS_IMPERFECT_FACTOR
+
+
+def tactics_taken(aim_chance):
+    """Factor da IA sobre o dano recebido (convencao, simetrico): 1 + (1 - factor) x imperfeitas."""
+    return 1.0 + (1.0 - aim_chance) * (1.0 - TACTICS_IMPERFECT_FACTOR)
 
 
 def best_potion(potions, vocation, level):

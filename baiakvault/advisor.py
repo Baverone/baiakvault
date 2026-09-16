@@ -25,12 +25,15 @@ from . import db as db_module
 from . import formulas as F
 from . import sim
 
-METRIC_LABEL = {"damage": "DPS do ciclo", "tank": "EHP x sustain x DPS^0,3",
+METRIC_LABEL = {"best": "DPS do ciclo sustentavel (aguenta + mana; druid: cura o knight)",
+                "damage": "DPS do ciclo", "tank": "EHP x sustain x DPS^0,3",
                 "heal": "cura/s sustentavel x DPS^0,3", "support": "cura/s sustentavel x DPS^0,3"}
 SLOT_LABEL = {"weapon": "arma", "shield": "escudo", "helmet": "elmo", "armor": "armadura",
               "legs": "pernas", "boots": "botas", "amulet": "amuleto", "ring": "anel", "ammo": "municao",
               "backpack": "mochila"}
-GOAL_CHARM_KIND = {"damage": "offensive", "tank": "defensive", "heal": "defensive", "support": "defensive"}
+# «best» maximiza o DPS (as condicoes sao restricoes): pede charms ofensivos como «damage»
+GOAL_CHARM_KIND = {"best": "offensive", "damage": "offensive", "tank": "defensive", "heal": "defensive",
+                   "support": "defensive"}
 CHARM_KIND_LABEL = {"offensive": "ofensivo", "defensive": "defensivo", "passive": "passivo"}
 # atributos da forja que o motor entende (somam-se aos do item, em %)
 FORGE_ATTRIBUTES = ("crit_chance", "crit_dano", "life_leech", "mana_leech")
@@ -306,7 +309,7 @@ def equipment_suggestions(cat, state, goal, target, equipment, rotation, current
             trial = dict(equipment)
             if slot == "weapon" and voc == "knight" and item.get("duas_maos"):
                 trial.pop("shield", None)
-            imbs = B.choose_imbuements(item, goal, target)
+            imbs = B.choose_imbuements(item, goal, target, voc)
             trial[slot] = {"item": item, "up": 0, "imbuements": B._imb_keys(cat, imbs), "imbuement_cats": imbs}
             if slot == "weapon" and voc == "paladin":
                 ammo = B.best_ammo(cat, item, level)
@@ -446,13 +449,13 @@ def advise(cat, state, planner, max_items=MAX_SUGGESTIONS):
     hunt_defaulted = hunt is None
     if hunt_defaulted:
         hunt = B.reference_hunt(cat, level)
-    target = sim.Target(cat, hunt)
     plan = planner.plan(voc, goal, level, hunt_id=hunt)
+    target = planner.target_for(voc, goal, level, hunt)   # no druid «best» traz a pressao sobre o knight
     index = imbuement_index(cat)
     equipment, notes = profile_equipment(cat, state.get("equipment"), index)
     tree = state.get("tree") or {}
     prof = sim.Profile(cat, voc, level, tree, equipment)
-    rotation, _ = B.choose_rotation(prof, target)
+    rotation, _ = B.choose_rotation(prof, target, goal=goal)
     current_metrics = B.evaluate(prof, target, rotation)
     current_score = B.score_of(current_metrics, goal)
     metric = METRIC_LABEL[goal]

@@ -80,7 +80,7 @@ class Schema(unittest.TestCase):
         conn.close()
         conn = db.connect(path)
         try:
-            self.assertEqual(db.schema_version(conn), 3)
+            self.assertEqual(db.schema_version(conn), db.SCHEMA_VERSION)
             row = conn.execute("SELECT * FROM character_charm_points WHERE character_id = 1").fetchone()
             self.assertEqual((row["points_available"], row["points_spent"]), (350, 100))
             self.assertIsNone(row["slot_limit"])
@@ -272,7 +272,7 @@ class CharmsBestiaryReadings(unittest.TestCase):
             self.vault.set_charm_points(self.cid, expansion="sim")
         with self.assertRaises(db.VaultError):
             self.vault.clear_charm_points_field(self.cid, "inventado")
-        self.assertEqual(db.schema_version(self.conn), 3)
+        self.assertEqual(db.schema_version(self.conn), db.SCHEMA_VERSION)
 
     def test_bestiary(self):
         self.vault.set_bestiary(self.cid, "cobra_vizier", 10)

@@ -226,6 +226,36 @@ class CharacterFormulas(unittest.TestCase):
         self.assertEqual(F.area_targets(2, 9), 5)
         self.assertEqual(F.area_targets(3, 4), 4)
         self.assertEqual(F.area_targets(6, 9), 9)
+        # o raio de procura da IA (castSearchRadius) soma-se ao raio: convencao
+        self.assertEqual(F.area_targets(None, 9, 2), 5)
+        self.assertEqual(F.area_targets(1, 9, 2), 5)
+        self.assertEqual(F.area_targets(2, 9, 2), 9)
+        self.assertEqual(F.area_targets(2, 9, 3), 9)
+        self.assertEqual(F.area_targets(2, 4, 3), 4)
+
+    def test_battle_tactics_is_the_client_u4e(self):
+        """u4e(e,t): a=floor(e/100); tier=a+t; qp=min(10,a*.5)+min(10,t); aim=min(1,.5+.025*qp);
+        castSearchRadius=min(1+floor(qp/7),3); repositionMinMs=max(4000,5000-50*qp); infiniteKite=tier>=3."""
+        t = F.battle_tactics(50, 0)
+        self.assertEqual((t["tier"], t["qp"], t["aim_chance"], t["cast_search_radius"], t["reposition_min_ms"], t["infinite_kite"]),
+                         (0, 0, 0.5, 1, 5000, False))
+        t = F.battle_tactics(527, 6)   # a=5: qp = 2,5 + 6 = 8,5; aim = 0,7125; raio 2; tier 11
+        self.assertEqual(t["tier"], 11)
+        self.assertAlmostEqual(t["qp"], 8.5)
+        self.assertAlmostEqual(t["aim_chance"], 0.7125)
+        self.assertEqual(t["cast_search_radius"], 2)
+        self.assertAlmostEqual(t["reposition_min_ms"], 4575)
+        self.assertTrue(t["infinite_kite"])
+        t = F.battle_tactics(2500, 10)  # tectos: a*.5 = 12,5 -> 10; ranks 10; qp 20 -> aim 1, raio 3
+        self.assertEqual((t["qp"], t["aim_chance"], t["cast_search_radius"], t["reposition_min_ms"]), (20, 1.0, 3, 4000))
+        self.assertEqual(F.battle_tactics(300, 0)["infinite_kite"], True)    # tier 3 pelo nivel
+        self.assertEqual(F.battle_tactics(200, 0)["infinite_kite"], False)
+        # a convencao: perfeita rende 1, imperfeita 60 %; o recebido e o simetrico
+        self.assertAlmostEqual(F.tactics_quality(1.0), 1.0)
+        self.assertAlmostEqual(F.tactics_quality(0.5), 0.8)
+        self.assertAlmostEqual(F.tactics_taken(0.5), 1.2)
+        self.assertEqual(F.CONSTANTS["tactics_imperfect_factor"].source, F.SOURCE_CONVENTION)
+        self.assertEqual(F.CONSTANTS["tactics_aim_base"].source, F.SOURCE_CLIENT)
 
     def test_best_potion(self):
         self.assertEqual(F.best_potion(F.HEALTH_POTIONS, "knight", 100)["name"], "great health potion")
