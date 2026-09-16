@@ -960,8 +960,35 @@ def engine_numbers(cat, ref=validation.REFERENCE):
             "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand_attacks"], "ai_quality": prof.ai_quality}
 
 
+def engine_numbers_rune(cat, ref=validation.REFERENCE_RUNE):
+    """Os numeros de `validation.hand_calculation_rune` pelo simulador: a rotacao fixada
+    (Rage of the Skies + Avalanche) em 60 s sem cura e com pocoes — o gold/h das runas e
+    o das pocoes de mana em regime sao os do simulador; as pocoes de vida ficam de fora
+    da comparacao (dependem do ciclo de cura)."""
+    equipment = {}
+    for slot, name in ref["equipment"].items():
+        equipment[slot] = {"item": cat.item_by_key[name], "up": 0, "imbuements": list(ref["imbuements"].get(slot) or [])}
+    prof = sim.Profile(cat, ref["vocation"], ref["level"], ref["tree"], equipment)
+    target = sim.Target(cat, ref["hunt"])
+    by_name = {s["nome"]: s for s in prof.spells}
+    rotation = B.rotation_slots(prof, target, [by_name[n] for n in ref["rotation"]])
+    pack = sim.simulate(prof, target, rotation, boss=False, heal=None)
+    boss = sim.simulate(prof, target, rotation, boss=True, heal=None)
+    first, rune = by_name[ref["rotation"][0]], by_name[ref["rotation"][1]]
+    return {"tree_points": sum(F.tree_total_cost(cat.node_by_id[k], r) for k, r in ref["tree"].items()),
+            "ai_quality": prof.ai_quality, "magic_level": prof.skills["magic"], "hp_max": prof.hp_max, "mana_max": prof.mana_max,
+            "casts_first": pack.casts.get(first["palavras"], 0), "casts_rune": pack.casts.get(rune["palavras"], 0),
+            "dps_pack": pack.dps, "dps_boss": boss.dps, "dps_cycle": sim.cycle_dps(pack.dps, boss.dps, target),
+            "auto_dps": pack.auto_dps, "mana_demand": pack.mana_demand_attacks,
+            "runes_gold_per_hour": pack.runes_per_hour, "mana_potions_gold_per_hour": pack.mana_potions_per_hour}
+
+
 def validation_rows(cat):
     return validation.compare(validation.hand_calculation(cat), engine_numbers(cat))
+
+
+def validation_rows_rune(cat):
+    return validation.compare(validation.hand_calculation_rune(cat), engine_numbers_rune(cat), labels=validation.LABELS_RUNE)
 
 
 def _md_num(x, decimals=1):
@@ -970,7 +997,7 @@ def _md_num(x, decimals=1):
     return h.fmt(x, decimals)
 
 
-def validation_markdown(cat, plans, rows=None):
+def validation_markdown(cat, plans, rows=None, rows_rune=None):
     """O `docs/builds/validacao.md` gerado: contas a mao vs simulador, a curva do guia
     por build e nivel, e as discordancias guia/cliente. Nada e escondido: uma
     linha fora da tolerancia sai marcada (e o teste chumba)."""
@@ -1001,6 +1028,32 @@ def validation_markdown(cat, plans, rows=None):
     out.append("")
     out.append("**%s**" % ("Tudo dentro da tolerancia." if not bad else
                            "%d numero(s) fora da tolerancia — o simulador e a conta a mao discordam; ver acima." % len(bad)))
+    # 1b: com uma runa e Battle Tactics (ordem 8)
+    rr = validation.REFERENCE_RUNE
+    rows_rune = rows_rune if rows_rune is not None else validation_rows_rune(cat)
+    out += ["", "## 1b. Contas a mao com uma runa e Battle Tactics (ordem 8, 16/09/2026)", "",
+            "Perfil: **%s nivel %d em %s**, a rotacao que o Andre fixou (%s — a Avalanche e uma runa: %d gold por "
+            "lancamento, mana 5, cooldown 2 s), Battle Tactics 7, arvore de %d nos (%s), o equipamento e os imbuements "
+            "do perfil de cima. Sem cura e com pocoes: o que se confere e a rotacao na grelha de 2 s (a magia com mais "
+            "dano por lancamento primeiro: Rage of the Skies cabe 6 vezes em 60 s, a runa apanha os outros 24 slots), "
+            "o gold/h das runas e o das pocoes de mana **em regime** (deficit de mana x preco por mana da ultimate mana "
+            "potion, %d gold por %d). As pocoes de vida dependem do ciclo de cura do simulador e nao se validam a mao. "
+            "Constantes proprias desta conta: %s." % (
+                rr["vocation"], rr["level"], cat.hunt_by_id[rr["hunt"]]["nome"], " + ".join(rr["rotation"]),
+                next(s["custo_gold"] for s in cat.vocation_by_name[rr["vocation"]]["feiticos"] if s["nome"] == rr["rotation"][1]),
+                len(rr["tree"]), ", ".join("%s %d" % (cat.node_by_id[k]["nome"], r) for k, r in rr["tree"].items()),
+                validation.HAND_CONSTANTS_RUNE["ultimate_mana_potion"][0][1], validation.HAND_CONSTANTS_RUNE["ultimate_mana_potion"][0][0],
+                "; ".join("%s = %s (%s)" % (k, v, src) for k, (v, src) in validation.HAND_CONSTANTS_RUNE.items()
+                          if k not in validation.HAND_CONSTANTS)),
+            "", "| numero | a mao | simulador | diferenca | |", "|---|---|---|---|---|"]
+    for key, label, a, b, diff, ok in rows_rune:
+        out.append("| %s | %s | %s | %s | %s |" % (
+            label, _md_num(a), _md_num(b), ("%+.2f %%" % diff).replace(".", ",") if diff is not None else "?",
+            "ok" if ok else "**DIFERENTE ⚠**"))
+    bad_rune = [r for r in rows_rune if not r[5]]
+    out.append("")
+    out.append("**%s**" % ("Tudo dentro da tolerancia." if not bad_rune else
+                           "%d numero(s) fora da tolerancia — o simulador e a conta a mao discordam; ver acima." % len(bad_rune)))
     out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
             "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
             "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (

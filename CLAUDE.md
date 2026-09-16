@@ -44,7 +44,8 @@ formulario local do proprio BaiakVault (ordem 2).
       notes.py             as notas BiS do canal CharllonLobo, por id de hunt, com o video
       formulas.py          as formulas do cliente (HP, arvore, feiticos) e as constantes com fonte
       sim.py               simulador de 60 s (Profile, Target, rotacao, pressao)
-      builds.py            o optimizador: Planner.plan(vocacao, objectivo, nivel[, hunt]) -> a build
+      treecode.py          o codigo de build do cliente (BT1-…, V3e/U3e) e as regras da arvore (MK/LK/O3e/yD/Ik/z3e/Up/F3e/j3e/fD) a letra
+      builds.py            o optimizador: Planner.plan(vocacao, objectivo, nivel[, hunt, rotacao/arma fixadas]) -> a build
       pages_builds.py      paginas builds/, cartoes print/ e a validacao cruzada (markdown gerado)
       validation.py        contas a mao so com os JSON (NAO importa formulas/sim: e a verificacao independente), curva do guia, discordancias guia/cliente
       advisor.py           o «proximo passo» de um personagem (puro: catalogo + estado + Planner)
@@ -60,15 +61,15 @@ formulario local do proprio BaiakVault (ordem 2).
     docs/builds/validacao.md   GERADO pelo build (validation.py): nao se edita a mao
     scripts/actualizar_catalogo.py   recopia e valida o catalogo a partir do ai-pc
     scripts/_ler_charms_bundle.py    le o bundle local a procura de «charm» (foi com isto que se escreveu o charms.md)
-    tests/                 unittest, sem rede; fixtures: personagem.json (1) e personagens.json (1 por vocacao)
+    tests/                 unittest, sem rede; fixtures: personagem.json (1), personagens.json (1 por vocacao), codigos.json (os 5 codigos de build do supervisor)
     capturas/              Win+Shift+S do Andre (fora do git)
 
 ## Como correr
 
-    py -m baiakvault build          # gera docs/ (~10 s: as 64 builds do Planner; < 1 s sem elas)
+    py -m baiakvault build          # gera docs/ (~2 min desde a ordem 8: 104 builds a ~1,2 s cada; ~10 s sem elas)
     py -m baiakvault check          # valida catalogo + BD; sai != 0 se algo estiver mal
     py -m baiakvault serve          # docs/ em http://127.0.0.1:8774/ e o modo de edicao em /editar
-    py -m unittest discover -s tests   # ~30 s (o Planner corre uma vez, em helpers.planner())
+    py -m unittest discover -s tests   # ~5 min (o Planner corre uma vez, em helpers.planner())
     py scripts\actualizar_catalogo.py   # quando o jogo actualizar (a extraccao faz-se no ai-pc)
 
 **Portos fixos no PC**: 8770 riftvault, 8771 mtgvault, 8773 o Treinador
@@ -89,7 +90,7 @@ antigo. **O BaiakVault usa o 8774.** Nao se trocam.
 - Comentarios explicam porque, nao o que. Decisoes com data aqui.
 - Sem «None»/«nan»/«undefined» em pagina nenhuma (ha um teste a garantir).
 
-## Esquema da vault.db (v3)
+## Esquema da vault.db (v5)
 
 Chaves sao as dos catalogos e validam-se ao escrever (chave desconhecida =
 `VaultError`, nao insercao). `source` e 'manual' ou 'captura'; NULL onde nao
@@ -98,7 +99,7 @@ escreveu.
 
 | tabela | chave | o que guarda |
 |---|---|---|
-| `characters` | name (unico), slug | vocation, level, current_hunt (hunts.id), vip 0/1, goal (v2: damage/tank/heal/support, so os da vocacao), notes |
+| `characters` | name (unico), slug | vocation, level, current_hunt (hunts.id), vip 0/1, goal (v2/v4: best/damage/tank/heal/support, so os da vocacao), notes; v5: fixed_rotation_json (lista ordenada de nomes de feiticos da vocacao, ate 4) e fixed_weapon (itens.nome) — o que ELE fixou; NULL = nao fixou |
 | `character_tree` | (character_id, node_key) | rank; node_key = arvore.id (ex. `k_fury`), tem de ser da vocacao do personagem, rank <= maximo |
 | `character_equipment` | (character_id, slot) | item_key = itens.nome em minusculas, item_name, upgrade_level, imbuements_json, attributes_json. Slots do catalogo + `backpack`/`ammo` |
 | `character_charms` | (character_id, charm_key) | tier 1..3, assigned_creature_key (bestiario.chave) |

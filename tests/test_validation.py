@@ -44,6 +44,27 @@ class HandVsEngine(unittest.TestCase):
         self.assertEqual(round(hand["dps_boss"]), 135)   # 168,x x 0,8
         self.assertEqual(round(hand["dps_cycle"]), 342)  # 427 x 0,8
 
+    def test_rune_and_battle_tactics_profile_within_tolerance(self):
+        """Ordem 8: a conta a mao cobre um caso com runa (Rage of the Skies + Avalanche na
+        Livraria FIRE) e Battle Tactics 7 — DPS, casts, mana/s, gold/h das runas e das
+        pocoes de mana em regime — e bate com o simulador."""
+        rows = pages_builds.validation_rows_rune(self.cat)
+        self.assertEqual(len(rows), len(validation.LABELS_RUNE))
+        for key, label, hand, engine, diff, ok in rows:
+            self.assertIsNotNone(hand, key)
+            self.assertIsNotNone(engine, key)
+            self.assertTrue(ok, "%s: a mao %s, simulador %s (%s %%)" % (label, hand, engine, diff))
+        hand = {k: a for k, _, a, _, _, _ in rows}
+        self.assertEqual((hand["casts_first"], hand["casts_rune"]), (6, 24))
+        self.assertAlmostEqual(hand["ai_quality"], 0.89)   # qp = 2 (nivel 471) + 7 (ranks) -> aim 0,725 -> 0,725 + 0,275 x 0,6
+        self.assertEqual(hand["runes_gold_per_hour"], 24 * 64 * 60)
+        self.assertAlmostEqual(hand["mana_demand"], 62.0)
+        self.assertAlmostEqual(hand["mana_potions_gold_per_hour"], 62.0 * 3600 * 488 / 800)
+        self.assertGreater(hand["dps_pack"], hand["dps_boss"])
+        md = pages_builds.validation_markdown(self.cat, {}, self.rows, rows)
+        self.assertIn("## 1b. Contas a mao com uma runa e Battle Tactics", md)
+        self.assertIn("Avalanche", md)
+
     def test_compare_flags_a_difference_instead_of_hiding_it(self):
         hand = validation.hand_calculation(self.cat)
         wrong = dict(pages_builds.engine_numbers(self.cat))
