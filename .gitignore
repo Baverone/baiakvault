@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.log
 *.tmp
+
+# rascunhos locais de exploracao
+scripts/_rascunho*.py

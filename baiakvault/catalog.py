@@ -29,7 +29,7 @@ FILES = ("hunts", "bestiario", "itens", "bosses", "arvore", "vocacoes",
 # (Battle Tactics, Cleaving Strikes, Executioner, Avatar...), que o motor das
 # builds precisa (16/09/2026).
 RAW_FILES = ("charms", "arvore_knight", "arvore_paladin", "arvore_sorcerer",
-             "arvore_druid", "arvore_monk", "constantes")
+             "arvore_druid", "arvore_monk", "constantes", "feiticos")
 
 # As contagens que o catalogo de 09/09/2026 tem. `validate` chumba se mudarem,
 # de proposito: uma actualizacao do jogo deve ser vista, nao absorvida em
@@ -111,6 +111,21 @@ class Catalog:
                     node["especial"] = rn.get("special")
                     node["descricao"] = rn.get("desc")
         self.constants = ((self.raw_extra.get("constantes") or {}).get("dados") or {})
+
+        # O mesmo para os feiticos: o derivado nao traz `goldCost` (runas),
+        # `healTarget` (cura aliada), `chain`, `promo` — colam-se aqui por
+        # `palavras`, como `custo_gold`, `alvo_da_cura`, `cadeia`, `promocao`.
+        raw_spells = {s.get("words"): s for s in ((self.raw_extra.get("feiticos") or {}).get("dados") or [])}
+        self.spells_by_words = {}
+        for v in self.vocations:
+            for s in v.get("feiticos") or []:
+                rs = raw_spells.get(s.get("palavras")) or {}
+                s["custo_gold"] = rs.get("goldCost")
+                s["alvo_da_cura"] = rs.get("healTarget")
+                s["cadeia"] = rs.get("chain")
+                s["promocao"] = bool(rs.get("promo"))
+                s["vocacao"] = v["vocacao"]
+                self.spells_by_words.setdefault(s["palavras"], s)
 
     def meta(self, name):
         return (self.raw.get(name) or {}).get("_meta") or {}
@@ -260,4 +275,10 @@ def validate(cat):
             derived_ids = {n["id"] for n in (cat.tree_by_vocation.get(name[7:]) or {}).get("nos") or []}
             if raw_ids != derived_ids:
                 problems.append("bruto/%s.json nao bate com a arvore derivada" % name)
+        elif name == "feiticos":
+            raw_words = {s.get("words") for s in (cat.raw_extra[name].get("dados") or [])}
+            derived_words = {s.get("palavras") for v in cat.vocations for s in (v.get("feiticos") or [])}
+            if not derived_words <= raw_words:
+                problems.append("bruto/feiticos.json nao cobre os feiticos derivados: %s"
+                                % sorted(derived_words - raw_words)[:5])
     return problems
