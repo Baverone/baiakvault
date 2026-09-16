@@ -211,6 +211,25 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   charms de unidades diferentes (dano vs dano apanhado vs gold) resolvem-se
   so pelo arrependimento relativo — e um tecto, nao uma comparacao entre
   charms.
+- **16/09/2026 (ordem 4)** — Tres tarefas no runner do ai-pc (`ai-pc\tasks\baiakvault-*`),
+  molde `riftvault-serve`/`riftvault-publicar`: `baiakvault-serve` (5 min,
+  vigia o `serve` no 8774), `baiakvault-publicar` (30 min, `check` + `build` +
+  commit `dados <data>` + push quando o `vault.db` mudou e ja passou o
+  sossego — o Pages serve `main:/docs` directo, e o push que publica),
+  `baiakvault-leitura` (30 min, Claude local opus com visao le capturas de
+  `capturas\` **e** `Desktop\BaiakIdle\capturas\`, valida contra o catalogo em
+  Python e escreve na `vault.db` so pelo `db.Vault`, `source='captura'`; sem
+  imagens novas nao gasta um token). **A partir desta ordem aplica-se a regra
+  dos worktrees** (decisao do Andre, 08/09/2026, "faz logo o merge e push
+  sempre"): as tarefas fazem push de `main`, por isso trabalho de codigo faz-se
+  num worktree separado (`git -C <repo> worktree add "<repo>\..\_revisao\baiakvault"
+  -b ai-pc/revisao-<data>`), merge `--no-ff` e push com a suite verde — nunca
+  a meio na propria pasta de trabalho.
+- **16/09/2026 (ordem 4)** — Os charms de uma captura do bestiario escrevem-se
+  um a um (`set_charm`), nunca por `replace_charms`: o formulario do modo de
+  edicao submete os 24 de uma vez (blank = "nao tem"), mas uma captura de ecra
+  pode so mostrar um bocado da lista — `replace_charms` apagaria os que nao
+  aparecessem nessa imagem.
 
 ## Fontes
 

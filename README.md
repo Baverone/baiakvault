@@ -60,10 +60,18 @@ fora do git).
 Depois de editar, publicar e `git add -A`, `git commit`, `git push` (o Pages
 serve `docs/`).
 
-Alternativa que fica pronta na **ordem 4**: tirar **Win+Shift+S** ao painel do
-personagem, a arvore, ao equipamento, aos charms ou ao bestiario e guardar em
-`capturas\`. O Claude local le a imagem e escreve na base com `fonte: captura`.
-Podes ja ir deixando capturas la — ficam a espera.
+Alternativa (ordem 4, 16/09/2026): tirar **Win+Shift+S** ao painel do
+personagem, a arvore, ao equipamento, ou ao bestiario/charms, e guardar a
+imagem em `capturas\` (aqui no baiakvault) ou em
+`Desktop\BaiakIdle\capturas\` — a pasta que ja conheces do Treinador. De 30
+em 30 minutos, a tarefa `baiakvault-leitura` do ai-pc olha para as duas
+pastas: sem imagens novas nao gasta nada; com imagens, o Claude local (visao)
+le cada uma, valida contra o catalogo e escreve na base com `fonte:
+captura`, arrumando a imagem em `capturas\lidas\<AAAA-MM>\` a seguir (as que
+nao conseguir ler ficam em `capturas\duvidas\`, com o motivo num `.txt` ao
+lado). Se o nome do personagem na captura ainda nao existir na base, cria-se.
+Podes ir deixando capturas la a qualquer altura — ficam a espera da proxima
+corrida.
 
 ## Como e que o «proximo passo» e calculado
 
