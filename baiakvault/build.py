@@ -75,10 +75,11 @@ def render_index(cat, characters, generated_at, advice_by_slug=None):
     parts.append("<h2>Personagens</h2>")
     if not characters:
         parts.append('<div class="cartao"><p>Ainda nao ha personagens.</p>'
-                     "<p>Como adicionar: o modo de edicao local (<code>py -m baiakvault serve</code>, "
-                     "porto 8774) chega na ordem 2; a leitura de capturas de ecra "
-                     "(<code>capturas/</code>) chega na ordem 4. Ate la a BD esta vazia de "
-                     "proposito — nao se inventam personagens.</p></div>")
+                     "<p>Como adicionar: no PC, <code>py -m baiakvault serve</code> e abrir "
+                     "<code>http://127.0.0.1:8774/editar</code> (formulario); ou guardar um Win+Shift+S do "
+                     "painel, da arvore, do equipamento ou do bestiario/charms em <code>capturas\\</code> — a "
+                     "tarefa <code>baiakvault-leitura</code> le-o de 30 em 30 min. A BD esta vazia de "
+                     "proposito: nao se inventam personagens.</p></div>")
     else:
         parts.append('<div class="grelha">')
         for c in characters:
@@ -560,7 +561,27 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
                     written.append(_write(out / "builds" / "validacao.md", text))
                 written.append(_write(out / "builds" / "validacao.html",
                                       pages_builds.render_validation(text, generated_at)))
+        removed = _prune(out, written, with_builds)
     finally:
         conn.close()
-    return {"files": written, "seconds": time.perf_counter() - started, "out": out,
+    return {"files": written, "removed": removed, "seconds": time.perf_counter() - started, "out": out,
             "characters": len(characters), "hunts": len(cat.hunts)}
+
+
+# O que o gerador e dono de apagar: paginas que so existem por causa de um personagem
+# (apagado, renomeado ou com outra hunt) ficavam em docs/ e iam para o Pages (16/09/2026).
+_OWNED = (("personagens", "*.html", False), ("print", "charms-*.html", False),
+          ("hunts", "*.html", False), ("print", "helper-*.html", True), ("builds", "*.html", True))
+
+
+def _prune(out, written, with_builds):
+    keep = {p.resolve() for p in written}
+    removed = []
+    for folder, pattern, only_with_builds in _OWNED:
+        if only_with_builds and not with_builds:
+            continue
+        for path in sorted((out / folder).glob(pattern)):
+            if path.resolve() not in keep and path.is_file():
+                path.unlink()
+                removed.append(path)
+    return removed
