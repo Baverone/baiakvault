@@ -68,6 +68,20 @@ fora do git).
 Depois de editar, publicar e `git add -A`, `git commit`, `git push` (o Pages
 serve `docs/`).
 
+**A melhor forma de dar a arvore (ordem 8, 16/09/2026)**: no jogo, na arvore
+do personagem, carrega em **«Exportar»** (copia um codigo `BT1-…` para o
+clipboard) e cola-o em `/editar` no campo «Cola aqui o codigo Exportar da tua
+arvore». E exacto, nao precisa de capturas e nao toca no jogo — e so texto que
+tu copias do cliente. O BaiakVault valida como o cliente (vocacao, ligacao ao
+tier 0, pontos ≤ nivel) e grava a arvore inteira. No sentido contrario, cada
+build e cada personagem mostram o codigo da arvore recomendada com um botao
+«Copiar»: no jogo e «Colar codigo para importar… → Carregar» (substitui a tua
+e custa `1000 + 200 x pontos gastos agora` de gold, o mesmo do Reset All —
+por confirmar no jogo). Em `/editar` tambem podes **fixar a rotacao de hunt e
+a arma** de um personagem: sao dados teus, a arvore recomendada e calculada
+para elas, e a pagina mostra ao lado o que o modelo escolheria com a diferenca
+em numero.
+
 Alternativa (ordem 4, 16/09/2026): tirar **Win+Shift+S** ao painel do
 personagem, a arvore, ao equipamento, ou ao bestiario/charms, e guardar a
 imagem em `capturas\` (aqui no baiakvault) ou em

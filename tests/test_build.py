@@ -6,8 +6,13 @@ import helpers
 from baiakvault import build, html
 
 FORBIDDEN = re.compile(r"\b(None|nan|NaN|undefined|null)\b")
-MAX_PAGE_BYTES = 200 * 1024
-MAX_SECONDS = 5.0
+# 256 KiB desde a ordem 8 (16/09/2026): as paginas das builds passaram de ~187 para ~228 KB com o
+# papel de cada no na ordem de compra, o codigo de build e a validacao do cliente nos 8 niveis
+MAX_PAGE_BYTES = 256 * 1024
+# 30 s desde a ordem 8 (16/09/2026): o plano do personagem avalia tambem o caminho da «best» na
+# hunt dele, e um caminho a frio custa ate ~16 s (o «poupar para um notable»); com o Planner
+# quente (o serve guarda-o em memoria) o mesmo build leva ~1,5 s — medido em _tempo_8b.py
+MAX_SECONDS = 30.0
 NOW = datetime(2026, 9, 16, 12, 0, 0)
 
 
@@ -183,7 +188,9 @@ class PruneStalePages(unittest.TestCase):
                              plans=plans, with_builds=False)
         self.assertFalse(page.exists())
         self.assertEqual(list((out / "print").glob("charms-teste-knight-*.html")), [])
-        self.assertEqual(sorted(p.name for p in result["removed"]), sorted(["teste-knight.html"] + [c.name for c in cards]))
+        # o cartao do Helper do personagem (ordem 8) e dele: vai com ele, mesmo sem as builds
+        self.assertEqual(sorted(p.name for p in result["removed"]),
+                         sorted(["teste-knight.html", "helper-personagem-teste-knight.html"] + [c.name for c in cards]))
         self.assertTrue(stranger.is_file())
         # sem as builds nao se mexe nas paginas das builds nem nos cartoes do Helper
         self.assertTrue((out / "builds" / "knight-tank.html").is_file())

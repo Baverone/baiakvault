@@ -74,7 +74,9 @@ class CatalogFailsLoud(unittest.TestCase):
 
     def test_validate_reports_wrong_counts(self):
         cat = helpers.real_catalog()
-        fake = catalog.Catalog(cat.raw, cat.raw_charms, cat.directory)
+        # com o `raw_extra`: o construtor cola `custo_gold`/`especial` nos dicionarios do raw, que
+        # sao os do catalogo partilhado — sem o bruto punha as runas a None para os testes seguintes
+        fake = catalog.Catalog(cat.raw, cat.raw_charms, cat.directory, cat.raw_extra)
         fake.hunts = fake.hunts[:-1]
         problems = catalog.validate(fake)
         self.assertTrue(any("hunts" in p for p in problems), problems)

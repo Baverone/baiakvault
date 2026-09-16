@@ -358,6 +358,74 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   `best` em DPS (o Avatar of Steel entra aos 477 num caminho e so aos 531 no outro).
   Nao esta corrigido; esta no relatorio-7.
 
+- **16/09/2026 (ordem 8, ponto 1)** — **O codigo de build do cliente** (`treecode.py`):
+  `V3e`/`U3e` transcritos a letra — `BT1-<KPSDM><nivel|F>-<hex>`, um digito hex por no
+  da vocacao **ordenado por `id`** (ordem de string), `min(rank, max)`, zeros finais
+  fora, maiusculas; `decode` devolve `None` a tudo o que nao bate na regex (digitos a
+  mais ignoram-se, a menos valem 0). Os 5 codigos do supervisor
+  (`tests/fixtures/codigos.json`) batem nos dois sentidos. As regras da arvore do
+  cliente vivem no mesmo modulo (`MK` adjacencia nos dois sentidos, `LK`/`O3e`
+  ligacao a partir do tier 0, `yD` pode-se por um ponto, `Ik`/`z3e`/`Up` custos, `F3e`
+  tirar o ultimo rank, `j3e` deitar fora o desligado, `fD` custo de importar = 0 se 0
+  senao 1 000 + 200 x pontos **actualmente** gastos). Cada build e cada personagem
+  mostram o codigo da arvore recomendada com «Copiar» (JS vanilla, `navigator.clipboard`
+  com fallback de seleccao), a frase para colar no jogo e o custo `fD` (no personagem
+  com os pontos que a BD diz que tem gastos; sem arvore registada, «?»). Em `/editar`
+  o campo «Cola aqui o codigo Exportar da tua arvore» faz `decode`, valida (vocacao do
+  personagem, ligacao, `Up <= nivel`) e grava a arvore inteira em bloco — **e a melhor
+  fonte de dados dele**: exacta e sem tocar no jogo (e ele a copiar um texto do
+  cliente). O advisor passa a dizer a diferenca entre a arvore importada e a
+  recomendada em pontos e em gold de respec. **Por confirmar no jogo**: se importar
+  cobra mesmo `fD` e se o «Exportar» do cliente actual ainda da `BT1-`.
+- **16/09/2026 (ordem 8, ponto 2 — decisao do Andre 14:30)** — **Rotacoes fixadas
+  sao dados, nao sugestoes** (esquema **v5**: `characters.fixed_rotation_json`,
+  `fixed_weapon`; NULL = nao fixou). Na Livraria FIRE: Sorcerer Rage of the Skies +
+  Avalanche; Druid Eternal Winter + Avalanche; Knight Fierce Berserk + Groundshaker
+  com o **Soulmaimer**; Monk e Paladin sem rotacao fixada (fica a do optimizador).
+  Ja gravadas na `vault.db`. A arvore recomendada do personagem calcula-se **para a
+  rotacao fixada** (a partilha de elementos da rotacao decide os nos de elemento) e a
+  arma fixada fica no slot (o advisor nunca sugere troca-la); ao lado a pagina mostra
+  a rotacao que o modelo escolheria com a diferenca de DPS e de gold/h em numero —
+  nunca se substitui a escolha dele. O cartao print do Helper sai com a fixada.
+- **16/09/2026 (ordem 8, ponto 3)** — **Toda a arvore que sai do `Planner` passa
+  pelas regras do cliente** (`builds.tree_check`: O3e ligada, ranks <= maximo,
+  `Up <= nivel`) e a **ordem de compra e clicavel a mao** (`treecode.
+  purchase_order_is_clickable`: cada no, quando entra, ja tem um vizinho comprado —
+  `yD`); ha um teste de propriedade sobre as builds e os 5 personagens. A pagina tem
+  a linha «valida pelas regras do cliente: ligada a partir do tier 0, ranks ≤
+  maximo, N de L pontos».
+- **16/09/2026 (ordem 8, ponto 4)** — **Podar os nos de ligacao redundantes**
+  (`builds.prune_and_refill`, constantes `PRUNE_*`): um rank cujo ganho na metrica e
+  < 0,05 % e cuja remocao mantem a arvore ligada sai (rank a rank, com fila
+  preguicosa; apanha tambem o que o caminho comprou para sobreviver e deixou de
+  fazer falta), e os pontos libertados voltam ao guloso sem recomprar o podado, ate
+  3 voltas. Salvaguardas: se o refill so encontra pontos a render ~0 ou a metrica
+  fica > 0,5 % abaixo do que estava (ruido de grelha do simulador), **fica como
+  estava**. Cada no leva um **papel** na ordem de compra: `dano` / `so ligacao`
+  (rende ~0 mas tira-lo desligava a arvore) / `tactica` / `ponto que sobrou` (o
+  refill comprou-o a render ~0; 1-2 pontos sem rank de dano que os aceite vao para
+  HP/absorcao e diz-se). Wildfire/Inferno/Cataclysm (`spellDmgPct`, nome de fogo mas
+  efeito generico) levam uma nota.
+- **16/09/2026 (ordem 8, ponto 5)** — **Guloso dependente do caminho**: o `plan()`
+  avalia, com a metrica pedida, o prefixo do proprio caminho e o do caminho da
+  `best` (ou da `damage` quando se pede a `best`) e fica com o melhor
+  (`PATH_CANDIDATES`; empate ate 0,5 % fica com o proprio, porque e a ordem de compra
+  dele que a pagina conta); sobre o vencedor correm a melhoria local e o
+  `prune_and_refill`. A rotacao final so substitui a que a arvore foi optimizada para
+  se nao piorar a metrica com as condicoes (o monk «dano» 306 caia de 1 110 para 264
+  com a nova a gastar a mana das curas). **Validacao cruzada com runa e Battle
+  Tactics** (`validation.hand_calculation_rune`, §1b do `validacao.md`): sorcerer 471
+  Rage + Avalanche na Livraria FIRE, Battle Tactics 7 — casts (6 + 24 na grelha de
+  2 s), DPS, mana/s, gold/h das runas e das pocoes de mana em regime, a mao e so com
+  os JSON. Custo: o build passou de ~10 s para ~2 min (104 builds a ~1,2 s) e a suite
+  para ~3,5 min; o plano de um personagem numa hunt nova custa ate ~20 s a frio (o
+  caminho da `best` com o «poupar para um notable») e ~1,5 s com o `Planner` quente
+  (o `serve` guarda-o em memoria: so a primeira gravacao paga). A 8 esgotou os 2 700 s
+  antes do merge; a **8b** fechou-a sem alargar (tectos dos testes: 256 KiB por pagina,
+  30 s o build com personagem; o teste de contagens do catalogo passava a construir um
+  `Catalog` sem o bruto sobre o raw partilhado e deixava as runas sem `custo_gold` para
+  os testes seguintes — corrigido no teste).
+
 ## Fontes
 
 - Catalogos: bundle publico do cliente, `https://baiakidle.com/jogar/assets/index-DnzxFejS.js` (09/09/2026). Extraccao: `ai-pc\knowledge\baiakidle\` (`_extrair_catalogos.py`, `dados\construir.py`, `dados\validar.py`). Duvidas e o que fica `null`: `ai-pc\knowledge\baiakidle\dados\duvidas.md`.

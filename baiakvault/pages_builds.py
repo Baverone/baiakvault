@@ -657,10 +657,14 @@ def fixed_rotation_note(b):
         else:
             d = abs(mr.dps / r.dps - 1) * 100 if r.dps else 0.0
             verdict = ("diferenca dentro do erro do modelo" if d < 5 else "diferenca que vale a pena testar no jogo")
-            bits.append("hunt: o modelo prefere <b>%s</b> por %s de DPS (%s vs %s) e %s de gold/h (%s vs %s); escolheste %s — %s"
+            if r.gold_per_hour or mr.gold_per_hour:
+                gold = "%s de gold/h (%s vs %s)" % (_pct_diff(mr.gold_per_hour, r.gold_per_hour) if r.gold_per_hour else h.UNKNOWN,
+                                                   h.kk(mr.gold_per_hour), h.kk(r.gold_per_hour))
+            else:
+                gold = "gold/h a 0 nas duas (sem runas nem pocoes de mana)"   # knight/monk: «? (0 vs 0)» era enganador
+            bits.append("hunt: o modelo prefere <b>%s</b> por %s de DPS (%s vs %s) e %s; escolheste %s — %s"
                         % (h.esc(", ".join(model_names)), _pct_diff(mr.dps, r.dps), _n(mr.dps), _n(r.dps),
-                           _pct_diff(mr.gold_per_hour, r.gold_per_hour) if r.gold_per_hour else h.UNKNOWN,
-                           h.kk(mr.gold_per_hour), h.kk(r.gold_per_hour), h.esc(", ".join(fixed_names)), verdict))
+                           gold, h.esc(", ".join(fixed_names)), verdict))
     bits.append("boss: a do optimizador (%s) — fixaste a rotacao de hunt, nao a de boss"
                 % h.esc(", ".join(sl.spell["nome"] for sl in (b.get("boss_rotation") or []))))
     weapon = b.get("fixed_weapon")
