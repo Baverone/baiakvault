@@ -19,6 +19,8 @@ import datetime as dt
 import http.server
 import os
 import secrets
+import sqlite3
+import threading
 import urllib.parse
 from pathlib import Path
 
@@ -451,11 +453,15 @@ class Config:
         self.token = read_token(token_path)
         self.bind = bind
         self.rebuilds = 0
+        # o servidor e multi-thread e o Planner guarda caches (arvores, equipamento por
+        # checkpoint) sem protecao: duas gravacoes seguidas nao podem regenerar ao mesmo tempo
+        self._lock = threading.Lock()
 
     def rebuild(self):
         """Regenera o site depois de uma escrita (sem as paginas das builds)."""
-        build_module.build(self.docs, self.db_path, cat=self.cat, planner=self.planner, with_builds=False)
-        self.rebuilds += 1
+        with self._lock:
+            build_module.build(self.docs, self.db_path, cat=self.cat, planner=self.planner, with_builds=False)
+            self.rebuilds += 1
 
 
 def make_handler(cfg):
@@ -540,7 +546,9 @@ def make_handler(cfg):
                                   403, "text/plain; charset=utf-8")
             try:
                 slug, msg = self._with_vault(lambda v: apply_post(cfg.cat, v, path, fields))
-            except (FormError, db_module.VaultError) as e:
+            except (FormError, db_module.VaultError, sqlite3.Error) as e:
+                # o sqlite3.Error e a rede de seguranca: uma restricao do esquema que a
+                # validacao nao apanhou sai como «nao gravado» legivel, nao como resposta partida
                 parts = [p for p in path.split("/") if p]
                 back = "/editar/%s" % parts[1] if len(parts) >= 2 and parts[1] != "novo" else "/editar"
                 return self._send(h.page("Nao gravado — BaiakVault",
