@@ -62,7 +62,7 @@ class HandVsEngine(unittest.TestCase):
         self.assertNotIn("DIFERENTE", md)
         self.assertNotIn("por preencher", md)
         # uma linha por build e nivel, com a curva do guia ao lado
-        self.assertEqual(md.count("| x"), 64)
+        self.assertEqual(md.count("| x"), 104)   # 13 builds x 8 niveis
         self.assertAlmostEqual(validation.guide_dps(100), 7.012 * 100 ** 0.948, places=6)
         self.assertIsNone(FORBIDDEN.search(md))
         html = pages_builds.render_validation(md, "2026-09-16 12:00:00")

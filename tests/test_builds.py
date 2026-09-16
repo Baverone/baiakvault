@@ -5,7 +5,7 @@
 - a rotacao nunca viola cooldowns nem o cooldown de grupo, e a mana nunca fica
   negativa;
 - o equipamento respeita nivel, vocacao e slot;
-- as 8 builds x 8 niveis geram em menos de 10 s.
+- as 13 builds (5 «best» + 8 por objectivo) x 8 niveis geram em tempo util.
 """
 import unittest
 
@@ -101,9 +101,12 @@ class Optimizer(unittest.TestCase):
         cls.cat = helpers.real_catalog()
         cls.pl, cls.plans = planner()
 
-    def test_all_64_builds_in_under_ten_seconds(self):
-        self.assertEqual(len(self.plans), 64)
-        self.assertLess(helpers.PLAN_SECONDS, 10.0, "8 builds x 8 niveis levaram %.1f s" % helpers.PLAN_SECONDS)
+    def test_all_104_builds_in_time(self):
+        self.assertEqual(len(self.plans), len(builds.BUILDS) * len(builds.LEVELS))
+        self.assertEqual(len(self.plans), 104)
+        # 16/09/2026 (ordem 6): a «best» corre o simulador 3x por avaliacao (pack, boss, pack
+        # inteiro) e testa as poupancas; o tecto sobe de 10 s para 60 s
+        self.assertLess(helpers.PLAN_SECONDS, 60.0, "13 builds x 8 niveis levaram %.1f s" % helpers.PLAN_SECONDS)
 
     def test_tree_respects_budget_max_rank_prerequisites_and_vocation(self):
         for (voc, goal, level), b in self.plans.items():
