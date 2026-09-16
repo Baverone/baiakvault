@@ -45,7 +45,8 @@ formulario local do proprio BaiakVault (ordem 2).
       formulas.py          as formulas do cliente (HP, arvore, feiticos) e as constantes com fonte
       sim.py               simulador de 60 s (Profile, Target, rotacao, pressao)
       builds.py            o optimizador: Planner.plan(vocacao, objectivo, nivel[, hunt]) -> a build
-      pages_builds.py      paginas builds/, cartoes print/ e validacao
+      pages_builds.py      paginas builds/, cartoes print/ e a validacao cruzada (markdown gerado)
+      validation.py        contas a mao so com os JSON (NAO importa formulas/sim: e a verificacao independente), curva do guia, discordancias guia/cliente
       advisor.py           o «proximo passo» de um personagem (puro: catalogo + estado + Planner)
       charms.py            charms por hunt: charm -> criatura com pontuacao, justificacao e mudancas (puro)
       pages_charms.py      guia dos 24 + «os teus charms», regras, seccoes das hunts/personagem/builds, cartoes print
@@ -56,6 +57,7 @@ formulario local do proprio BaiakVault (ordem 2).
     data/serve.token       token de escrita do serve (nasce no 1.o arranque; fora do git)
     docs/                  o site gerado (Pages serve main:/docs). Com .nojekyll
     docs/charms.md         as regras dos charms lidas no cliente, com fonte e ⚠ — o contrato do charms.py (a mao)
+    docs/builds/validacao.md   GERADO pelo build (validation.py): nao se edita a mao
     scripts/actualizar_catalogo.py   recopia e valida o catalogo a partir do ai-pc
     scripts/_ler_charms_bundle.py    le o bundle local a procura de «charm» (foi com isto que se escreveu o charms.md)
     tests/                 unittest, sem rede; fixtures: personagem.json (1) e personagens.json (1 por vocacao)
@@ -230,6 +232,43 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   edicao submete os 24 de uma vez (blank = "nao tem"), mas uma captura de ecra
   pode so mostrar um bocado da lista — `replace_charms` apagaria os que nao
   aparecessem nessa imagem.
+- **16/09/2026 (ordem 5, revisao)** — **Resistencias tambem no simulador**: o
+  `sim.Target` contava a 0 % os 154 monstros de hunt sem resistencias no
+  bestiario (47 das 79 hunts; Elder Wyrm 75 % terra, Werelion 50 % terra...)
+  enquanto o motor dos charms ja lia a 2.a tabela. Agora ha **uma so leitura**,
+  `catalog.Catalog.resistances(criatura)` (bestiario > 2.a tabela ⚠ > `None`),
+  usada pelos dois; um monstro sem nenhuma nao entra na media (nao e zero) e a
+  pagina da build diz de onde vieram. As 64 builds foram regeneradas com isto.
+- **16/09/2026 (ordem 5)** — **Um charm que pontua zero nao se atribui**
+  (ex.: Poison numa hunt onde tudo e imune a terra): com opcoes todas a 0 o
+  arrependimento «1 - 0» punha-o a decidir primeiro e a ocupar a melhor
+  criatura sem fazer nada, empurrando Wound e Dodge. Sai «nao faz nada nesta
+  hunt» com o porque. Um **menor exige 1 kill** registado (cliente `d3e`);
+  loot desconhecido e «?» para Gut/Scavenge, nao 0.
+- **16/09/2026 (ordem 5)** — **`docs/builds/validacao.md` e gerado** por
+  `validation.py` + `pages_builds.validation_markdown` (o placeholder apontava
+  para um `scripts/validar_guia.py` que nunca existiu). Tres partes: contas a
+  mao de um perfil fixo (sorcerer 50 em Crawler, a arvore/equipamento da
+  pagina de 16/09) refeitas **so com os JSON e sem importar `formulas`/`sim`**
+  (o teste `test_validation` prova a independencia e chumba acima de 1 % de
+  diferenca); a curva de DPS do guia (`7,012 x nivel^0,948`) ao lado do DPS do
+  ciclo de cada build/nivel, sem tolerancia (e para ver, nao para esconder); e
+  as constantes em que o guia e o cliente discordam. Pedido do Andre: «quero
+  que isto seja sempre validado».
+- **16/09/2026 (ordem 5)** — `db.upsert_character`: um nome que so difere em
+  maiusculas/minusculas (**mesmo slug**) e o mesmo personagem — actualiza-se,
+  o nome guardado fica o primeiro (antes rebentava com `IntegrityError` cru no
+  UNIQUE do slug, sem passar pelo «nao gravado» do serve). **Mudar a vocacao
+  com nos da arvore registados e `VaultError`** («limpa a arvore primeiro»):
+  a arvore da vocacao antiga ficava impossivel na BD e o `check` chumbava a
+  publicacao a seguir. O `serve` apanha `sqlite3.Error` como «nao gravado»
+  (rede de seguranca) e serializa as regeneracoes com um lock (o `Planner`
+  tem caches sem protecao e o servidor e multi-thread).
+- **16/09/2026 (ordem 5)** — O build **apaga o que e dele e ficou orfao**
+  (`personagens/*.html`, `print/charms-*.html`, `hunts/*.html`; com builds
+  tambem `builds/*.html` e `print/helper-*.html`): um personagem apagado ou
+  renomeado deixava a pagina antiga em `docs/` e ia para o Pages. Nunca toca
+  em ficheiros fora dessas pastas/padroes.
 
 ## Fontes
 

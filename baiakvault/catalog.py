@@ -181,7 +181,8 @@ class Catalog:
 
     def resistances(self, creature):
         """({elemento: %} ou None, fonte). O `bestiario.json` (tabela `Et`) nao declara
-        resistencias para 159 dos 250 monstros de hunt; para esses le-se a tabela `Wy`
+        resistencias para 154 dos 240 monstros de hunt (159 das 250 entradas, porque
+        alguns aparecem em mais de uma hunt); para esses le-se a tabela `Wy`
         do cliente (`bosses_de_sala`, que tem os 386 monstros) e marca-se ⚠ — as duas
         divergem em 33 dos 86 que tem ambas. Sem nenhuma: (None, None), nunca zero.
         E a mesma leitura para o simulador e para os charms (16/09/2026: ate aqui o

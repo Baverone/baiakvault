@@ -199,7 +199,9 @@ def render_level_section(cat, b, root, extra=""):
         ("pressao (1 monstro / pack)", "%s / %s por segundo; maior golpe %s (boss %s)"
          % (_n(m["pressure_one"]), _n(m["pressure_pack"]), _n(m["max_hit"]), _n(m["boss_max_hit"]))),
         ("aguenta (pack / 1 monstro)", "%s / %s" % (_seconds(m["ttd_pack"]), _seconds(m["ttd_one"]))),
-        ("mana/s gasta / ganha", "%s / %s — %s" % (_n(m["mana_demand"], 1), _n(m["mana_income"], 1), _mana_verdict(m))),
+        ("mana/s gasta / ganha", "%s / %s — %s%s" % (_n(m["mana_demand"], 1), _n(m["mana_income"], 1), _mana_verdict(m),
+                                                    " ⚠ a mana por tiro da wand nao esta no catalogo: contou a 0"
+                                                    if prof.wand and (prof.weapon or {}).get("mana_por_tiro") is None else "")),
         ("supplies (hunt / boss)", "%s / %s gold/h — %d pocoes de vida e %d de mana por minuto"
          % (h.kk(m["gold_per_hour"]), h.kk(m["boss_gold_per_hour"]), m["hp_potions"], m["mana_potions"])),
         ("skills assumidos", _skills_text(prof)),
@@ -608,11 +610,9 @@ def validation_rows(cat):
 
 
 def _md_num(x, decimals=1):
-    if x is None:
-        return "?"
     if isinstance(x, int):
-        return str(x)
-    return ("%.*f" % (decimals, x)).replace(".", ",")
+        return h.fmt(x)
+    return h.fmt(x, decimals)
 
 
 def validation_markdown(cat, plans, rows=None):
