@@ -60,6 +60,10 @@ class BuildEmptyVault(unittest.TestCase):
         self.assertIn("Ainda nao ha personagens", text)
         self.assertIn("2026-09-16 12:00:00", text)
         self.assertFalse((self.out / "personagens").exists())
+        # diz como adicionar hoje (modo de edicao e capturas), nao «chega na ordem N»
+        self.assertNotIn("chega na ordem", text)
+        self.assertIn("/editar", text)
+        self.assertIn("baiakvault-leitura", text)
 
     def test_hunts_index_warns_about_indices(self):
         text = (self.out / "hunts" / "index.html").read_text(encoding="utf-8")
@@ -158,6 +162,32 @@ class BuildWithCharacter(unittest.TestCase):
         for page in _pages(self.result):
             self.assertLess(page.stat().st_size, MAX_PAGE_BYTES, page)
         self.assertLess(self.result["seconds"], MAX_SECONDS)
+
+
+class PruneStalePages(unittest.TestCase):
+    def test_deleted_character_pages_and_cards_leave_docs(self):
+        conn, vault, db_path = helpers.temp_vault(with_fixture=True)
+        out = helpers.temp_dir() / "site"
+        planner, plans = helpers.planner()
+        build.build(out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW, planner=planner, plans=plans)
+        page = out / "personagens" / "teste-knight.html"
+        self.assertTrue(page.is_file())
+        cards = list((out / "print").glob("charms-teste-knight-*.html"))
+        self.assertTrue(cards)
+        # um ficheiro que nao e do gerador (fora das pastas dele) fica em paz
+        stranger = out / "notas.txt"
+        stranger.write_text("do Andre", encoding="utf-8")
+        vault.delete_character(vault.character("teste-knight")["id"])
+        conn.close()
+        result = build.build(out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW, planner=planner,
+                             plans=plans, with_builds=False)
+        self.assertFalse(page.exists())
+        self.assertEqual(list((out / "print").glob("charms-teste-knight-*.html")), [])
+        self.assertEqual(sorted(p.name for p in result["removed"]), sorted(["teste-knight.html"] + [c.name for c in cards]))
+        self.assertTrue(stranger.is_file())
+        # sem as builds nao se mexe nas paginas das builds nem nos cartoes do Helper
+        self.assertTrue((out / "builds" / "knight-tank.html").is_file())
+        self.assertTrue(list((out / "print").glob("helper-*.html")))
 
 
 class Formatting(unittest.TestCase):

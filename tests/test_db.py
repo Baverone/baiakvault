@@ -132,6 +132,27 @@ class Characters(unittest.TestCase):
             self.vault.upsert_character("   ")
         self.assertEqual(self.vault.characters(), [])
 
+    def test_same_name_in_other_case_is_the_same_character(self):
+        # o slug e UNIQUE: «Baverone» e «baverone» davam um IntegrityError cru (nao um VaultError)
+        cid = self.vault.upsert_character("Baverone", vocation="knight", level=100)
+        cid2 = self.vault.upsert_character("BAVERONE", level=101)
+        self.assertEqual(cid, cid2)
+        self.assertEqual(len(self.vault.characters()), 1)
+        c = self.vault.character(cid)
+        self.assertEqual((c["name"], c["level"], c["vocation"]), ("Baverone", 101, "knight"))
+
+    def test_changing_vocation_over_a_registered_tree_is_an_error(self):
+        cid = self.vault.upsert_character("K", vocation="knight")
+        self.vault.set_tree_node(cid, "k_fury", 2)
+        with self.assertRaises(db.VaultError):
+            self.vault.upsert_character("K", vocation="druid")
+        self.assertEqual(self.vault.character(cid)["vocation"], "knight")
+        self.assertEqual(db.check(self.conn, helpers.real_catalog()), [])
+        # sem arvore registada muda-se (e o objectivo repoe a omissao da nova vocacao)
+        self.vault.clear_tree(cid)
+        self.vault.upsert_character("K", vocation="druid")
+        self.assertEqual(self.vault.character(cid)["vocation"], "druid")
+
 
 class Tree(unittest.TestCase):
     def setUp(self):

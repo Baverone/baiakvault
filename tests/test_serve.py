@@ -223,6 +223,42 @@ class EditMode(unittest.TestCase):
         finally:
             conn.close()
 
+    def test_concurrent_posts_all_land_and_the_site_regenerates_once_per_post(self):
+        # o servidor e multi-thread: duas gravacoes ao mesmo tempo nao podem partilhar o
+        # Planner a meio de uma regeneracao (caches sem protecao) — o lock serializa-as
+        before = self.cfg.rebuilds
+        results = []
+
+        def post(level):
+            results.append(self.server.request("POST", "/editar/teste-knight/personagem",
+                                               {"token": self.token, "level": str(level)}))
+        threads = [threading.Thread(target=post, args=(300 + i,)) for i in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(120)
+        self.assertEqual([r[0] for r in results], [303, 303, 303], results)
+        self.assertEqual(self.cfg.rebuilds, before + 3)
+        conn, vault = self.vault()
+        try:
+            self.assertIn(vault.character("teste-knight")["level"], (300, 301, 302))
+        finally:
+            conn.close()
+        # repoe o nivel da fixture: os outros testes desta classe contam com ele
+        status, _, _ = self.server.request("POST", "/editar/teste-knight/personagem", {"token": self.token, "level": "312"})
+        self.assertEqual(status, 303)
+
+    def test_new_character_with_same_name_in_other_case_is_not_a_crash(self):
+        t = self.token
+        status, _, loc = self.server.request("POST", "/editar/novo", {"token": t, "name": "teste knight", "vocation": "knight"})
+        self.assertEqual(status, 303)   # e o Teste Knight da fixture, nao um segundo boneco
+        self.assertTrue(loc.startswith("/editar/teste-knight?ok="), loc)
+        conn, vault = self.vault()
+        try:
+            self.assertEqual([c["slug"] for c in vault.characters() if c["slug"] == "teste-knight"], ["teste-knight"])
+        finally:
+            conn.close()
+
 
 class Choices(unittest.TestCase):
     def test_item_choices_respect_slot_vocation_level(self):

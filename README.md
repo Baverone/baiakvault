@@ -22,7 +22,11 @@ O que ja la esta (v0.1):
   registado; ao lado, a build recomendada para a tua vocacao/objectivo/nivel.
   O que nao esta registado sai «?» e a lista diz o que falta preencher.
 - **Builds** — as 8 builds (vocacao + objectivo) por nivel: arvore por ordem
-  de compra, equipamento BiS, rotacao do Helper, cartao para copiar.
+  de compra, equipamento BiS, rotacao do Helper, cartao para copiar. E a
+  **validacao cruzada** (`builds/validacao.html`): as contas de um perfil fixo
+  refeitas a mao so com os JSON do jogo, ao lado do simulador (o teste chumba
+  se divergirem mais de 1 %), a curva de DPS do guia ao lado de cada build, e
+  onde o guia e o cliente do jogo discordam.
 - **Hunts** — as 79 hunts pelos indices do proprio jogo: nivel, monstros,
   boss da wave 10 com o loot, drops que mais valem, lista do Codex. Com o
   aviso: os indices sao **eficiencia, nao XP/h** — XP/h so medindo.

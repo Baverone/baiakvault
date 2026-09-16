@@ -175,6 +175,28 @@ class Catalog:
         item = self.item_by_key.get(key)
         return item["nome"] if item else None
 
+    # --- resistencias: bestiario primeiro, depois a 2.a tabela de combate do cliente ------------
+    ELEMENTS = ("physical", "energy", "earth", "fire", "ice", "holy", "death")
+    RESIST_FALLBACK = "tabela de combate ⚠"
+
+    def resistances(self, creature):
+        """({elemento: %} ou None, fonte). O `bestiario.json` (tabela `Et`) nao declara
+        resistencias para 154 dos 240 monstros de hunt (159 das 250 entradas, porque
+        alguns aparecem em mais de uma hunt); para esses le-se a tabela `Wy`
+        do cliente (`bosses_de_sala`, que tem os 386 monstros) e marca-se ⚠ — as duas
+        divergem em 33 dos 86 que tem ambas. Sem nenhuma: (None, None), nunca zero.
+        E a mesma leitura para o simulador e para os charms (16/09/2026: ate aqui o
+        simulador contava estes 159 a 0 %)."""
+        res = creature.get("resistencias")
+        if res:
+            return {el: (res.get(el) or 0) for el in self.ELEMENTS}, "bestiario"
+        if not hasattr(self, "_combat_by_name"):
+            self._combat_by_name = {b["nome"].lower(): b for b in self.room_bosses if b.get("nome")}
+        alt = self._combat_by_name.get((creature.get("nome") or "").lower())
+        if alt and alt.get("resistencias") is not None:
+            return {el: (alt["resistencias"].get(el) or 0) for el in self.ELEMENTS}, self.RESIST_FALLBACK
+        return None, None
+
 
 def load(directory=None):
     """Le os ficheiros. Falha alto se faltar um: meia verdade engana."""

@@ -25,9 +25,9 @@ from . import pages_builds
 from . import pages_charms
 
 DEFAULT_OUT = Path(__file__).resolve().parent.parent / "docs"
-# A validacao cruzada e escrita a mao (com o que `scripts/validar_guia.py` mede) e vive no repo;
-# o build copia-a para `docs/builds/` e gera a versao HTML.
-VALIDATION_MD = DEFAULT_OUT / "builds" / "validacao.md"
+# A validacao cruzada (`docs/builds/validacao.md`) e gerada pelo build a partir de `validation.py`
+# (contas a mao vs simulador, curva do guia, discordancias guia/cliente) — ate 16/09/2026 era um
+# placeholder a apontar para um script que nunca existiu.
 # As regras dos charms (lidas no cliente, com fonte) tambem sao escritas a mao e vivem no repo.
 CHARMS_MD = DEFAULT_OUT / "charms.md"
 # Cartoes de print dos charms: a hunt actual de cada personagem mais estas vizinhas em nivel
@@ -75,10 +75,11 @@ def render_index(cat, characters, generated_at, advice_by_slug=None):
     parts.append("<h2>Personagens</h2>")
     if not characters:
         parts.append('<div class="cartao"><p>Ainda nao ha personagens.</p>'
-                     "<p>Como adicionar: o modo de edicao local (<code>py -m baiakvault serve</code>, "
-                     "porto 8774) chega na ordem 2; a leitura de capturas de ecra "
-                     "(<code>capturas/</code>) chega na ordem 4. Ate la a BD esta vazia de "
-                     "proposito — nao se inventam personagens.</p></div>")
+                     "<p>Como adicionar: no PC, <code>py -m baiakvault serve</code> e abrir "
+                     "<code>http://127.0.0.1:8774/editar</code> (formulario); ou guardar um Win+Shift+S do "
+                     "painel, da arvore, do equipamento ou do bestiario/charms em <code>capturas\\</code> — a "
+                     "tarefa <code>baiakvault-leitura</code> le-o de 30 em 30 min. A BD esta vazia de "
+                     "proposito: nao se inventam personagens.</p></div>")
     else:
         parts.append('<div class="grelha">')
         for c in characters:
@@ -553,14 +554,31 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
                 for lv in builds_module.LEVELS:
                     written.append(_write(out / "print" / ("helper-%s-%d.html" % (pages_builds.slug(voc, goal), lv)),
                                           pages_builds.render_print(cat, plans[(voc, goal, lv)], generated_at)))
-            md = VALIDATION_MD if VALIDATION_MD.is_file() else (out / "builds" / "validacao.md")
-            if md.is_file():
-                text = md.read_text(encoding="utf-8")
-                if md != out / "builds" / "validacao.md":
-                    written.append(_write(out / "builds" / "validacao.md", text))
-                written.append(_write(out / "builds" / "validacao.html",
-                                      pages_builds.render_validation(text, generated_at)))
+            text = pages_builds.validation_markdown(cat, plans)
+            written.append(_write(out / "builds" / "validacao.md", text))
+            written.append(_write(out / "builds" / "validacao.html",
+                                  pages_builds.render_validation(text, generated_at)))
+        removed = _prune(out, written, with_builds)
     finally:
         conn.close()
-    return {"files": written, "seconds": time.perf_counter() - started, "out": out,
+    return {"files": written, "removed": removed, "seconds": time.perf_counter() - started, "out": out,
             "characters": len(characters), "hunts": len(cat.hunts)}
+
+
+# O que o gerador e dono de apagar: paginas que so existem por causa de um personagem
+# (apagado, renomeado ou com outra hunt) ficavam em docs/ e iam para o Pages (16/09/2026).
+_OWNED = (("personagens", "*.html", False), ("print", "charms-*.html", False),
+          ("hunts", "*.html", False), ("print", "helper-*.html", True), ("builds", "*.html", True))
+
+
+def _prune(out, written, with_builds):
+    keep = {p.resolve() for p in written}
+    removed = []
+    for folder, pattern, only_with_builds in _OWNED:
+        if only_with_builds and not with_builds:
+            continue
+        for path in sorted((out / folder).glob(pattern)):
+            if path.resolve() not in keep and path.is_file():
+                path.unlink()
+                removed.append(path)
+    return removed

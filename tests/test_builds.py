@@ -31,6 +31,29 @@ class Simulator(unittest.TestCase):
         self.assertEqual(mx["physical"], 280.0)
         self.assertEqual(inc["fire"], 0.0)  # a cura do monstro nao e dano
 
+    def test_target_reads_resistances_from_the_second_table_when_the_bestiary_has_none(self):
+        # Elder Wyrm: sem resistencias no bestiario, 75 % terra / 30 % fogo na 2.a tabela do cliente.
+        # Ate 16/09/2026 o simulador contava-o a 0 % em tudo (e o motor dos charms ja lia a tabela).
+        wyrm = self.cat.creature_by_key["elder_wyrm"]
+        self.assertFalse(wyrm.get("resistencias"))
+        res, source = self.cat.resistances(wyrm)
+        self.assertEqual(source, self.cat.RESIST_FALLBACK)
+        self.assertEqual(res["earth"], 75)
+        t = sim.Target(self.cat, "wyrm-cave")
+        self.assertIn("Elder Wyrm", t.resist_fallback)
+        self.assertGreater(t.resist["earth"], 0)
+        self.assertEqual(t.resist_unknown, [])
+        # e a mesma leitura que o motor dos charms faz
+        from baiakvault import charms
+        self.assertEqual(charms._resistances(self.cat, wyrm), (res, source))
+        # uma hunt com tudo no bestiario nao muda nem leva aviso
+        t = sim.Target(self.cat, "crawler-cave")
+        self.assertEqual(t.resist_fallback, [])
+        self.assertAlmostEqual(t.resist["earth"], 100.0)
+        # todos os monstros de hunt tem resistencias numa das duas tabelas: nenhum fica «?»
+        for hunt in self.cat.hunts:
+            self.assertEqual(sim.Target(self.cat, hunt["id"]).resist_unknown, [], hunt["id"])
+
     def test_more_level_never_less_dps(self):
         target = sim.Target(self.cat, "cobra-cave")
         for voc in ("knight", "sorcerer", "paladin", "druid", "monk"):

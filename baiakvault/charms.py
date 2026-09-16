@@ -144,25 +144,9 @@ def echoes_for_upgrade(current_tier):
 
 # --- a hunt vista pelos charms -----------------------------------------------------------------
 def _resistances(cat, creature):
-    """(resistencias {el: %}, fonte) — bestiario primeiro; depois a tabela de
-    combate do cliente (`bosses_de_sala`, marcada ⚠); senao (None, None)."""
-    res = creature.get("resistencias")
-    if res:
-        return {el: (res.get(el) or 0) for el in ELEMENTS}, "bestiario"
-    alt = _combat_table(cat).get((creature.get("nome") or "").lower())
-    if alt and alt.get("resistencias") is not None:
-        return {el: (alt["resistencias"].get(el) or 0) for el in ELEMENTS}, "tabela de combate ⚠"
-    return None, None
-
-
-_COMBAT_CACHE = {}
-
-
-def _combat_table(cat):
-    key = id(cat)
-    if key not in _COMBAT_CACHE:
-        _COMBAT_CACHE[key] = {b["nome"].lower(): b for b in cat.room_bosses if b.get("nome")}
-    return _COMBAT_CACHE[key]
+    """(resistencias {el: %}, fonte) — a leitura do catalogo (bestiario, depois a
+    2.a tabela de combate marcada ⚠, senao (None, None)); a mesma do simulador."""
+    return cat.resistances(creature)
 
 
 def _dps(creature):
@@ -227,6 +211,7 @@ def hunt_view(cat, hunt_id):
             "key": c["chave"], "name": c["nome"], "hp": hp, "exp": c.get("exp"), "weight": share,
             "kills": kills, "is_boss": is_boss, "exposure": exposure, "dps": dps, "taken": taken,
             "resist": res, "resist_source": res_source, "loot_items": items * kills, "loot_coins": coins * kills,
+            "loot_known": c.get("loot") is not None,
             "meta_kills": c.get("meta_kills"), "hunts": len([hid for hid in (c.get("aparece_em") or []) if hid in cat.hunt_by_id]),
         })
     if fallback:
@@ -319,6 +304,8 @@ def score_pair(charm, tier, own, view, c):
         if key == "fatal_hold":
             why += " (o bonus so conta nos ultimos 25%% do HP: %s por bicho)" % _n(0.25 * (c["hp"] or 0))
         return score, why, warns
+    if rule in ("loot", "gold") and not c.get("loot_known", True):
+        return None, "tabela de loot desconhecida", warns
     if rule == "loot":
         score = c["loot_items"] * chance / 100.0
         why = "loot em itens ~%s gold por ciclo (%s kills), pela tabela de loot do cliente" % (_n(c["loot_items"]), _n(c["kills"]))
@@ -366,14 +353,21 @@ def _requirement(own, key):
     return True, "%s %s%% (%s)" % (label, ("%g" % value).replace(".", ","), own.get("stats_source") or "registado")
 
 
-def _bestiary_ok(own, c):
-    """Um maior exige o bestiario fechado. (ok, nota): None = nao registado."""
+def _bestiary_ok(own, c, category="major"):
+    """Um maior exige o bestiario fechado; um menor basta ter matado 1 (cliente
+    `d3e`). (ok, nota): None = nao registado."""
     best = own.get("bestiary")
     if best is None:
         return None, None   # tecto de uma build: nao ha bestiario de ninguem para exigir
     if c["key"] not in best:
+        if category != "major":
+            return None, None   # kills nao registados: 1 kill e o normal numa hunt, nao vale aviso
         return None, "exige o bestiario de %s fechado (%s kills) — kills nao registados ⚠" % (c["name"], _n(c["meta_kills"]))
     kills = best[c["key"]]
+    if category != "major":
+        if kills < 1:
+            return False, "0 kills registados de %s: um menor exige ter matado pelo menos 1" % c["name"]
+        return True, None
     if c["meta_kills"] is not None and kills < c["meta_kills"]:
         return False, "bestiario de %s por fechar (%s/%s): um maior nao se atribui" % (c["name"], _n(kills), _n(c["meta_kills"]))
     return True, None
@@ -407,18 +401,24 @@ def recommend(cat, own, hunt_id):
             continue
         options = []
         unknown_pairs = []
+        useless_pairs = []
         for c in view["creatures"]:
             score, why, warns = score_pair(charm, tier, own, view, c)
             if score is None:
                 unknown_pairs.append((c["name"], why))
                 continue
-            if charm["category"] == "major":
-                b_ok, b_note = _bestiary_ok(own, c)
-                if b_ok is False:
-                    unknown_pairs.append((None, b_note))
-                    continue
-                if b_note:
-                    warns = warns + [b_note]
+            if score <= 0:
+                # pontua zero (ex.: Poison numa criatura imune a terra): nao e uma
+                # opcao — se entrasse, o arrependimento «1 - 0» punha-o a decidir
+                # primeiro e a ocupar a melhor criatura sem fazer nada (16/09/2026)
+                useless_pairs.append((c["name"], why))
+                continue
+            b_ok, b_note = _bestiary_ok(own, c, charm["category"])
+            if b_ok is False:
+                unknown_pairs.append((None, b_note))
+                continue
+            if b_note:
+                warns = warns + [b_note]
             if req_text:
                 why = why + "; " + req_text
             options.append({"creature": c, "score": score, "why": why, "warns": warns})
@@ -429,13 +429,18 @@ def recommend(cat, own, hunt_id):
         else:
             unknown_reasons = [("%s: %s" % (name, why)) if name else why for name, why in unknown_pairs]
         if not options:
-            left_out.append({"charm_key": key, "name": charm["name"], "tier": tier, "kind": "unknown",
-                             "reason": "sem criatura pontuavel: " + "; ".join(unknown_reasons[:3])})
+            if useless_pairs and not unknown_pairs:
+                left_out.append({"charm_key": key, "name": charm["name"], "tier": tier, "kind": "useless",
+                                 "reason": "nao faz nada nesta hunt: " + "; ".join(
+                                     "%s (%s)" % (name, why) for name, why in useless_pairs[:3])})
+            else:
+                left_out.append({"charm_key": key, "name": charm["name"], "tier": tier, "kind": "unknown",
+                                 "reason": "sem criatura pontuavel: " + "; ".join(unknown_reasons[:3])})
             continue
         options.sort(key=lambda o: (-o["score"], o["creature"]["name"]))
-        best = options[0]["score"] or 1.0
+        best = options[0]["score"]
         for o in options:
-            o["rel"] = o["score"] / best if best else 0.0
+            o["rel"] = o["score"] / best
         table[key] = {"charm": charm, "tier": tier, "current": current, "options": options,
                       "unknown": unknown_reasons}
 

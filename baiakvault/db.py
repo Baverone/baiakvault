@@ -234,6 +234,20 @@ class Vault:
                   "vip": vip, "goal": goal, "notes": notes, "source": source,
                   "seen_at": seen_at}
         row = self.conn.execute("SELECT id, vocation, goal FROM characters WHERE name = ?", (name,)).fetchone()
+        if row is None:
+            # «Baverone» e «baverone» sao o mesmo boneco (o slug e o mesmo e o jogo nao
+            # distingue): actualiza-se esse em vez de rebentar no UNIQUE do slug com um
+            # IntegrityError cru (16/09/2026). O nome guardado fica o primeiro que se escreveu.
+            row = self.conn.execute("SELECT id, vocation, goal FROM characters WHERE slug = ?",
+                                    (slugify(name),)).fetchone()
+        if row is not None and vocation is not None and row["vocation"] and vocation != row["vocation"]:
+            # a arvore registada e da vocacao antiga: nao se troca a vocacao por cima dela
+            # (ficava uma arvore impossivel na BD e o `check` chumbava a publicacao)
+            n_tree = self.conn.execute("SELECT count(*) FROM character_tree WHERE character_id = ?",
+                                       (row["id"],)).fetchone()[0]
+            if n_tree:
+                raise VaultError("mudar a vocacao de %s para %s com %d nos da arvore de %s registados: "
+                                 "limpa a arvore primeiro" % (name, vocation, n_tree, row["vocation"]))
         # o objectivo tem de ser um dos da vocacao (a que vem agora ou a que ja la esta)
         final_vocation = vocation or (row["vocation"] if row else None)
         final_goal = goal or (row["goal"] if row else None)
