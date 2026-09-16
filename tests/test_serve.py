@@ -8,7 +8,7 @@ import urllib.parse
 from http.server import ThreadingHTTPServer
 
 import helpers
-from baiakvault import db, serve
+from baiakvault import db, html as h, serve, treecode
 
 
 class _Server:
@@ -207,6 +207,76 @@ class EditMode(unittest.TestCase):
             self.assertEqual(best["cobra_scout"], 2400)
         finally:
             conn.close()
+
+    def test_tree_code_import_and_fixed_rotation(self):
+        """Ordem 8: o codigo «Exportar» do cliente grava a arvore inteira (validado como o
+        cliente valida: vocacao, ligacao, orcamento); a rotacao e a arma fixadas gravam-se e
+        a pagina do personagem mostra o codigo da recomendada com o custo de importar."""
+        t = self.token
+        cat = helpers.real_catalog()
+        status, _, _ = self.server.request("POST", "/editar/novo", {"token": t, "name": "Codigo", "vocation": "sorcerer"})
+        self.assertEqual(status, 303)
+        status, _, _ = self.server.request("POST", "/editar/codigo/personagem", {"token": t, "level": "471", "vocation": "sorcerer",
+                                                                                "current_hunt": "livrariafire-cave"})
+        self.assertEqual(status, 303)
+        # codigo invalido, de outra vocacao e acima do nivel: nada gravado, erro legivel
+        for code, why in (("lixo", "invalido"), (treecode.encode(cat, "druid", 471, {"d_nature": 1}), "vocacao"),
+                          (treecode.encode(cat, "sorcerer", 471, {"s_arcane": 10, "s_wildfire": 10, "s_energy": 10} | {
+                              n["id"]: n["rank_maximo"] for n in cat.tree_by_vocation["sorcerer"]["nos"] if n["tier"] <= 2}), "nivel")):
+            status, body, _ = self.server.request("POST", "/editar/codigo/arvore/codigo", {"token": t, "codigo": code})
+            self.assertEqual(status, 400, why)
+            self.assertIn("Nao gravado", body)
+        conn, vault = self.vault()
+        try:
+            cid = vault.character("codigo")["id"]
+            self.assertEqual(vault.tree_of(cid), [])
+        finally:
+            conn.close()
+        # o codigo do supervisor para o sorcerer 471: grava os 203... nao, os nos da vocacao todos (0 = afirmacao)
+        alloc = {"s_arcane": 10, "s_wildfire": 10, "s_energy": 5, "s_conduit": 5, "s_crit": 4, "s_soulharvest": 1, "s_reaper": 1,
+                 "s_deathchill": 1, "s_archmage": 5, "s_tactics": 7, "s_voidtouch": 1, "s_cataclysm": 5, "s_stormcall": 3,
+                 "s_focus_mastery": 1, "s_overchannel": 7, "s_scorch": 1, "s_inferno": 6, "s_devastate": 2, "s_haste": 1}
+        code = treecode.encode(cat, "sorcerer", 471, alloc)
+        self.assertEqual(code, "BT1-S471-A50005005410205001100600000007010113710A")
+        status, _, loc = self.server.request("POST", "/editar/codigo/arvore/codigo", {"token": t, "codigo": code.lower(),
+                                                                                     "seen_at": "2026-09-16"})
+        self.assertEqual(status, 303)
+        self.assertIn("471 pontos gastos", urllib.parse.unquote(loc))
+        conn, vault = self.vault()
+        try:
+            cid = vault.character("codigo")["id"]
+            tree = {r["node_key"]: r["rank"] for r in vault.tree_of(cid)}
+            self.assertEqual({k: v for k, v in tree.items() if v}, alloc)
+            self.assertEqual(len(tree), len(cat.tree_by_vocation["sorcerer"]["nos"]))
+            self.assertEqual(vault.tree_of(cid)[0]["source"], "manual")
+        finally:
+            conn.close()
+        # a rotacao fixada
+        status, _, loc = self.server.request("POST", "/editar/codigo/rotacao", {"token": t, "spell_0": "Rage of the Skies",
+                                                                               "spell_1": "Avalanche", "spell_2": "", "spell_3": ""})
+        self.assertEqual(status, 303)
+        status, body, _ = self.server.request("POST", "/editar/codigo/rotacao", {"token": t, "spell_0": "Fierce Berserk"})
+        self.assertEqual(status, 400)
+        conn, vault = self.vault()
+        try:
+            c = vault.character("codigo")
+            self.assertEqual(c["fixed_rotation"], ["Rage of the Skies", "Avalanche"])
+        finally:
+            conn.close()
+        page = (self.docs / "personagens" / "codigo.html").read_text(encoding="utf-8")
+        self.assertIn("Rotacao de hunt fixada por ti", page)
+        self.assertIn("Rage of the Skies, Avalanche", page)
+        self.assertIn('value="BT1-S471-', page)
+        self.assertIn("Copiar", page)
+        self.assertIn(h.kk(treecode.import_cost(471)), page)   # o custo de importar pelos 471 pontos que a BD diz
+        self.assertIn("pelas regras do cliente", page)
+        self.assertTrue((self.docs / "print" / "helper-personagem-codigo.html").is_file())
+        self.assertIn("rotacao de hunt fixada por ti", (self.docs / "print" / "helper-personagem-codigo.html").read_text(encoding="utf-8"))
+        self.assertNotRegex(page, r"\b(None|nan|undefined)\b")
+        status, body, _ = self.server.request("GET", "/editar/codigo")
+        self.assertIn("Cola aqui o codigo Exportar", body)
+        self.assertIn("Rotacao e arma fixadas", body)
+        self.assertIn('selected>Avalanche', body)
 
     def test_delete_needs_exact_name(self):
         t = self.token

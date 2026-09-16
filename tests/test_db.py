@@ -91,12 +91,62 @@ class Schema(unittest.TestCase):
             conn.close()
 
 
+    def test_v4_to_v5_adds_fixed_rotation_and_weapon_as_null(self):
+        path = helpers.temp_dir() / "v4.db"
+        conn = sqlite3.connect(str(path))
+        for script in db.MIGRATIONS[:4]:
+            conn.executescript(script)
+        conn.execute("PRAGMA user_version = 4")
+        conn.execute("INSERT INTO characters (id, name, slug, vocation, level, updated_at) VALUES (1, 'S', 's', 'sorcerer', 471, 'x')")
+        conn.commit()
+        conn.close()
+        conn = db.connect(path)
+        try:
+            self.assertEqual(db.schema_version(conn), db.SCHEMA_VERSION)
+            vault = db.Vault(conn, helpers.real_catalog())
+            c = vault.character("s")
+            self.assertIsNone(c["fixed_rotation"])
+            self.assertIsNone(c["fixed_weapon"])
+        finally:
+            conn.close()
+
+
 class Characters(unittest.TestCase):
     def setUp(self):
         self.conn, self.vault, _ = helpers.temp_vault()
 
     def tearDown(self):
         self.conn.close()
+
+    def test_fixed_rotation_and_weapon_are_validated_and_optional(self):
+        """Ordem 8: a rotacao e a arma que ele fixou sao dados; feitico de outra vocacao,
+        repetido ou mais de 4 e erro; arma tem de ser arma da vocacao; None desfixa."""
+        cid = self.vault.upsert_character("Sorc", vocation="sorcerer", level=471)
+        self.assertEqual(self.vault.set_fixed_rotation(cid, ["rage of the skies", "Avalanche"]), ["Rage of the Skies", "Avalanche"])
+        c = self.vault.character(cid)
+        self.assertEqual(c["fixed_rotation"], ["Rage of the Skies", "Avalanche"])
+        self.assertEqual(c["fixed_rotation_json"], '["Rage of the Skies", "Avalanche"]')
+        for bad in (["Fierce Berserk"], ["Avalanche", "Avalanche"], ["Nao Existe"], ["Avalanche"] * 5):
+            with self.assertRaises(db.VaultError):
+                self.vault.set_fixed_rotation(cid, bad)
+        self.assertEqual(self.vault.character(cid)["fixed_rotation"], ["Rage of the Skies", "Avalanche"])   # nada mudou
+        self.assertIsNone(self.vault.set_fixed_rotation(cid, None))
+        self.assertIsNone(self.vault.character(cid)["fixed_rotation"])
+        kid = self.vault.upsert_character("Kni", vocation="knight", level=527)
+        self.assertEqual(self.vault.set_fixed_weapon(kid, "Soulmaimer"), "soulmaimer")
+        self.assertEqual(self.vault.character(kid)["fixed_weapon"], "soulmaimer")
+        with self.assertRaises(db.VaultError):
+            self.vault.set_fixed_weapon(cid, "soulmaimer")   # so knight
+        with self.assertRaises(db.VaultError):
+            self.vault.set_fixed_weapon(kid, "cobra crown")   # nao e arma
+        with self.assertRaises(db.VaultError):
+            self.vault.set_fixed_weapon(kid, "nao existe")
+        self.assertIsNone(self.vault.set_fixed_weapon(kid, None))
+        self.assertEqual(db.check(self.conn, self.vault.cat), [])
+        # o check apanha o que entrar por fora do Vault
+        self.conn.execute("UPDATE characters SET fixed_weapon = 'x', fixed_rotation_json = '[\"Nada\"]' WHERE id = ?", (kid,))
+        problems = db.check(self.conn, self.vault.cat)
+        self.assertEqual(len(problems), 2, problems)
 
     def test_upsert_creates_with_slug_and_normalized_vocation(self):
         cid = self.vault.upsert_character("Bluey The Cat", vocation="ED", source="manual")

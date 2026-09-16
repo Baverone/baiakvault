@@ -108,6 +108,7 @@ PATH_CANDIDATE_MARGIN = 0.005
 PRUNE_GAIN_PCT = 0.05
 PRUNE_MAX_ROUNDS = 60     # ranks tirados por passagem (cada um e uma avaliacao por no da arvore)
 PRUNE_OUTER_ROUNDS = 3    # podar -> gastar -> podar outra vez (o refill pode deixar outro no sem ganho)
+PRUNE_REVERT_PCT = 0.5    # podar + gastar nunca deixa a metrica mais de isto abaixo do que estava (ruido da grelha)
 DEFENSIVE_EFFECTS = ("hpPct", "absorbPct", "armorFlat", "defFlat", "hpRegenFlat", "hpRegenPct")
 # nos com nome de fogo mas efeito generico (`spellDmgPct`): o Andre estranhou os nomes
 FIRE_NAMED_GENERIC = ("Wildfire", "Inferno", "Cataclysm")
@@ -557,9 +558,10 @@ def can_buy(node, ranks, adj):
     return any(ranks.get(v, 0) >= 1 for v in adj[node["id"]])
 
 
-def unlock_path(node, ranks, adj, node_by_id):
+def unlock_path(node, ranks, adj, node_by_id, exclude=()):
     """O caminho mais barato (um rank por no intermedio) do que ja esta comprado
-    ate `node`. Dijkstra na adjacencia. Devolve lista de ids a comprar antes."""
+    ate `node`. Dijkstra na adjacencia. Devolve lista de ids a comprar antes.
+    Os `exclude` nao servem de caminho (o refill nao recompra o que se podou)."""
     if can_buy(node, ranks, adj):
         return []
     bought = {k for k, v in ranks.items() if v >= 1}
@@ -570,7 +572,7 @@ def unlock_path(node, ranks, adj, node_by_id):
         if nid in bought:
             dist[nid] = (0, [])
             heapq.heappush(heap, (0, nid, []))
-        elif n.get("tier", 0) == 0:
+        elif n.get("tier", 0) == 0 and nid not in exclude:
             c = F.tree_rank_cost(n, 0)
             dist[nid] = (c, [nid])
             heapq.heappush(heap, (c, nid, [nid]))
@@ -582,7 +584,7 @@ def unlock_path(node, ranks, adj, node_by_id):
         if target in adj[nid]:
             return path
         for v in adj[nid]:
-            if v == target or v in bought:
+            if v == target or v in bought or v in exclude:
                 continue
             n = node_by_id[v]
             c = d + F.tree_rank_cost(n, ranks.get(v, 0))
@@ -605,12 +607,18 @@ class TreeStep:
 
 
 def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target_at, start_ranks=None,
-                  level_of=None, exclude=(), check_saving=True):
+                  level_of=None, exclude=(), check_saving=True, boss_rotation_at=None, heal_at=None,
+                  stop_at_zero_gain=False):
     """Caminho guloso de compra ate `budget` pontos. `equipment_at(level)`,
     `rotation_at(level, profile)` e `target_at(level)` dao o contexto do nivel
     em que cada ponto se gasta (level = pontos gastos, minimo 8, ou `level_of`).
-    `exclude` sao nos que nao se compram; `check_saving` liga o teste da
-    poupanca (SAVE_*), que se desliga na chamada aninhada que calcula a alternativa."""
+    `boss_rotation_at(level, profile)` e `heal_at(profile)` (opcionais) fecham o
+    contexto: sem eles a rotacao de hunt serve de rotacao de boss e a cura e a
+    omissao — desde a ordem 8 o refill passa os mesmos que a pagina usa, senao a
+    condicao «aguenta o boss» media-se noutra rotacao e comprava defesa a mais.
+    `exclude` sao nos que nao se compram nem servem de caminho; `check_saving` liga
+    o teste da poupanca (SAVE_*), que se desliga na chamada aninhada que calcula a
+    alternativa."""
     tree = cat.tree_by_vocation[vocation]
     node_by_id = {n["id"]: n for n in tree["nos"]}
     adj = _adjacency(cat, vocation)
@@ -632,13 +640,15 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
         if level not in contexts:
             eq = equipment_at(level, ranks)
             prof = sim.Profile(cat, vocation, level, ranks, eq)
-            contexts[level] = (eq, target_at(level), rotation_at(level, prof))
+            boss_rot = boss_rotation_at(level, prof) if boss_rotation_at else None
+            heal = heal_at(prof) if heal_at else None
+            contexts[level] = (eq, target_at(level), rotation_at(level, prof), boss_rot, heal)
         return contexts[level]
 
     def score_with(level, trial_ranks):
-        eq, target, rot = context(level)
+        eq, target, rot, boss_rot, heal = context(level)
         p = sim.Profile(cat, vocation, level, trial_ranks, eq)
-        return score_of(evaluate(p, target, rot), goal)
+        return score_of(evaluate(p, target, rot, boss_rot, heal), goal)
 
     def baseline(level):
         if level not in baselines:
@@ -651,7 +661,7 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
         nivel em que se pode pagar (pontos gastos + custo), contra a base desse
         mesmo nivel — so assim um notable de 100 pontos e um small de 1 ponto
         sao comparaveis."""
-        path = unlock_path(node, ranks, adj, node_by_id)
+        path = unlock_path(node, ranks, adj, node_by_id, exclude)
         if path is None:
             return None
         trial = dict(ranks)
@@ -678,7 +688,8 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
         alternativa). Decisao de 16/09/2026 (ordem 6), ver SAVE_MARGIN."""
         alt_ranks, alt_steps = optimize_tree(
             cat, vocation, goal, spent + cost, equipment_at, rotation_at, target_at, start_ranks=ranks,
-            level_of=lambda pts: level, exclude=set(exclude) | {nid}, check_saving=False)
+            level_of=lambda pts: level, exclude=set(exclude) | {nid}, check_saving=False,
+            boss_rotation_at=boss_rotation_at, heal_at=heal_at)
         base = max(1e-9, baseline(level))
         gain_pct = (s / base - 1.0) * 100.0
         alt_pct = (score_with(level, alt_ranks) / base - 1.0) * 100.0 if alt_steps else 0.0
@@ -716,6 +727,8 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
             if heap and gain < -heap[0][0]:
                 heapq.heappush(heap, (-gain, nid))
                 continue
+        if stop_at_zero_gain and gain <= 0.0:
+            break   # o melhor que ha nao rende: o refill deixa o resto para os «pontos que sobram»
         saving = None
         wait = level - level_for(spent)
         if check_saving and node.get("tipo") != "small" and wait > SAVE_CHECK_MIN_WAIT and nid not in no_test:
@@ -895,15 +908,17 @@ class Planner:
         return self._equipment[key][0]
 
     def rotation(self, profile, target, boss, goal, runes=True, fixed=None):
-        """A rotacao: a que ele fixou (na hunt; no boss so se a fixada ja da) ou a
-        que o optimizador escolhe. Devolve (slots, SimResult)."""
-        if fixed:
+        """A rotacao: na hunt a que ele fixou (se o nivel ja a der), senao a que o
+        optimizador escolhe. No boss e sempre a do optimizador: o que ele fixou foi a
+        rotacao de hunt (decisao de 16/09/2026 14:30) e o Helper tem o separador Boss a
+        parte. Devolve (slots, SimResult)."""
+        if fixed and not boss:
             slots = self.fixed_rotation_slots(profile, target, fixed, boss)
             if slots is not None:
                 return slots, sim.simulate(profile, target, slots, boss=boss, heal=default_heal(profile))
         return choose_rotation(profile, target, boss=boss, runes=runes, goal=goal, gold_cap=self.gold_cap)
 
-    def rotation_at(self, vocation, goal, level, profile, hunt_id=None, fixed=None):
+    def rotation_at(self, vocation, goal, level, profile, hunt_id=None, fixed=None, boss=False):
         cp = self.checkpoint(level)
         key = (vocation, goal, cp, hunt_id, fixed)
         if key not in self._rotation:
@@ -911,7 +926,7 @@ class Planner:
             hunt_rot, _ = self.rotation(profile, target, False, goal, fixed=fixed)
             boss_rot, _ = self.rotation(profile, target, True, goal, fixed=fixed)
             self._rotation[key] = (hunt_rot, boss_rot)
-        return self._rotation[key][0]
+        return self._rotation[key][1 if boss else 0]
 
     def path(self, vocation, goal, budget=None, hunt_id=None, fixed=None):
         """O caminho de compra de (vocacao, objectivo): pela hunt de referencia de
@@ -928,23 +943,30 @@ class Planner:
                 self.cat, vocation, goal, budget,
                 equipment_at=lambda lv, ranks: self.equipment_at(vocation, goal, lv, ranks, hunt_id, fixed),
                 rotation_at=lambda lv, prof: self.rotation_at(vocation, goal, lv, prof, hunt_id, fixed),
+                # o caminho avalia com a rotacao de hunt tambem no boss (simplificacao de sempre):
+                # com a rotacao de boss propria o guloso do monk «dano» a 306 caia 10 % (ordem 8,
+                # testado) — o refill e a poda ao nivel da pagina e que usam o contexto completo
                 target_at=lambda lv: self.target_for(vocation, goal, lv, hunt_id),
                 level_of=lambda points: max(MIN_LEVEL, min(max(self.levels), points)))
             self._paths[key] = (ranks, steps)
             self.timings[key] = time.perf_counter() - t0
         return self._paths[key]
 
-    def _candidate(self, vocation, goal, path_goal, level, hunt_id, fixed, target):
+    def _candidate(self, vocation, goal, path_goal, level, hunt_id, fixed, target, equipment=None):
         """Uma arvore candidata ao nivel: o prefixo do caminho de `path_goal` com o
         equipamento e a rotacao do objectivo pedido, os pontos que sobram gastos
-        (`fill_tree`). Devolve o estado por avaliar (a pontuacao decide entre candidatos)."""
+        (`fill_tree`). Devolve o estado por avaliar (a pontuacao decide entre candidatos).
+        `equipment` ja escolhido evita o optimizador de equipamento (o candidato do outro
+        caminho compara-se com o mesmo equipamento; so se ganhar se optimiza para ele)."""
         cat = self.cat
         self.path(vocation, path_goal, hunt_id=hunt_id, fixed=fixed)
         budget = F.tree_budget(level)
         tree = self._tree_prefix(vocation, path_goal, budget, hunt_id, fixed)
         steps = [st for st in self._paths[(vocation, path_goal, hunt_id, fixed)][1] if st.cumulative <= budget]
         key = (vocation, goal, level, hunt_id, fixed)
-        if path_goal == goal and key in self._equipment and self.target(level, hunt_id).hunt_id == target.hunt_id:
+        if equipment is not None:
+            eq, alts = equipment
+        elif path_goal == goal and key in self._equipment and self.target(level, hunt_id).hunt_id == target.hunt_id:
             eq, alts = self._equipment[key]
         else:
             eq, alts, _ = optimize_equipment(cat, vocation, level, goal, tree, target, gold_cap=self.gold_cap,
@@ -976,12 +998,25 @@ class Planner:
         candidates = [self._candidate(vocation, goal, goal, level, hunt_id, fixed, target)]
         other = "best" if goal != "best" else DEFAULT_GOAL
         if PATH_CANDIDATES and other in {g for v, g in BUILDS if v == vocation}:
-            candidates.append(self._candidate(vocation, goal, other, level, hunt_id, fixed, target))
+            candidates.append(self._candidate(vocation, goal, other, level, hunt_id, fixed, target,
+                                              equipment=(candidates[0]["eq"], candidates[0]["alts"])))
         # empate (ate 0,5 %) fica com o proprio caminho: a ordem de compra dele e a que a pagina conta
         best = max(candidates[1:], key=lambda c: c["score"], default=None)
         chosen = candidates[0]
         if best is not None and best["score"] > chosen["score"] * (1 + PATH_CANDIDATE_MARGIN):
+            # o outro caminho ganhou com o equipamento do proprio: agora o equipamento optimiza-se
+            # para ele — e fica o melhor dos dois (o guloso por slot a partir do zero pode cair num
+            # optimo local pior, ex.: knight 50 com uma arma de duas maos que o deixa sem escudo)
             chosen = best
+            eq, alts, _ = optimize_equipment(cat, vocation, level, goal, chosen["tree"], target, gold_cap=self.gold_cap,
+                                             fixed_weapon=self._fixed_weapon_item(fixed))
+            prof = sim.Profile(cat, vocation, level, chosen["tree"], eq)
+            hunt_rot, _ = self.rotation(prof, target, False, goal, fixed=fixed)
+            boss_rot, _ = self.rotation(prof, target, True, goal, fixed=fixed)
+            heal = default_heal(prof)
+            s_new = _score_tree(cat, vocation, goal, level, chosen["tree"], eq, target, hunt_rot, boss_rot, heal)
+            if s_new > chosen["score"]:
+                chosen.update({"eq": eq, "alts": alts, "hunt_rot": hunt_rot, "boss_rot": boss_rot, "heal": heal, "score": s_new})
         tree, steps, fill_steps, eq, alts = chosen["tree"], chosen["steps"], chosen["fill_steps"], chosen["eq"], chosen["alts"]
         hunt_rot, boss_rot, heal = chosen["hunt_rot"], chosen["boss_rot"], chosen["heal"]
         path_used = chosen["path_goal"]
@@ -992,16 +1027,27 @@ class Planner:
         # e os nos de ligacao que deixaram de ser precisos saem; os pontos voltam a gastar-se
         tree, pruned, refill_steps = prune_and_refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal)
         prof = sim.Profile(cat, vocation, level, tree, eq)
-        hunt_rot, hunt_sim = self.rotation(prof, target, False, goal, fixed=fixed)
-        boss_rot, boss_sim = self.rotation(prof, target, True, goal, fixed=fixed)
+        new_hunt_rot, hunt_sim = self.rotation(prof, target, False, goal, fixed=fixed)
+        new_boss_rot, boss_sim = self.rotation(prof, target, True, goal, fixed=fixed)
+        # a escolha da rotacao olha so ao DPS (sustentado) de 60 s, nao as condicoes de sobreviver:
+        # se a rotacao nova deixar a metrica (com as condicoes) pior do que a que a arvore foi
+        # optimizada para, fica a antiga (monk «dano» 306: a nova gastava a mana das curas e a
+        # metrica caia de 1 110 para 264 — ordem 8)
+        heal = default_heal(prof)
+        s_new = _score_tree(cat, vocation, goal, level, tree, eq, target, new_hunt_rot, new_boss_rot, heal)
+        s_old = _score_tree(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal)
+        if s_new >= s_old:
+            hunt_rot, boss_rot = new_hunt_rot, new_boss_rot
+        else:
+            hunt_sim = sim.simulate(prof, target, hunt_rot, boss=False, heal=heal)
+            boss_sim = sim.simulate(prof, target, boss_rot, boss=True, heal=heal)
         # a mesma escolha so com magias de mana: e o que as runas compram (a pagina mostra os dois)
         hunt_rot_no_runes, hunt_sim_no_runes = self.rotation(prof, target, False, goal, runes=False)
         boss_rot_no_runes, boss_sim_no_runes = self.rotation(prof, target, True, goal, runes=False)
         # com rotacao fixada: a que o optimizador escolheria, para a pagina mostrar as duas
-        model_rot = model_sim = model_boss_rot = model_boss_sim = None
+        model_rot = model_sim = None
         if fixed and fixed[0]:
             model_rot, model_sim = choose_rotation(prof, target, boss=False, goal=goal, gold_cap=self.gold_cap)
-            model_boss_rot, model_boss_sim = choose_rotation(prof, target, boss=True, goal=goal, gold_cap=self.gold_cap)
         heal = default_heal(prof)
         metrics = evaluate(prof, target, hunt_rot, boss_rot, heal)
         alternatives = tree_alternatives(cat, vocation, goal, level, tree, steps + fill_steps + refill_steps, eq, target,
@@ -1029,7 +1075,6 @@ class Planner:
             "fixed_rotation": list(fixed[0]) if fixed and fixed[0] else None,
             "fixed_weapon": fixed[1] if fixed else None,
             "model_rotation": model_rot, "model_sim": model_sim,
-            "model_boss_rotation": model_boss_rot, "model_boss_sim": model_boss_sim,
             "heal": heal, "metrics": metrics, "score": score_of(metrics, goal),
             "tree_alternatives": alternatives,
             "helper": helper_config(prof, target, hunt_rot, boss_rot, heal, metrics, hunt_sim, boss_sim),
@@ -1048,7 +1093,8 @@ def fill_tree(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, 
         return dict(tree), []
     return optimize_tree(cat, vocation, goal, F.tree_budget(level),
                          equipment_at=lambda lv, ranks: eq, rotation_at=lambda lv, p: hunt_rot,
-                         target_at=lambda lv: target, start_ranks=tree, level_of=lambda pts: level)
+                         target_at=lambda lv: target, start_ranks=tree, level_of=lambda pts: level,
+                         boss_rotation_at=lambda lv, p: boss_rot, heal_at=lambda p: heal)
 
 
 def tree_alternatives(cat, vocation, goal, level, tree, steps, eq, target, hunt_rot, boss_rot, heal):
@@ -1166,33 +1212,63 @@ def prune_and_refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, bos
     tree = dict(tree)
     pruned = {}
     refill = []
+
+    def loss_of(nid):
+        """(perda % na metrica, arvore sem o ultimo rank de `nid`), ou None se o tirar desliga a arvore."""
+        trial = dict(tree)
+        if trial[nid] > 1:
+            trial[nid] -= 1
+        else:
+            trial.pop(nid)
+            if not treecode.is_connected(cat, vocation, trial):
+                return None
+        s = _score_tree(cat, vocation, goal, level, trial, eq, target, hunt_rot, boss_rot, heal)
+        return (base / max(1e-9, s) - 1.0) * 100.0, trial
+
     for _ in range(PRUNE_OUTER_ROUNDS):
         before = dict(tree)
-        for _ in range(PRUNE_MAX_ROUNDS):
+        base = base_before = _score_tree(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal)
+        # guloso preguicoso: a fila guarda a ultima perda conhecida de cada no; tira-se o de menor
+        # perda, re-avalia-se no estado actual e, se continua abaixo do limiar, sai um rank (e o
+        # no volta a fila com a perda nova). Nao se re-avaliam os outros todos a cada rank tirado
+        heap = []
+        for nid in tree:
+            lt = loss_of(nid)
+            if lt is not None and lt[0] < PRUNE_GAIN_PCT:
+                heapq.heappush(heap, (lt[0], nid))
+        removed_ranks = 0
+        while heap and removed_ranks < PRUNE_MAX_ROUNDS:
+            loss, nid = heapq.heappop(heap)
+            if nid not in tree:
+                continue
+            lt = loss_of(nid)
+            if lt is None or lt[0] >= PRUNE_GAIN_PCT:
+                continue
+            if heap and lt[0] > heap[0][0]:
+                heapq.heappush(heap, (lt[0], nid))   # ja nao e o de menor perda: volta a fila com o valor fresco
+                continue
+            tree = lt[1]
+            removed_ranks += 1
             base = _score_tree(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal)
-            worst = None
-            for nid, rank in tree.items():
-                trial = dict(tree)
-                if rank > 1:
-                    trial[nid] = rank - 1
-                else:
-                    trial.pop(nid)
-                    if not treecode.is_connected(cat, vocation, trial):
-                        continue
-                s = _score_tree(cat, vocation, goal, level, trial, eq, target, hunt_rot, boss_rot, heal)
-                loss_pct = (base / max(1e-9, s) - 1.0) * 100.0
-                if loss_pct < PRUNE_GAIN_PCT and (worst is None or loss_pct < worst[0]):
-                    worst = (loss_pct, nid, trial)
-            if worst is None:
-                break
-            tree = worst[2]
+            if nid in tree:
+                heapq.heappush(heap, (lt[0], nid))
         removed = {nid: (before[nid], tree.get(nid, 0)) for nid in before if before[nid] != tree.get(nid, 0)}
         if not removed:
             break
+        # os pontos libertados: o guloso, mas sem voltar a comprar o que se podou
+        exclude = set(pruned) | set(removed)
+        tree, steps = _refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal, exclude=exclude)
+        after = _score_tree(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal)
+        if (not steps or max(st.gain_per_point for st in steps) <= PRUNE_GAIN_PCT / 100.0
+                or after < base_before * (1.0 - PRUNE_REVERT_PCT / 100.0)):
+            # o refill so encontrou pontos a render ~0 (arvore saturada: nivel alto, dano todo
+            # comprado — trocar uns zeros por outros so faria ruido), ou a metrica ficou pior do que
+            # antes de podar (o simulador tem ruido de grelha: uma cura que muda de segundo mexe
+            # na tendencia da vida): fica como estava
+            tree = before
+            break
         for nid, (a, b) in removed.items():
             pruned[nid] = (pruned.get(nid, (a, a))[0], b)
-        # os pontos libertados: o guloso, mas sem voltar a comprar o que se podou
-        tree, steps = _refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal, exclude=set(pruned))
         refill.extend(steps)
     return tree, [(nid, a, b) for nid, (a, b) in pruned.items()], refill
 
@@ -1206,7 +1282,8 @@ def _refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, he
     tree, steps = optimize_tree(cat, vocation, goal, F.tree_budget(level),
                                 equipment_at=lambda lv, ranks: eq, rotation_at=lambda lv, p: hunt_rot,
                                 target_at=lambda lv: target, start_ranks=tree, level_of=lambda pts: level,
-                                exclude=exclude)
+                                exclude=exclude, boss_rotation_at=lambda lv, p: boss_rot, heal_at=lambda p: heal,
+                                stop_at_zero_gain=True)
     adj = _adjacency(cat, vocation)
     node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
     spent = _spent(cat, tree)
@@ -1235,7 +1312,6 @@ def node_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot,
     refill comprou-o a render ~0) ou `dano` (rende na metrica). Devolve
     {no: (papel, ganho % de o ter)}."""
     base = _score_tree(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal)
-    leftovers = {st.node_id for st in refill_steps}   # comprados no fim, a gastar o que sobrava
     roles = {}
     for nid, rank in tree.items():
         node = cat.node_by_id[nid]
@@ -1250,8 +1326,10 @@ def node_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot,
         gain_pct = (base / max(1e-9, s) - 1.0) * 100.0
         if gain_pct >= PRUNE_GAIN_PCT:
             roles[nid] = (ROLE_DAMAGE, gain_pct)
+        elif not treecode.is_connected(cat, vocation, trial):
+            roles[nid] = (ROLE_LINK, gain_pct)       # rende ~0 mas segura o ramo
         else:
-            roles[nid] = (ROLE_LEFTOVER if nid in leftovers else ROLE_LINK, gain_pct)
+            roles[nid] = (ROLE_LEFTOVER, gain_pct)   # rende ~0 e nada depende dele: pontos sem sitio melhor
     return roles
 
 

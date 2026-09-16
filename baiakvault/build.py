@@ -304,11 +304,40 @@ def render_next_step(root, cat, advice):
     return "".join(out)
 
 
-def render_tree_section(cat, character, tree, plan):
+def _tree_diff_block(cat, character, plan, diff):
+    """O codigo da arvore recomendada (com «Copiar» e o custo de importar pelos pontos que
+    a BD diz que ele tem gastos) e a diferenca para a dele, em pontos e em gold."""
+    if not plan or not diff:
+        return ""
+    out = [pages_builds.code_block(diff["code"], "codigo-%s" % character["slug"], spent_now=diff.get("his_spent"),
+                                   spent_label=None if diff.get("his_spent") is not None else
+                                   "cola o codigo Exportar da tua arvore em /editar e o custo aparece")]
+    if not diff["known"]:
+        return "".join(out)
+    if diff["same"]:
+        out.append('<p class="ok">A tua arvore ja e a recomendada.</p>')
+        return "".join(out)
+    rows = []
+    for nid, name, a, b, pts in diff["add"]:
+        rows.append([h.esc(name), "%d → %d" % (a, b), "+%d" % pts])
+    for nid, name, a, b, pts in diff["remove"]:
+        rows.append([h.esc(name), "%d → %d" % (a, b), "−%d" % pts])
+    out.append('<p class="mudo">Da tua arvore para a recomendada: <b>%d pontos a subir</b> em %d nos e <b>%d a tirar</b> '
+               "em %d nos; importar o codigo faz tudo de uma vez por <b>%s gold</b> (cliente fD, pelos %d pontos que "
+               "tens gastos).</p>" % (diff["points_add"], len(diff["add"]), diff["points_remove"], len(diff["remove"]),
+                                      h.kk(diff["gold"]), diff["his_spent"]))
+    out.append(h.table(["no", "rank (tua → recomendada)", "pontos"], rows, numeric=(2,)))
+    return "".join(out)
+
+
+def render_tree_section(cat, character, tree, plan, diff=None):
     out = ["<h3>Arvore</h3>"]
     level = character.get("level")
     if not tree:
-        out.append('<p class="mudo">Sem nos registados — nao se sabe o que ja comprou.</p>')
+        out.append('<p class="mudo">Sem nos registados — nao se sabe o que ja comprou. A forma exacta de a registar: '
+                   "na arvore do jogo, <b>Exportar</b> (copia um codigo) e colar em "
+                   "<code>http://127.0.0.1:8774/editar/%s</code>, seccao Arvore.</p>" % h.esc(character["slug"]))
+        out.append(_tree_diff_block(cat, character, plan, diff))
         return "".join(out)
     rows = []
     spent = 0
@@ -329,10 +358,13 @@ def render_tree_section(cat, character, tree, plan):
     budget = F.tree_budget(level) if level else None
     out.append('<p class="mudo"><small>%d nos registados, %s pontos gastos de %s que o nivel da. Os nos que nao '
                "estao aqui sao desconhecidos, nao zero.</small></p>" % (len(tree), h.fmt(spent), h.fmt(budget)))
-    missing = sorted((k, r) for k, r in plan_tree.items() if r > his.get(k, 0))
-    if missing:
-        out.append('<p class="mudo"><small>A recomendada tem ainda: %s.</small></p>' % h.esc(", ".join(
-            "%s %d" % ((cat.node_by_id.get(k) or {}).get("nome") or k, r) for k, r in missing)))
+    if character.get("vocation") and level:
+        chk = builds_module.tree_check(cat, character["vocation"], level, his)
+        out.append('<p class="mudo"><small>A tua arvore pelas regras do cliente: %s; %s; %s de %s pontos%s.</small></p>' % (
+            "ligada a partir do tier 0" if chk["connected"] else "<b>nao ligada ao tier 0</b> (falta registar um no do caminho?)",
+            "ranks ≤ maximo" if chk["max_rank_ok"] else "<b>rank acima do maximo</b>",
+            h.fmt(chk["spent"]), h.fmt(chk["budget"]), "" if chk["ok"] else " — ⚠"))
+    out.append(_tree_diff_block(cat, character, plan, diff))
     return "".join(out)
 
 
@@ -383,10 +415,13 @@ def render_character(cat, vault, character, generated_at, advice=None, charm_sec
         ("actualizado a", h.esc(character["updated_at"])),
     ]) + "</div>")
     parts.append(render_next_step(root, cat, advice))
+    plan = advice.get("plan")
+    if plan:
+        parts.append(render_rotation_section(cat, root, character, plan))
 
     parts.append("<h2>Build actual</h2>")
-    parts.append(render_tree_section(cat, character, vault.tree_of(cid), advice.get("plan")))
-    parts.append(render_equipment_section(cat, vault.equipment_of(cid), advice.get("plan")))
+    parts.append(render_tree_section(cat, character, vault.tree_of(cid), plan, advice.get("tree_diff")))
+    parts.append(render_equipment_section(cat, vault.equipment_of(cid), plan))
 
     parts.append("<h3>Charms</h3>")
     points = vault.charm_points_of(cid) or {}
@@ -438,8 +473,32 @@ def render_character(cat, vault, character, generated_at, advice=None, charm_sec
         parts.append('<p class="mudo">Sem leituras de estado. Sem duas leituras nao ha XP/h.</p>')
     parts.append('<p class="mudo"><small>Para corrigir ou completar: <code>py -m baiakvault serve</code> e abrir '
                  "<code>http://127.0.0.1:8774/editar/%s</code> no PC.</small></p>" % h.esc(character["slug"]))
-    return h.page("%s — BaiakVault" % character["name"], "".join(parts), root=root,
+    return h.page("%s — BaiakVault" % character["name"], "".join(parts) + pages_builds.CODE_JS, root=root,
                   generated_at=generated_at)
+
+
+def print_card_name(slug):
+    return "helper-personagem-%s.html" % slug
+
+
+def render_rotation_section(cat, root, character, plan):
+    """A rotacao do personagem: a fixada por ele (com a do optimizador ao lado, em
+    numero) ou a do optimizador; e o cartao print do Helper dele."""
+    out = ["<h2>Rotacao e Helper</h2>"]
+    if plan.get("fixed_rotation"):
+        out.append(pages_builds.fixed_rotation_note(plan))
+    else:
+        out.append('<p class="mudo">Sem rotacao fixada: a do Helper abaixo e a que o optimizador escolhe (fixa a tua em '
+                   "<code>/editar/%s</code>, seccao Rotacao, e a arvore recomendada passa a ser para ela).</p>" % h.esc(character["slug"]))
+    hc = plan["helper"]
+    out.append(h.kv([
+        ("hunt", h.esc(", ".join(n for n, w, mm in hc["hunt_rotation"]))),
+        ("boss", h.esc(", ".join(n for n, w, mm in hc["boss_rotation"]))),
+        ("gold/h (pocoes + runas)", "%s / %s" % (h.kk(plan["metrics"]["gold_per_hour"]), h.kk(plan["metrics"]["boss_gold_per_hour"]))),
+    ]))
+    out.append('<p><a href="%sprint/%s">cartao do Helper para copiar (390 px)</a> — com a rotacao fixada, se a fixaste.</p>'
+               % (root, print_card_name(character["slug"])))
+    return "".join(out)
 
 
 # --- escrever ---------------------------------------------------------------------------
@@ -551,6 +610,10 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
             section = pages_charms.render_character_section(cat, "../", c, current, neighbours, bool(by_hunt))
             written.append(_write(out / "personagens" / (slug + ".html"),
                                   render_character(cat, vault, c, generated_at, advice_by_slug[slug], section)))
+            if advice_by_slug[slug].get("plan"):
+                # o cartao do Helper dele, com a rotacao que fixou (ordem 8)
+                written.append(_write(out / "print" / print_card_name(slug),
+                                      pages_builds.render_print(cat, advice_by_slug[slug]["plan"], generated_at, name=c["name"])))
             for hid in sorted(hid for s, hid in print_keys if s == slug):
                 written.append(_write(out / "print" / ("charms-%s-%s.html" % (slug, hid)),
                                       pages_charms.render_print(cat, c, by_hunt[hid], generated_at)))
@@ -580,7 +643,7 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
 
 # O que o gerador e dono de apagar: paginas que so existem por causa de um personagem
 # (apagado, renomeado ou com outra hunt) ficavam em docs/ e iam para o Pages (16/09/2026).
-_OWNED = (("personagens", "*.html", False), ("print", "charms-*.html", False),
+_OWNED = (("personagens", "*.html", False), ("print", "charms-*.html", False), ("print", "helper-personagem-*.html", False),
           ("hunts", "*.html", False), ("print", "helper-*.html", True), ("builds", "*.html", True))
 
 
