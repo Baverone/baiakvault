@@ -204,6 +204,15 @@ def render_level_section(cat, b, root, extra=""):
          % (h.kk(m["gold_per_hour"]), h.kk(m["boss_gold_per_hour"]), m["hp_potions"], m["mana_potions"])),
         ("skills assumidos", _skills_text(prof)),
     ]) + "</div>")
+    if target.resist_fallback or target.resist_unknown:
+        bits = []
+        if target.resist_fallback:
+            bits.append("resistencias de %s pela 2.a tabela de combate do cliente (o bestiario nao as declara) ⚠"
+                        % ", ".join(target.resist_fallback))
+        if target.resist_unknown:
+            bits.append("%s sem resistencias em fonte nenhuma: nao entra na media (nao se assume 0)"
+                        % ", ".join(target.resist_unknown))
+        out.append('<p class="mudo"><small>%s.</small></p>' % h.esc("; ".join(bits)))
     if m.get("death_at") is not None or m.get("boss_death_at") is not None:
         out.append('<p class="aviso">⚠ No simulador o personagem morre (hunt aos %s s, boss aos %s s) — com esta '
                    "build a hunt de referencia e demasiado forte a solo; e o que o simulador diz, nao um erro da pagina.</p>"

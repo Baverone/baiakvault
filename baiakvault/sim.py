@@ -320,8 +320,22 @@ class Target:
         self.hp = sum(c["hp"] * w for c, w in self.members)
         self.exp = sum((c.get("exp") or 0) * w for c, w in self.members)
         self.armor = sum((c.get("armadura") or 0) * w for c, w in self.members)
-        self.resist = {el: sum(((c.get("resistencias") or {}).get(el, 0) or 0) * w for c, w in self.members)
-                       for el in ELEMENTS}
+        # resistencias pela leitura do catalogo (bestiario, senao a 2.a tabela do cliente ⚠);
+        # um monstro sem nenhuma nao entra na media — desconhecido nao e zero (16/09/2026:
+        # ate aqui 159 dos 250 monstros de hunt contavam a 0 % so por faltarem no bestiario)
+        self.resist_fallback = []   # nomes dos que vem da 2.a tabela
+        self.resist_unknown = []    # nomes sem resistencias em lado nenhum
+        known = []
+        for c, w in self.members:
+            res, source = cat.resistances(c)
+            if res is None:
+                self.resist_unknown.append(c["nome"])
+                continue
+            if source == cat.RESIST_FALLBACK:
+                self.resist_fallback.append(c["nome"])
+            known.append((res, w))
+        total_known = sum(w for _, w in known) or 1.0
+        self.resist = {el: sum(res[el] * w for res, w in known) / total_known for el in ELEMENTS}
         self.incoming = {el: 0.0 for el in ELEMENTS}   # dano/s por elemento, um monstro
         self.max_hit = {el: 0.0 for el in ELEMENTS}
         for c, w in self.members:
@@ -333,7 +347,13 @@ class Target:
         self.boss = cat.creature_by_key.get(boss["chave"]) if boss else None
         if self.boss:
             self.boss_hp = self.boss["hp"] * F.BOSS_HP_MULT
-            self.boss_resist = {el: (self.boss.get("resistencias") or {}).get(el, 0) or 0 for el in ELEMENTS}
+            boss_res, boss_source = cat.resistances(self.boss)
+            if boss_res is None:
+                self.resist_unknown.append(self.boss["nome"] + " (boss)")
+                boss_res = dict(self.resist)   # o boss e um dos monstros da hunt: a media e o melhor que ha
+            elif boss_source == cat.RESIST_FALLBACK and self.boss["nome"] not in self.resist_fallback:
+                self.resist_fallback.append(self.boss["nome"])
+            self.boss_resist = boss_res
             inc, mx = creature_pressure(self.boss)
             self.boss_incoming = {el: inc[el] * F.BOSS_DMG_MULT for el in ELEMENTS}
             self.boss_max_hit = {el: mx[el] * F.BOSS_DMG_MULT for el in ELEMENTS}

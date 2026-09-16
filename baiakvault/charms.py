@@ -144,25 +144,9 @@ def echoes_for_upgrade(current_tier):
 
 # --- a hunt vista pelos charms -----------------------------------------------------------------
 def _resistances(cat, creature):
-    """(resistencias {el: %}, fonte) — bestiario primeiro; depois a tabela de
-    combate do cliente (`bosses_de_sala`, marcada ⚠); senao (None, None)."""
-    res = creature.get("resistencias")
-    if res:
-        return {el: (res.get(el) or 0) for el in ELEMENTS}, "bestiario"
-    alt = _combat_table(cat).get((creature.get("nome") or "").lower())
-    if alt and alt.get("resistencias") is not None:
-        return {el: (alt["resistencias"].get(el) or 0) for el in ELEMENTS}, "tabela de combate ⚠"
-    return None, None
-
-
-_COMBAT_CACHE = {}
-
-
-def _combat_table(cat):
-    key = id(cat)
-    if key not in _COMBAT_CACHE:
-        _COMBAT_CACHE[key] = {b["nome"].lower(): b for b in cat.room_bosses if b.get("nome")}
-    return _COMBAT_CACHE[key]
+    """(resistencias {el: %}, fonte) — a leitura do catalogo (bestiario, depois a
+    2.a tabela de combate marcada ⚠, senao (None, None)); a mesma do simulador."""
+    return cat.resistances(creature)
 
 
 def _dps(creature):
