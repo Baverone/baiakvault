@@ -1,0 +1,52 @@
+{
+ "fonte": "bundle do jogo Baiak Idle (leitura de ficheiro estatico, sem sessao)",
+ "url": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js",
+ "pagina": "https://baiakidle.com/jogar/",
+ "sha256_16": "006bcf2edda6c2b0",
+ "visto_em": "2026-09-09",
+ "nota": "constantes lidas do codigo por regex",
+ "dados": {
+  "imbuement_custo_gold": [
+   7500,
+   60000,
+   250000
+  ],
+  "gemas_custo_gold": {
+   "upgrade_gem": 30000000,
+   "attribute_gem": 15000000,
+   "reroll_gem": 50000000,
+   "trancar_reroll": 2000000
+  },
+  "bestiario_meta_kills": {
+   "exp1": 100,
+   "kills1": 250,
+   "exp2": 500,
+   "kills2": 500,
+   "exp3": 2000,
+   "kills3": 1000,
+   "kills4": 2500
+  },
+  "bestiario_estrelas": {
+   "exp1": 100,
+   "exp2": 500,
+   "exp3": 2000
+  },
+  "loot_raridade_chance": {
+   "common": 20000,
+   "uncommon": 5000,
+   "semiRare": 1000
+  },
+  "auto_collect_planos": {
+   "sub": 10,
+   "vip": 2,
+   "free": 1
+  },
+  "nivel_sugerido_modelo": {
+   "A": 0.12296,
+   "p": 1.1494
+  },
+  "cooldown_ataque_ms": {
+   "ms": 2000
+  }
+ }
+}

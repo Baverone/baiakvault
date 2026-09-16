@@ -24,7 +24,12 @@ DEFAULT_DIR = Path(__file__).resolve().parent.parent / "data" / "catalogo"
 
 FILES = ("hunts", "bestiario", "itens", "bosses", "arvore", "vocacoes",
          "ac", "rotacao")
-RAW_FILES = ("charms",)
+# Os brutos que o site precisa alem dos derivados: os charms, e as arvores tal
+# como estao no cliente — o `arvore.json` derivado perdeu `special`/`desc`
+# (Battle Tactics, Cleaving Strikes, Executioner, Avatar...), que o motor das
+# builds precisa (16/09/2026).
+RAW_FILES = ("charms", "arvore_knight", "arvore_paladin", "arvore_sorcerer",
+             "arvore_druid", "arvore_monk", "constantes")
 
 # As contagens que o catalogo de 09/09/2026 tem. `validate` chumba se mudarem,
 # de proposito: uma actualizacao do jogo deve ser vista, nao absorvida em
@@ -64,10 +69,11 @@ class CatalogError(Exception):
 class Catalog:
     """Os oito ficheiros mais o bruto dos charms, com indices por chave."""
 
-    def __init__(self, raw, raw_charms, directory):
+    def __init__(self, raw, raw_charms, directory, raw_extra=None):
         self.directory = Path(directory)
         self.raw = raw
         self.raw_charms = raw_charms
+        self.raw_extra = raw_extra or {}
         self.hunts = list(raw["hunts"].get("hunts") or [])
         self.creatures = list(raw["bestiario"].get("criaturas") or [])
         self.charms = list(raw["bestiario"].get("charms") or [])
@@ -93,6 +99,18 @@ class Catalog:
         self.wave10_by_hunt = {b["hunt"]: b for b in self.wave10_bosses if b.get("hunt")}
         self.equippable = [i for i in self.items if i.get("slot")]
         self.slots = sorted({i["slot"] for i in self.equippable})
+
+        # `special`/`desc` dos nos vem do bruto (o derivado nao os tem). Ficam
+        # colados ao no derivado como `especial` e `descricao` — None quando o
+        # bruto nao esta (o catalogo continua a servir, so sem os especiais).
+        for voc in VOCATIONS:
+            raw_tree = (self.raw_extra.get("arvore_" + voc) or {}).get("dados") or {}
+            for rn in raw_tree.get("nodes") or []:
+                node = self.node_by_id.get(rn.get("id"))
+                if node is not None:
+                    node["especial"] = rn.get("special")
+                    node["descricao"] = rn.get("desc")
+        self.constants = ((self.raw_extra.get("constantes") or {}).get("dados") or {})
 
     def meta(self, name):
         return (self.raw.get(name) or {}).get("_meta") or {}
@@ -156,10 +174,20 @@ def load(directory=None):
         except ValueError as e:
             raise CatalogError("JSON invalido em %s: %s" % (path, e))
     raw_charms = None
-    path = directory / "bruto" / "charms.json"
-    if path.is_file():
-        raw_charms = json.loads(path.read_text(encoding="utf-8"))
-    return Catalog(raw, raw_charms, directory)
+    raw_extra = {}
+    for name in RAW_FILES:
+        path = directory / "bruto" / (name + ".json")
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError as e:
+            raise CatalogError("JSON invalido em %s: %s" % (path, e))
+        if name == "charms":
+            raw_charms = data
+        else:
+            raw_extra[name] = data
+    return Catalog(raw, raw_charms, directory, raw_extra)
 
 
 def validate(cat):
@@ -222,4 +250,14 @@ def validate(cat):
         problems.append("falta bruto/charms.json")
     elif len((cat.raw_charms or {}).get("dados") or []) != len(cat.charms):
         problems.append("bruto/charms.json nao bate com os charms do bestiario")
+    for name in RAW_FILES:
+        if name == "charms":
+            continue
+        if name not in cat.raw_extra:
+            problems.append("falta bruto/%s.json" % name)
+        elif name.startswith("arvore_"):
+            raw_ids = {n.get("id") for n in (cat.raw_extra[name].get("dados") or {}).get("nodes") or []}
+            derived_ids = {n["id"] for n in (cat.tree_by_vocation.get(name[7:]) or {}).get("nos") or []}
+            if raw_ids != derived_ids:
+                problems.append("bruto/%s.json nao bate com a arvore derivada" % name)
     return problems
