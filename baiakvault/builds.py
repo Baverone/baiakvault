@@ -73,6 +73,14 @@ SAVE_CHECK_MIN_WAIT = 20
 SAVE_MARGIN = 0.10
 SAVE_RETRY_DROP = 0.20
 SAVE_RETRY_SHARE = 0.25   # so se volta a testar depois de gastar 25 % do custo do no desde a recusa
+# Regra do Andre (16/09/2026 13:00): «usar beams para hunt nao serve; beam so serve para
+# boss». Os feiticos de linha ficam fora da rotacao de hunt; no boss continuam candidatos.
+BEAM_SPELLS = ("exevo vis lux", "exevo gran vis lux", "exevo max mort")
+# Elemento a que a hunt e (quase) imune: um feitico cujo multiplicador medio de elemento
+# no pack (1 - resistencia media, ja com o pierce) fique abaixo disto nao entra na rotacao
+# de hunt. 16/09/2026: na Livraria FIRE 3 dos 4 sao imunes a fogo e a optimizacao «a
+# qualquer mana» ainda metia Hell's Core (1 100 de mana por 2,4 de dano/mana).
+HUNT_ELEMENT_MIN_MULT = 0.5
 
 
 # --- alvo de referencia ---------------------------------------------------------------------
@@ -225,12 +233,39 @@ def rotation_value(r, profile, goal):
     return r.dps * max(1e-3, frac) ** BEST_PENALTY_POWER
 
 
+def hunt_exclusions(profile, target, runes=False):
+    """{palavras: motivo} dos feiticos de ataque que nao entram na rotacao de
+    HUNT: os beams (regra do Andre) e os do elemento a que o pack e imune
+    (`HUNT_ELEMENT_MIN_MULT`). No boss nao ha exclusoes."""
+    out = {}
+    pierce = profile.specials.get("element_pierce", 0.0)
+    for s in sim.attack_spells(profile, runes=runes):
+        words = s["palavras"]
+        if words in BEAM_SPELLS:
+            out[words] = "beam: so no boss (decisao do Andre, 16/09/2026)"
+            continue
+        el = F.spell_element(words)
+        mult = F.resist_factor(target.resist.get(el, 0.0), pierce)
+        if mult < HUNT_ELEMENT_MIN_MULT:
+            out[words] = ("%s: a hunt resiste %.0f %% em media (multiplicador %.2f < %.1f)"
+                          % (el, target.resist.get(el, 0.0), mult, HUNT_ELEMENT_MIN_MULT))
+    return out
+
+
 def choose_rotation(profile, target, boss=False, runes=False, top=ROTATION_POOL, size=4, goal=None):
     """Escolhe ate 4 feiticos por forca bruta entre os `top` melhores por
     lancamento: o conjunto que o simulador diz render mais DPS (no cenario
     pedido; na «best», DPS sustentavel — `rotation_value`) e a ordem de
-    prioridade = dano por lancamento decrescente."""
+    prioridade = dano por lancamento decrescente. Na hunt, sem os beams nem os
+    feiticos do elemento a que o pack e imune (`hunt_exclusions`); se isso nao
+    deixasse nenhum, fica so a regra dos beams."""
     spells = sim.attack_spells(profile, runes=runes)
+    if not boss and spells:
+        excluded = hunt_exclusions(profile, target, runes)
+        kept = [s for s in spells if s["palavras"] not in excluded]
+        if not kept:
+            kept = [s for s in spells if s["palavras"] not in BEAM_SPELLS]
+        spells = kept
     if not spells:
         return [], None
     spells.sort(key=lambda s: -sim.spell_damage(profile, s, target, boss))
@@ -940,6 +975,7 @@ def helper_config(profile, target, hunt_rot, boss_rot, heal, metrics):
     rune_heals = [s for s in sim.heal_spells(profile) if s.get("custo_gold")]
     rune_alt = max(rune_heals, key=lambda s: profile.heal_amount(s)) if rune_heals else None
     friend = [s for s in sim.heal_spells(profile, friend=True)]
+    excluded = hunt_exclusions(profile, target)
     return {
         "heal_spell": heal["nome"] if heal else None,
         "heal_words": heal["palavras"] if heal else None,
@@ -951,6 +987,9 @@ def helper_config(profile, target, hunt_rot, boss_rot, heal, metrics):
         "friend_heal_at": 85 if friend else None,
         "hunt_rotation": [(sl.spell["nome"], sl.spell["palavras"], sl.min_mobs if sl.spell["tipo"] == "area" else None) for sl in hunt_rot],
         "boss_rotation": [(sl.spell["nome"], sl.spell["palavras"], None) for sl in boss_rot],
+        # (nome, palavras, motivo) do que ficou fora da rotacao de hunt — beams e imunidades
+        "hunt_excluded": [(s["nome"], s["palavras"], excluded[s["palavras"]]) for s in sim.attack_spells(profile)
+                          if s["palavras"] in excluded],
         "position": _position(profile),
         "distance": _distance(profile),
         "magic_shield": profile.vocation in sim.MAGES,

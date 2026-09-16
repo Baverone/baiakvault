@@ -447,6 +447,14 @@ def _codex_sets(cat, b):
     return out
 
 
+def _excluded_text(hc):
+    """A linha «beams: so no boss» (regra do Andre) e o que ficou fora da rotacao de hunt e porque."""
+    bits = ["beams: so no boss (decisao do Andre, 16/09/2026)"]
+    for name, words, why in hc.get("hunt_excluded") or ():
+        bits.append("%s (%s): fora da hunt — %s" % (name, words, why))
+    return '<p class="mudo"><small>%s.</small></p>' % h.esc("; ".join(bits))
+
+
 def _helper_block(cat, b, root):
     hc = b["helper"]
     prof = b["profile"]
@@ -482,7 +490,8 @@ def _helper_block(cat, b, root):
         ("Potion de mana · Beber abaixo de (% de mana)",
          ("<b>%s</b> a <b>%d%%</b> <small class=\"mudo\">(padrao do jogo, wiki)</small>" % (h.esc(hc["mana_potion"]), hc["mana_below"]))
          if hc["mana_potion"] else '<span class="mudo">nao bebe (cliente: usesManaPotions=false)</span>'),
-        ("Magias de Ataque — Rotação (ordem = prioridade · ≥N = mín. de mobs)", h.table(["slot", "magia", "≥N"], rot_rows)),
+        ("Magias de Ataque — Rotação (ordem = prioridade · ≥N = mín. de mobs)",
+         h.table(["slot", "magia", "≥N"], rot_rows) + _excluded_text(hc)),
         ("Posição de ataque / Distância do alvo", "%s · <b>%d tile%s</b> <small class=\"mudo\">[canal: EK «nao fazer nada»+menor vida; mages «mais perto» 3 tiles]</small>"
          % (h.esc(hc["position"]), hc["distance"], "s" if hc["distance"] != 1 else "")),
         ("Escudo mágico", ("<b>Mantém utamo vita sempre ativo</b>; Renovar escudo: <b>10%</b> <small class=\"mudo\">[canal 8HFN4cgQW1A]</small>"
@@ -577,6 +586,8 @@ def render_print(cat, b, generated_at):
                   ("Potion de vida", "%s · beber abaixo de %d%%" % (h.esc(hc["hp_potion"]), hc["hp_below"])),
                   ("Potion de mana", ("%s · beber abaixo de %d%%" % (h.esc(hc["mana_potion"]), hc["mana_below"])) if hc["mana_potion"] else "nenhuma")]),
             "<h2>Magias de Ataque — Hunt (ordem = prioridade)</h2><ol>%s</ol>" % rot,
+            "<small>beams so no boss (Andre, 16/09/2026)%s</small>"
+            % "".join("; %s fora: %s" % (h.esc(n), h.esc(why.split(":")[0])) for n, w, why in hc.get("hunt_excluded") or ()),
             "<h2>Magias de Ataque — Boss</h2><ol>%s</ol>" % boss,
             "<h2>Posição de ataque</h2>",
             h.kv([("Hunt", "%s · %d tile%s" % (h.esc(hc["position"]), hc["distance"], "s" if hc["distance"] != 1 else "")),

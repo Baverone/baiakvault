@@ -175,6 +175,36 @@ class Optimizer(unittest.TestCase):
             self.assertIsNotNone(heal, (voc, goal, level))
             self.assertEqual(heal["tipo"], "heal")
 
+    def test_beams_and_immune_elements_stay_out_of_the_hunt_rotation(self):
+        """Regras de 16/09/2026 (ordem 7): beams so no boss (Andre); um feitico do
+        elemento a que o pack e imune (multiplicador medio < 0,5) fica fora da hunt."""
+        target = sim.Target(self.cat, "livrariafire-cave")   # 3 dos 4 imunes a fogo
+        self.assertGreaterEqual(target.resist["fire"], 50.0)
+        for voc, level in (("sorcerer", 471), ("druid", 488), ("knight", 527)):
+            p = sim.Profile(self.cat, voc, level)
+            excluded = builds.hunt_exclusions(p, target)
+            for s in sim.attack_spells(p):
+                if s["palavras"] in builds.BEAM_SPELLS:
+                    self.assertIn("beam", excluded[s["palavras"]], (voc, s["nome"]))
+                elif F.spell_element(s["palavras"]) == "fire":
+                    self.assertIn("fire", excluded[s["palavras"]], (voc, s["nome"]))
+            hunt_rot, _ = builds.choose_rotation(p, target, boss=False)
+            for sl in hunt_rot:
+                self.assertNotIn(sl.spell["palavras"], excluded, (voc, sl.spell["nome"]))
+            self.assertTrue(hunt_rot, voc)
+            # no boss os beams continuam candidatos: nenhuma exclusao
+            boss_rot, _ = builds.choose_rotation(p, target, boss=True)
+            self.assertTrue(boss_rot, voc)
+        sorc = sim.Profile(self.cat, "sorcerer", 471)
+        names = {s["nome"] for s in sim.attack_spells(sorc) if s["palavras"] in builds.hunt_exclusions(sorc, target)}
+        self.assertIn("Hell's Core", names)
+        self.assertIn("Great Energy Beam", names)
+        # e a pagina diz o que ficou de fora
+        for key, b in self.plans.items():
+            for name, words, why in b["helper"]["hunt_excluded"]:
+                self.assertTrue(why, key)
+                self.assertNotIn(words, [w for _, w, _ in b["helper"]["hunt_rotation"]], key)
+
     def test_metrics_are_finite_and_positive(self):
         for key, b in self.plans.items():
             m = b["metrics"]
