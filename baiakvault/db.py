@@ -23,13 +23,43 @@ from . import catalog as catalog_module
 
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "data" / "vault.db"
 SOURCES = ("manual", "captura")
-GOALS = ("damage", "tank", "sustain")
+# Os objectivos que o Andre pediu, por vocacao (16/09/2026); o primeiro de cada
+# lista e o que ele nomeou primeiro e serve de omissao quando o goal esta NULL.
+GOALS_BY_VOCATION = {"knight": ("tank", "damage"), "druid": ("heal", "damage"),
+                     "sorcerer": ("damage",), "paladin": ("damage",), "monk": ("support", "damage")}
+GOALS = ("damage", "tank", "heal", "support")
 # O catalogo so da slot aos itens que o cliente marca como equipaveis; mochila
 # e municao nao tem slot la mas existem no boneco (decisao 16/09/2026).
 EXTRA_SLOTS = ("backpack", "ammo")
 
 _SCHEMA_V1 = (Path(__file__).resolve().parent / "schema.sql").read_text(encoding="utf-8")
-MIGRATIONS = [_SCHEMA_V1]
+# v2 (16/09/2026): o objectivo passa a ser por vocacao (heal/support em vez de
+# «sustain»). O SQLite nao altera um CHECK, por isso a tabela reconstroi-se; o
+# `sustain` antigo mapeia-se para o objectivo de omissao da vocacao.
+_SCHEMA_V2 = """
+CREATE TABLE characters_v2 (
+    id           INTEGER PRIMARY KEY,
+    name         TEXT NOT NULL UNIQUE,
+    slug         TEXT NOT NULL UNIQUE,
+    vocation     TEXT CHECK (vocation IN ('knight','monk','paladin','sorcerer','druid')),
+    level        INTEGER CHECK (level IS NULL OR level >= 1),
+    current_hunt TEXT,
+    vip          INTEGER CHECK (vip IN (0, 1)),
+    goal         TEXT CHECK (goal IN ('damage','tank','heal','support')),
+    notes        TEXT,
+    source       TEXT CHECK (source IN ('manual','captura')),
+    seen_at      TEXT,
+    updated_at   TEXT NOT NULL
+);
+INSERT INTO characters_v2 SELECT id, name, slug, vocation, level, current_hunt, vip,
+    CASE goal WHEN 'sustain' THEN
+        CASE vocation WHEN 'knight' THEN 'tank' WHEN 'druid' THEN 'heal' WHEN 'monk' THEN 'support' ELSE NULL END
+    ELSE goal END,
+    notes, source, seen_at, updated_at FROM characters;
+DROP TABLE characters;
+ALTER TABLE characters_v2 RENAME TO characters;
+"""
+MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2]
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
@@ -70,10 +100,24 @@ def migrate(conn):
         raise VaultError("a BD esta na versao %d e o codigo so conhece ate %d"
                          % (current, SCHEMA_VERSION))
     for version in range(current, SCHEMA_VERSION):
-        with conn:
-            conn.executescript(MIGRATIONS[version])
-            conn.execute("PRAGMA user_version = %d" % (version + 1))
+        # sem isto, o DROP de uma tabela reconstruida apagava em cascata os filhos
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            with conn:
+                conn.executescript(MIGRATIONS[version])
+                conn.execute("PRAGMA user_version = %d" % (version + 1))
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
+        broken = conn.execute("PRAGMA foreign_key_check").fetchall()
+        if broken:
+            raise VaultError("a migracao para a v%d deixou referencias partidas: %r" % (version + 1, broken[:5]))
     return schema_version(conn)
+
+
+def default_goal(vocation):
+    """O objectivo de omissao de uma vocacao (o primeiro que o Andre listou)."""
+    goals = GOALS_BY_VOCATION.get(vocation)
+    return goals[0] if goals else None
 
 
 def _check_source(source):
@@ -168,7 +212,7 @@ class Vault:
                 raise VaultError("vocacao desconhecida: %r" % vocation)
             vocation = normalized
         if goal is not None and goal not in GOALS:
-            raise VaultError("goal tem de ser damage/tank/sustain, nao %r" % goal)
+            raise VaultError("goal tem de ser damage/tank/heal/support, nao %r" % goal)
         if vip is not None:
             if isinstance(vip, bool):
                 vip = int(vip)
@@ -181,7 +225,16 @@ class Vault:
         fields = {"vocation": vocation, "level": level, "current_hunt": current_hunt,
                   "vip": vip, "goal": goal, "notes": notes, "source": source,
                   "seen_at": seen_at}
-        row = self.conn.execute("SELECT id FROM characters WHERE name = ?", (name,)).fetchone()
+        row = self.conn.execute("SELECT id, vocation, goal FROM characters WHERE name = ?", (name,)).fetchone()
+        # o objectivo tem de ser um dos da vocacao (a que vem agora ou a que ja la esta)
+        final_vocation = vocation or (row["vocation"] if row else None)
+        final_goal = goal or (row["goal"] if row else None)
+        if final_vocation and final_goal and final_goal not in GOALS_BY_VOCATION[final_vocation]:
+            if goal is None:
+                fields["goal"] = default_goal(final_vocation)  # a vocacao mudou: o goal antigo deixou de valer
+            else:
+                raise VaultError("o objectivo %r nao e de %s (so %s)"
+                                 % (goal, final_vocation, "/".join(GOALS_BY_VOCATION[final_vocation])))
         with self.conn:
             if row is None:
                 cols = ["name", "slug", "updated_at"] + list(fields)

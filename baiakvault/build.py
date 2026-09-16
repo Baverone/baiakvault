@@ -13,9 +13,11 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from . import advisor
 from . import builds as builds_module
 from . import catalog as catalog_module
 from . import db as db_module
+from . import formulas as F
 from . import html as h
 from . import notes
 from . import pages_builds
@@ -27,7 +29,7 @@ VALIDATION_MD = DEFAULT_OUT / "builds" / "validacao.md"
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
-GOAL_LABEL = {"damage": "dano", "tank": "tank", "sustain": "sustain"}
+GOAL_LABEL = {"damage": "dano", "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
 KIND_LABEL = {"offensive": "ofensivo", "defensive": "defensivo", "passive": "passivo"}
 ELEMENT_LABEL = {"physical": "fisico", "fire": "fogo", "earth": "terra", "ice": "gelo",
                  "energy": "energia", "death": "morte", "holy": "sagrado"}
@@ -61,7 +63,8 @@ def _hunt_link(root, cat, hunt_id):
 
 
 # --- Inicio -------------------------------------------------------------------
-def render_index(cat, characters, generated_at):
+def render_index(cat, characters, generated_at, advice_by_slug=None):
+    advice_by_slug = advice_by_slug or {}
     parts = ["<h1>BaiakVault</h1>",
              '<p class="mudo">Os personagens do Andre no Baiak Idle, a build de cada um e o '
              "proximo passo. Nada aqui toca no jogo nem na conta.</p>"]
@@ -75,6 +78,8 @@ def render_index(cat, characters, generated_at):
     else:
         parts.append('<div class="grelha">')
         for c in characters:
+            advice = advice_by_slug.get(c["slug"])
+            first = (advice or {}).get("suggestions") or []
             parts.append(
                 '<div class="cartao"><h3><a href="personagens/%s.html">%s</a></h3>%s</div>'
                 % (h.esc(c["slug"]), h.esc(c["name"]), h.kv([
@@ -82,8 +87,10 @@ def render_index(cat, characters, generated_at):
                     ("nivel", h.fmt(c["level"])),
                     ("hunt actual", _hunt_link("", cat, c["current_hunt"]) if c["current_hunt"] else h.UNKNOWN),
                     ("VIP", h.yes_no(c["vip"])),
-                    ("objectivo", h.esc(GOAL_LABEL.get(c["goal"])) if c["goal"] else h.UNKNOWN),
-                    ("proximo passo", '<span class="mudo">chega na ordem 2</span>'),
+                    ("objectivo", _goal_text(advice, c)),
+                    ("proximo passo", ('<b>%s</b> <small class="mudo">%s</small>'
+                                       % (h.esc(first[0]["action"]), h.esc(first[0]["why"])))
+                     if first else '<span class="mudo">nada a sugerir</span>'),
                 ])))
         parts.append("</div>")
     parts.append("<h2>Atalhos</h2>")
@@ -280,61 +287,134 @@ def render_charms(cat, generated_at):
 
 
 # --- Personagem -------------------------------------------------------------------------
-def render_character(cat, vault, character, generated_at):
+def _goal_text(advice, character):
+    goal = (advice or {}).get("goal") or character.get("goal")
+    if not goal:
+        return h.UNKNOWN
+    text = h.esc(GOAL_LABEL.get(goal, goal))
+    if (advice or {}).get("goal_defaulted"):
+        text += ' <small class="mudo">(por omissao da vocacao; muda no modo de edicao)</small>'
+    return text
+
+
+def _suggestion_li(sug):
+    cls = ' class="mudo"' if sug["kind"] == "missing" else ""
+    return ('<li%s><b>%s</b><br>%s<br><small>custo: %s · fonte: %s</small></li>'
+            % (cls, h.esc(sug["action"]), h.esc(sug["why"]), h.esc(sug.get("cost") or "—"), h.esc(sug["source"])))
+
+
+def render_next_step(root, cat, advice):
+    out = ["<h2>Proximo passo</h2>"]
+    sugs = advice.get("suggestions") or []
+    if not sugs:
+        out.append('<div class="cartao"><p class="mudo">Nada a sugerir com o que esta registado.</p></div>')
+        return "".join(out)
+    out.append('<ol class="passos">%s</ol>' % "".join(_suggestion_li(sg) for sg in sugs))
+    plan = advice.get("plan")
+    if plan:
+        cur, rec = advice["current"], plan["metrics"]
+        out.append('<div class="cartao"><p class="mudo">Ganhos medidos no simulador com a tua arvore e o teu equipamento '
+                   "registados, na hunt %s, na metrica «%s». A referencia e a "
+                   '<a href="%sbuilds/%s.html">build %s %s</a> ao teu nivel exacto.%s%s</p>'
+                   % (_hunt_link(root, cat, advice["hunt"]), h.esc(advice["metric"]), root,
+                      pages_builds.slug(plan["vocation"], plan["goal"]), h.esc(VOCATION_LABEL[plan["vocation"]]),
+                      h.esc(GOAL_LABEL[plan["goal"]]),
+                      (" Notas: %s." % h.esc("; ".join(advice["notes"]))) if advice.get("notes") else "",
+                      " Skill assumido pelo guia (o teu real substitui quando o registares)." if advice.get("assumed_skill") else ""))
+        out.append(h.table(["", "a tua build", "a recomendada"], [
+            ["metrica do objectivo", h.fmt(advice["current_score"], 1), h.fmt(advice["plan_score"], 1)],
+            ["DPS do ciclo", h.fmt(cur["dps_cycle"]), h.fmt(rec["dps_cycle"])],
+            ["EHP", h.fmt(cur["ehp"]), h.fmt(rec["ehp"])],
+            ["cura/s sustentavel", h.fmt(cur["hps_self"]), h.fmt(rec["hps_self"])],
+            ["aguenta o pack", pages_builds._seconds(cur["ttd_pack"]), pages_builds._seconds(rec["ttd_pack"])],
+        ], numeric=(1, 2)) + "</div>")
+    return "".join(out)
+
+
+def render_tree_section(cat, character, tree, plan):
+    out = ["<h3>Arvore</h3>"]
+    level = character.get("level")
+    if not tree:
+        out.append('<p class="mudo">Sem nos registados — nao se sabe o que ja comprou.</p>')
+        return "".join(out)
+    rows = []
+    spent = 0
+    plan_tree = (plan or {}).get("tree") or {}
+    his = {t["node_key"]: t["rank"] for t in tree}
+    for t in sorted(tree, key=lambda x: (-(x["rank"] or 0), x["node_key"])):
+        node = cat.node_by_id.get(t["node_key"]) or {}
+        cost = F.tree_total_cost(node, t["rank"]) if node else None
+        spent += cost or 0
+        rec = plan_tree.get(t["node_key"])
+        rows.append([h.esc(node.get("nome") or t["node_key"]),
+                     "%s / %s" % (h.fmt(t["rank"]), h.fmt(node.get("rank_maximo"))),
+                     "%s / %s" % (h.fmt(cost), h.fmt(node.get("custo_do_zero_ao_maximo"))),
+                     h.fmt(rec) if rec else '<span class="mudo">—</span>',
+                     h.esc(t["source"]), h.esc(t["seen_at"])])
+    out.append(h.table(["no", "rank", "pontos gastos / ate ao maximo", "rank na recomendada", "fonte", "visto a"],
+                       rows, numeric=(1, 2, 3)))
+    budget = F.tree_budget(level) if level else None
+    out.append('<p class="mudo"><small>%d nos registados, %s pontos gastos de %s que o nivel da. Os nos que nao '
+               "estao aqui sao desconhecidos, nao zero.</small></p>" % (len(tree), h.fmt(spent), h.fmt(budget)))
+    missing = sorted((k, r) for k, r in plan_tree.items() if r > his.get(k, 0))
+    if missing:
+        out.append('<p class="mudo"><small>A recomendada tem ainda: %s.</small></p>' % h.esc(", ".join(
+            "%s %d" % ((cat.node_by_id.get(k) or {}).get("nome") or k, r) for k, r in missing)))
+    return "".join(out)
+
+
+def render_equipment_section(cat, equipment, plan):
+    out = ["<h3>Equipamento</h3>"]
+    if not equipment:
+        out.append('<p class="mudo">Sem equipamento registado.</p>')
+        return "".join(out)
+    rows = []
+    plan_eq = (plan or {}).get("equipment") or {}
+    for e in equipment:
+        item = cat.item_by_key.get(e["item_key"] or "") or {}
+        imb = e["imbuements"]
+        attrs = e.get("attributes")
+        rec = plan_eq.get(e["slot"])
+        rows.append([
+            h.esc(advisor.SLOT_LABEL.get(e["slot"], e["slot"])),
+            h.esc(e["item_name"] or e["item_key"]) if (e["item_name"] or e["item_key"]) else h.UNKNOWN,
+            h.fmt(item.get("nivel")),
+            h.fmt(e["upgrade_level"]),
+            (h.esc(", ".join(str(x) for x in imb)) if imb else '<span class="mudo">nenhum</span>')
+            if imb is not None else h.UNKNOWN,
+            (h.esc(", ".join("%s %s" % (k, v) for k, v in attrs.items())) if attrs else '<span class="mudo">nenhum</span>')
+            if attrs is not None else h.UNKNOWN,
+            h.esc(rec["item"]["nome"]) if rec else '<span class="mudo">—</span>',
+            h.esc(e["source"]),
+        ])
+    out.append(h.table(["slot", "item", "nivel do item", "upgrade", "imbuements", "atributos", "na recomendada", "fonte"],
+                       rows, numeric=(2, 3)))
+    return "".join(out)
+
+
+def render_character(cat, vault, character, generated_at, advice=None):
     root = "../"
     cid = character["id"]
+    advice = advice or {"suggestions": [], "goal": character.get("goal"), "goal_defaulted": False}
     parts = ["<h1>%s</h1>" % h.esc(character["name"])]
     parts.append('<div class="cartao">' + h.kv([
         ("vocacao", h.esc(VOCATION_LABEL.get(character["vocation"], character["vocation"]))),
         ("nivel", h.fmt(character["level"])),
         ("hunt actual", _hunt_link(root, cat, character["current_hunt"]) if character["current_hunt"] else h.UNKNOWN),
         ("VIP", h.yes_no(character["vip"])),
-        ("objectivo", h.esc(GOAL_LABEL.get(character["goal"])) if character["goal"] else h.UNKNOWN),
+        ("objectivo", _goal_text(advice, character)),
         ("notas", h.esc(character["notes"]) if character["notes"] else '<span class="mudo">—</span>'),
         ("fonte", h.esc(character["source"])),
         ("visto a", h.esc(character["seen_at"])),
         ("actualizado a", h.esc(character["updated_at"])),
     ]) + "</div>")
-    parts.append('<h2>Proximo passo</h2><div class="cartao"><p class="mudo">Chega na ordem 2 '
-                 "(a build e o que comprar/subir/trocar a seguir).</p></div>")
+    parts.append(render_next_step(root, cat, advice))
 
-    parts.append("<h2>Arvore</h2>")
-    tree = vault.tree_of(cid)
-    if tree:
-        rows = []
-        for t in tree:
-            node = cat.node_by_id.get(t["node_key"]) or {}
-            rows.append([h.esc(node.get("nome") or t["node_key"]),
-                         "%s / %s" % (h.fmt(t["rank"]), h.fmt(node.get("rank_maximo"))),
-                         h.esc(node.get("tipo")), h.esc(t["source"]), h.esc(t["seen_at"])])
-        parts.append(h.table(["no", "rank", "tipo", "fonte", "visto a"], rows, numeric=(1,)))
-        parts.append('<p class="mudo"><small>%d nos registados. Os que nao estao aqui sao '
-                     "desconhecidos, nao zero.</small></p>" % len(tree))
-    else:
-        parts.append('<p class="mudo">Sem nos registados — nao se sabe o que ja comprou.</p>')
+    parts.append("<h2>Build actual</h2>")
+    parts.append(render_tree_section(cat, character, vault.tree_of(cid), advice.get("plan")))
+    parts.append(render_equipment_section(cat, vault.equipment_of(cid), advice.get("plan")))
 
-    parts.append("<h2>Equipamento</h2>")
-    equipment = vault.equipment_of(cid)
-    if equipment:
-        rows = []
-        for e in equipment:
-            item = cat.item_by_key.get(e["item_key"] or "") or {}
-            imb = e["imbuements"]
-            rows.append([
-                h.esc(e["slot"]),
-                h.esc(e["item_name"] or e["item_key"]) if (e["item_name"] or e["item_key"]) else h.UNKNOWN,
-                h.fmt(item.get("nivel")),
-                h.fmt(e["upgrade_level"]),
-                (h.esc(", ".join(str(x) for x in imb)) if imb else '<span class="mudo">nenhum</span>')
-                if imb is not None else h.UNKNOWN,
-                h.esc(e["source"]),
-            ])
-        parts.append(h.table(["slot", "item", "nivel do item", "upgrade", "imbuements", "fonte"],
-                             rows, numeric=(2, 3)))
-    else:
-        parts.append('<p class="mudo">Sem equipamento registado.</p>')
-
-    parts.append("<h2>Charms</h2>")
+    parts.append("<h3>Charms</h3>")
     points = vault.charm_points_of(cid)
     parts.append(h.kv([
         ("pontos disponiveis", h.fmt(points["points_available"]) if points else h.UNKNOWN),
@@ -354,7 +434,7 @@ def render_character(cat, vault, character, generated_at):
     else:
         parts.append('<p class="mudo">Sem charms registados.</p>')
 
-    parts.append("<h2>Bestiario</h2>")
+    parts.append("<h3>Bestiario</h3>")
     bestiary = vault.bestiary_of(cid)
     if bestiary:
         rows = []
@@ -378,6 +458,8 @@ def render_character(cat, vault, character, generated_at):
               h.esc(r["source"])] for r in readings], numeric=(1, 2, 3, 4)))
     else:
         parts.append('<p class="mudo">Sem leituras de estado. Sem duas leituras nao ha XP/h.</p>')
+    parts.append('<p class="mudo"><small>Para corrigir ou completar: <code>py -m baiakvault serve</code> e abrir '
+                 "<code>http://127.0.0.1:8774/editar/%s</code> no PC.</small></p>" % h.esc(character["slug"]))
     return h.page("%s — BaiakVault" % character["name"], "".join(parts), root=root,
                   generated_at=generated_at)
 
@@ -399,12 +481,24 @@ def build_plans(cat, planner=None):
     return plans
 
 
-def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, with_builds=True):
+def character_advice(cat, vault, character, planner):
+    """O estado do personagem lido pelo `Vault` e passado ao motor puro."""
+    cid = character["id"]
+    state = advisor.state_from_rows(character, vault.tree_of(cid), vault.equipment_of(cid), vault.charms_of(cid),
+                                    vault.charm_points_of(cid), vault.bestiary_of(cid))
+    return advisor.advise(cat, state, planner)
+
+
+def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, with_builds=True, planner=None,
+          cat=None):
     """Gera o site inteiro. Devolve `{"files": [...], "seconds": float, "out": Path}`.
-    `plans` ja calculados poupam os ~8 s do optimizador (os testes passam-nos)."""
+    `plans`/`planner` ja calculados poupam os ~8 s do optimizador (os testes e o
+    `serve` passam-nos); `with_builds=False` salta as paginas das builds (o `serve`
+    regenera so o resto a cada escrita)."""
     started = time.perf_counter()
     out = Path(out_dir or DEFAULT_OUT)
-    cat = catalog_module.load(catalog_dir)
+    cat = cat or catalog_module.load(catalog_dir)
+    planner = planner or builds_module.Planner(cat)
     conn = db_module.connect(db_path)
     try:
         vault = db_module.Vault(conn, cat)
@@ -413,7 +507,8 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
         written = []
         written.append(_write(out / "estilo.css", h.CSS))
         written.append(_write(out / ".nojekyll", ""))
-        written.append(_write(out / "index.html", render_index(cat, characters, generated_at)))
+        advice_by_slug = {c["slug"]: character_advice(cat, vault, c, planner) for c in characters}
+        written.append(_write(out / "index.html", render_index(cat, characters, generated_at, advice_by_slug)))
         written.append(_write(out / "hunts" / "index.html", render_hunts_index(cat, generated_at)))
         for hunt in cat.hunts:
             written.append(_write(out / "hunts" / (hunt["id"] + ".html"),
@@ -421,9 +516,9 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
         written.append(_write(out / "charms" / "index.html", render_charms(cat, generated_at)))
         for c in characters:
             written.append(_write(out / "personagens" / (c["slug"] + ".html"),
-                                  render_character(cat, vault, c, generated_at)))
+                                  render_character(cat, vault, c, generated_at, advice_by_slug[c["slug"]])))
         if with_builds:
-            plans = plans or build_plans(cat)
+            plans = plans or build_plans(cat, planner)
             written.append(_write(out / "builds" / "index.html", pages_builds.render_index(cat, plans, generated_at)))
             for voc, goal in builds_module.BUILDS:
                 by_level = {lv: plans[(voc, goal, lv)] for lv in builds_module.LEVELS}

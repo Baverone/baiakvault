@@ -26,7 +26,7 @@ class BuildEmptyVault(unittest.TestCase):
         cls.out = helpers.temp_dir() / "site"
         db_path = helpers.temp_dir() / "vault.db"
         cls.result = build.build(cls.out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW,
-                                 plans=helpers.planner()[1])
+                                 planner=helpers.planner()[0], plans=helpers.planner()[1])
 
     def test_pages_exist(self):
         for rel in ("index.html", "hunts/index.html", "charms/index.html",
@@ -94,7 +94,7 @@ class BuildWithCharacter(unittest.TestCase):
         conn.close()
         cls.out = helpers.temp_dir() / "site"
         cls.result = build.build(cls.out, db_path, helpers.ROOT / "data" / "catalogo", now=NOW,
-                                 plans=helpers.planner()[1])
+                                 planner=helpers.planner()[0], plans=helpers.planner()[1])
 
     def test_character_page_exists_and_index_links_to_it(self):
         page = self.out / "personagens" / "teste-knight.html"

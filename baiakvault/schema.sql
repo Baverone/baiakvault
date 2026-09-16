@@ -1,4 +1,5 @@
 -- vault.db: os dados DELE (personagens, builds, charms). Versao 1 (16/09/2026).
+-- A v2 (db.py, _SCHEMA_V2) reconstroi `characters` com goal IN (damage, tank, heal, support).
 --
 -- So o proprio BaiakVault escreve aqui (`db.py`). As chaves de hunt, criatura,
 -- charm, no da arvore e item sao as dos catalogos e validam-se em `db.py`
