@@ -205,6 +205,29 @@ class Optimizer(unittest.TestCase):
                 self.assertTrue(why, key)
                 self.assertNotIn(words, [w for _, w, _ in b["helper"]["hunt_rotation"]], key)
 
+    def test_battle_tactics_changes_damage_dealt_and_taken(self):
+        """O no Battle Tactics (special `tactics`) entra no simulador: mais ranks =
+        mais chance de decisao perfeita = mais dano e menos dano recebido (16/09/2026, ordem 7)."""
+        target = sim.Target(self.cat, "livrariafire-cave")
+        nid = {"knight": "k_tactics", "sorcerer": "s_tactics"}
+        for voc, level in (("knight", 527), ("sorcerer", 471)):
+            base = sim.Profile(self.cat, voc, level)
+            more = sim.Profile(self.cat, voc, level, {nid[voc]: 6})
+            self.assertEqual(base.specials.get("tactics", 0), 0)
+            self.assertEqual(more.specials["tactics"], 6)
+            self.assertGreater(more.tactics["aim_chance"], base.tactics["aim_chance"])
+            self.assertGreater(more.ai_quality, base.ai_quality)
+            rot = [sim.RotationSlot(s) for s in sim.attack_spells(base)[:3]]
+            r0 = sim.simulate(base, target, rot, heal=sim.best_heal(base))
+            r1 = sim.simulate(more, target, rot, heal=sim.best_heal(more))
+            self.assertGreater(r1.dps, r0.dps * 1.03, voc)
+            self.assertLess(r1.pressure, r0.pressure, voc)
+        # e o optimizador compra-o na build «best» ao nivel dele (Livraria FIRE)
+        pl = self.pl
+        for voc, level in (("knight", 527), ("sorcerer", 471)):
+            b = pl.plan(voc, "best", level, hunt_id="livrariafire-cave")
+            self.assertGreaterEqual(b["tree"].get(nid[voc], 0), 1, (voc, b["tree"]))
+
     def test_metrics_are_finite_and_positive(self):
         for key, b in self.plans.items():
             m = b["metrics"]

@@ -44,6 +44,10 @@ HAND_CONSTANTS = {
     "crit_base": (50, "guia: critico = 1 + chance x (50 + critDmg)/10000"),
     "imbuement_crit_chance": (5, "cliente FY=5"), "area_targets_radius_2": (5, "convencao ⚠, limitado ao pack"),
     "cycle_kills": (57, "guia L=57"), "boss_hp_mult": (3, "guia te=3"),
+    # a IA de combate (cliente u4e): chance de decisao perfeita = 0,5 + 0,025 x qp, qp = min(10, 0,5 x floor(nivel/100)) + min(10, ranks)
+    "tactics_aim_base": (0.5, "cliente u4e: aimChance = min(1, 0,5 + 0,025 x qp)"),
+    "tactics_aim_per_qp": (0.025, "cliente u4e"),
+    "tactics_imperfect": (0.6, "convencao ⚠: uma decisao imperfeita rende 60 % de uma perfeita"),
 }
 TOLERANCE_PCT = 1.0
 
@@ -104,6 +108,12 @@ def hand_calculation(cat, ref=REFERENCE):
                 crit_dmg += info["values"][tier - 1]
                 crit_chance += c["imbuement_crit_chance"]
     crit = 1 + crit_chance * (c["crit_base"] + crit_dmg) / 10000.0
+    # a IA de combate: o perfil nao tem ranks de Battle Tactics; qp = min(10, 0,5 x floor(50/100)) + 0 = 0
+    tactics_ranks = sum(r for nid, r in ref["tree"].items() if node_by_id[nid]["nome"] == "Battle Tactics")
+    qp = min(10, 0.5 * (level // 100)) + min(10, tactics_ranks)
+    aim = min(1.0, c["tactics_aim_base"] + c["tactics_aim_per_qp"] * qp)
+    ai_quality = aim + (1 - aim) * c["tactics_imperfect"]
+    crit *= ai_quality   # pesa em todo o dano que sai (nao na cura)
     hp = (c["hp_base"] + c["hp_per_level"] * level) * (1 + hp_pct / 100)
     mana = (c["mana_base"] + c["mana_per_level"] * level) * (1 + mana_pct / 100)
 
@@ -147,10 +157,11 @@ def hand_calculation(cat, ref=REFERENCE):
     dps_cycle = (hp_normals + hp_boss) / (hp_normals / dps_pack + hp_boss / dps_boss)
     return {"heal_per_cast": heal, "tree_points": tree_points, "hp_max": hp, "mana_max": mana,
             "dps_pack": dps_pack, "dps_boss": dps_boss, "dps_cycle": dps_cycle, "auto_dps": auto,
-            "mana_demand": mana_s, "magic_level": magic}
+            "mana_demand": mana_s, "magic_level": magic, "ai_quality": ai_quality}
 
 
 LABELS = [("heal_per_cast", "cura por lancamento (exura vita)"), ("tree_points", "custo da arvore (pontos)"),
+          ("ai_quality", "factor da IA de combate (Battle Tactics)"),
           ("hp_max", "HP maximo"), ("mana_max", "mana maxima"), ("magic_level", "magic level (guia + itens)"),
           ("dps_pack", "DPS contra o pack"), ("dps_boss", "DPS contra o boss (x3 HP)"),
           ("dps_cycle", "DPS do ciclo"), ("auto_dps", "dano/s do ataque automatico"),

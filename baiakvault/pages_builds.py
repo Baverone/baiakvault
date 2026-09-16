@@ -217,6 +217,7 @@ def render_level_section(cat, b, root, extra=""):
         ("supplies (hunt / boss)", "%s / %s gold/h — %d pocoes de vida e %d de mana por minuto"
          % (h.kk(m["gold_per_hour"]), h.kk(m["boss_gold_per_hour"]), m["hp_potions"], m["mana_potions"])),
         ("skills assumidos", _skills_text(prof)),
+        ("tactica (IA de combate)", _tactics_text(prof)),
     ]) + "</div>")
     if target.resist_fallback or target.resist_unknown:
         bits = []
@@ -276,6 +277,33 @@ def _constraints_block(m):
             % ("" if ok else ' <span class="aviso">— nem todas cumpridas: a metrica da build (nao o DPS mostrado) '
                               'esta cortada por isso; e o melhor que o optimizador encontrou a este nivel</span>',
                h.table(["condicao", "estado", "o que o simulador diz"], rows)))
+
+
+def tactics_summary(prof):
+    """«Tactica: nivel N · X % (raio Y)» com o no e sem ele — o painel do personagem
+    mostra o mesmo (cliente u4e); o que uma decisao imperfeita vale e convencao."""
+    ranks = prof.specials.get("tactics", 0)
+    with_node = prof.tactics
+    without = F.battle_tactics(prof.level, 0)
+    return {"ranks": ranks, "with": with_node, "without": without,
+            "quality_with": prof.ai_quality, "quality_without": F.tactics_quality(without["aim_chance"])}
+
+
+def _tactics_text(prof):
+    t = tactics_summary(prof)
+    w, o = t["with"], t["without"]
+    text = "Tactica: nivel %d · <b>%s</b> (raio %d)" % (w["tier"], _pct(w["aim_chance"] * 100, 1), w["cast_search_radius"])
+    if t["ranks"]:
+        text += (" com Battle Tactics %d; sem o no: nivel %d · %s (raio %d)"
+                 % (t["ranks"], o["tier"], _pct(o["aim_chance"] * 100, 1), o["cast_search_radius"]))
+    else:
+        text += " (sem ranks de Battle Tactics)"
+    text += (' <small class="mudo">— chance de decisao perfeita da IA (cliente u4e); uma imperfeita rende %s do dano '
+             "e apanha o que a perfeita evitaria (convencao ⚠): factor %s no dano%s; kite infinito %s</small>"
+             % (_pct(F.TACTICS_IMPERFECT_FACTOR * 100), ("%.3f" % t["quality_with"]).replace(".", ","),
+                (" (%s sem o no)" % ("%.3f" % t["quality_without"]).replace(".", ",")) if t["ranks"] else "",
+                "sim" if w["infinite_kite"] else "nao (tier 3 destrava)"))
+    return text
 
 
 def _mana_verdict(m):
@@ -684,7 +712,7 @@ def engine_numbers(cat, ref=validation.REFERENCE):
             "dps_pack": m["dps_pack"], "dps_boss": m["dps_boss"], "dps_cycle": m["dps_cycle"],
             # so a rotacao: a conta a mao nao simula as curas (que desde 16/09/2026 acontecem
             # tambem no perfil de referencia, porque o leech deixou de curar pelas areas)
-            "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand_attacks"]}
+            "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand_attacks"], "ai_quality": prof.ai_quality}
 
 
 def validation_rows(cat):
@@ -747,6 +775,27 @@ def validation_markdown(cat, plans, rows=None):
             "| o que | guia | cliente | o que se segue |", "|---|---|---|---|"]
     for what, guide, client, follow in validation.DISAGREEMENTS:
         out.append("| %s | %s | %s | %s |" % (what, guide, client, follow))
+    out += ["", "## 4. A IA de combate (Battle Tactics): o que e cliente e o que e convencao", "",
+            "O cliente calcula a IA em `u4e(nivel, ranks)`: `a = floor(nivel/100)`; `tier = a + ranks`; "
+            "`qp = min(10, 0,5 x a) + min(10, ranks)`; **chance de decisao perfeita** = `min(1, 0,5 + 0,025 x qp)` "
+            "(e o «Tactica: nivel N · X %» do painel); **raio de procura dos casts** = `min(1 + floor(qp/7), 3)`; "
+            "reposicionamento minimo = `max(4000, 5000 - 50 x qp)` ms; kite infinito a partir do tier 3. "
+            "Texto do cliente: «cada rank vale +100 niveis de IA e afia a CHANCE de jogar perfeito — mira, "
+            "posicionamento e reacao»; sobre as pranchas: «Nunca decide magia, cura nem pocao: so ONDE».", "",
+            "| o que | valor | fonte |", "|---|---|---|",
+            "| chance de decisao perfeita | 0,5 + 0,025 x qp (tecto 1) | cliente `u4e` |",
+            "| raio de procura dos casts | 1 + floor(qp/7), tecto 3 | cliente `u4e` |",
+            "| o que uma decisao imperfeita rende | %s do dano de uma perfeita; o dano recebido x (1 + %s x imperfeitas) | **convencao ⚠** (`formulas.TACTICS_IMPERFECT_FACTOR`) |"
+            % (_md_num(F.TACTICS_IMPERFECT_FACTOR * 100, 0) + " %", _md_num((1 - F.TACTICS_IMPERFECT_FACTOR), 1)),
+            "| raio de procura -> alvos das areas | soma-se ao raio da magia (raio 1 = 3 alvos, 2 = 5, 3+ = o pack) | **convencao ⚠** (`formulas.TACTICS_RADIUS_TO_TARGETS`) |",
+            "", "| nivel | sem o no | Battle Tactics 5 | Battle Tactics 10 |", "|---|---|---|---|"]
+    for level in B.LEVELS:
+        cells = []
+        for ranks in (0, 5, 10):
+            t = F.battle_tactics(level, ranks)
+            cells.append("%s %% (raio %d, factor %s)" % (_md_num(t["aim_chance"] * 100, 1), t["cast_search_radius"],
+                                                       _md_num(F.tactics_quality(t["aim_chance"]), 3)))
+        out.append("| %d | %s |" % (level, " | ".join(cells)))
     out += ["", "Fontes: guia = `guiabaiakidle.com` (planner, lido a 16/09/2026); cliente = bundle publico "
             "`index-DnzxFejS.js` (09/09/2026). Nada disto foi medido na conta.", ""]
     return "\n".join(out)

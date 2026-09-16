@@ -189,6 +189,11 @@ class Profile:
         self.skills = base
         self.bonuses = bon
         self.specials = specials
+        # a IA de combate (cliente u4e): nivel + ranks de Battle Tactics -> chance de
+        # decisao perfeita; o que uma imperfeita vale e convencao (F.TACTICS_IMPERFECT_FACTOR)
+        self.tactics = F.battle_tactics(level, specials.get("tactics", 0))
+        self.ai_quality = F.tactics_quality(self.tactics["aim_chance"])
+        self.ai_taken = F.tactics_taken(self.tactics["aim_chance"])
 
         shield = (self.equipment.get("shield") or {}).get("item")
         ammo = (self.equipment.get("ammo") or {}).get("item")
@@ -250,7 +255,7 @@ class Profile:
         """Dano medio de um golpe `base` do elemento contra `resist` {el: %}."""
         bon = self.bonuses
         pierce = self.specials.get("element_pierce", 0.0)
-        mult = self.crit()
+        mult = self.crit() * self.ai_quality   # a mira da IA pesa em todo o dano que sai
         if is_spell:
             mult *= 1 + bon["spellDmgPct"] / 100.0
         if self.specials.get("execute"):
@@ -425,7 +430,9 @@ def pressure(profile, target, boss=False, attackers=1):
     mit = mitigation(profile, target, boss)
     inc = target.boss_incoming if boss else target.incoming
     mx = target.boss_max_hit if boss else target.max_hit
-    dps_in = sum(inc[el] * mit[el] for el in ELEMENTS) * attackers
+    # o posicionamento da IA (Battle Tactics) pesa no dano/s que entra — convencao
+    # simetrica da do dano que sai (F.tactics_taken); o maior golpe nao muda
+    dps_in = sum(inc[el] * mit[el] for el in ELEMENTS) * attackers * profile.ai_taken
     max_hit = max(mx[el] * mit[el] for el in ELEMENTS)
     return dps_in, max_hit, mit
 
@@ -455,10 +462,10 @@ def heal_spells(profile, friend=False):
             and (bool(s.get("alvo_da_cura")) == friend)]
 
 
-def spell_targets(spell, pack, boss):
+def spell_targets(spell, pack, boss, search_radius=1):
     if boss or spell["tipo"] != "area":
         return 1
-    return F.area_targets(spell.get("raio"), pack)
+    return F.area_targets(spell.get("raio"), pack, search_radius)
 
 
 def spell_damage(profile, spell, target, boss):
@@ -479,7 +486,7 @@ def _spell_damage(profile, spell, target, boss):
     element = F.spell_element(spell["palavras"])
     resist = target.boss_resist if boss else target.resist
     one = profile.hit_vs(base, element, resist, is_spell=True)
-    n = spell_targets(spell, target.pack, boss)
+    n = spell_targets(spell, target.pack, boss, profile.tactics["cast_search_radius"])
     chain = spell.get("cadeia")
     if chain and not boss:
         n = max(n, min(target.pack, int(chain.get("targets") or 1)))
