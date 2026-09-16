@@ -24,12 +24,13 @@ from . import catalog as catalog_module
 DEFAULT_PATH = Path(__file__).resolve().parent.parent / "data" / "vault.db"
 SOURCES = ("manual", "captura")
 # Os objectivos por vocacao; o primeiro de cada lista e a omissao quando o goal esta
-# NULL. Desde 16/09/2026 (ordem 6, pedido do Andre das 12:20) a omissao e «best» — a
-# melhor build possivel da vocacao (DPS sujeito a aguentar e a sustentar a mana);
-# os objectivos de 16/09 (ordem 2) ficam disponiveis.
-GOALS_BY_VOCATION = {"knight": ("best", "tank", "damage"), "druid": ("best", "heal", "damage"),
-                     "sorcerer": ("best", "damage"), "paladin": ("best", "damage"),
-                     "monk": ("best", "support", "damage")}
+# NULL. Desde 16/09/2026 13:30 (ordem 7, decisao do Andre: «quero dano, nao importa o
+# custo») a omissao e «damage»; a «best» das 12:20 (a equilibrada) e os objectivos da
+# ordem 2 ficam disponiveis. Sem migracao: e so a omissao que muda, os valores gravados
+# ficam (os 5 personagens dele passaram a NULL = omissao, nunca escolheram).
+GOALS_BY_VOCATION = {"knight": ("damage", "best", "tank"), "druid": ("damage", "best", "heal"),
+                     "sorcerer": ("damage", "best"), "paladin": ("damage", "best"),
+                     "monk": ("damage", "best", "support")}
 GOALS = ("best", "damage", "tank", "heal", "support")
 # O catalogo so da slot aos itens que o cliente marca como equipaveis; mochila
 # e municao nao tem slot la mas existem no boneco (decisao 16/09/2026).

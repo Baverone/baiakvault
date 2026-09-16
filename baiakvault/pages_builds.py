@@ -104,19 +104,24 @@ def _drop_sources(cat, item, root):
 def render_index(cat, plans, generated_at):
     root = "../"
     parts = ["<h1>Builds</h1>",
-             '<p class="mudo">Primeiro a build <b>melhor</b> de cada vocacao (pedido de 16/09/2026): o maior '
-             "DPS do ciclo na hunt de referencia que aguenta o pack e o boss (&gt; 10 min) com a mana "
-             "sustentavel — knight e monk sem pocoes de mana (cliente), mages com o custo em gold a vista; "
-             "o druid ainda com a cura ao knight da party garantida. Depois as oito builds por objectivo. "
-             "Tudo para qualquer nivel (aqui os representativos): arvore por ordem de compra, equipamento "
-             "BiS por slot, rotacao para o Helper e numeros do simulador. <b>Os numeros sao "
-             "estimativas</b>: as formulas dos feiticos e da arvore sao as do cliente do jogo; o resto "
-             'vem do guia ou e convencao nossa, e esta marcado (ver a seccao «Fontes» de cada build e a '
-             '<a href="validacao.html">validacao cruzada</a>).</p>']
-    first_by_goal = next(b for b in B.BUILDS if b[1] != "best")
+             '<p class="mudo">Primeiro a build de <b>dano</b> de cada vocacao — a omissao desde 16/09/2026 '
+             "(decisao do Andre: «quero dano, nao importa o custo, importa e o dano e a XP»): o maior DPS "
+             "do ciclo na hunt de referencia (e XP/h), com pocoes de mana e runas a vontade nos mages e no "
+             "paladin (o custo sai em gold/h, sem tecto), o knight e o monk limitados pela mana que o leech "
+             "e os itens repoem (o cliente nao lhes da pocoes de mana), e sobreviver ao pack e ao boss so "
+             "como restricao minima. Depois a build <b>melhor</b> (equilibrada: aguenta, sustenta a mana, o "
+             "druid cura o knight) e as builds por objectivo. Tudo para qualquer nivel (aqui os "
+             "representativos): arvore por ordem de compra, equipamento BiS por slot, rotacao para o Helper "
+             "e numeros do simulador. <b>Os numeros sao estimativas</b>: as formulas dos feiticos e da arvore "
+             "sao as do cliente do jogo; o resto vem do guia ou e convencao nossa, e esta marcado (ver a "
+             'seccao «Fontes» de cada build e a <a href="validacao.html">validacao cruzada</a>).</p>']
+    first_best = next(b for b in B.BUILDS if b[1] == "best")
+    first_other = next(b for b in B.BUILDS if b[1] not in (B.DEFAULT_GOAL, "best"))
     for voc, goal in B.BUILDS:
         s = slug(voc, goal)
-        if (voc, goal) == first_by_goal:
+        if (voc, goal) == first_best:
+            parts.append('<h2 class="separador">A build «melhor» (equilibrada) de cada vocacao</h2>')
+        if (voc, goal) == first_other:
             parts.append('<h2 class="separador">As builds por objectivo</h2>')
         parts.append('<h2><a href="%s.html">%s</a></h2>' % (s, h.esc(title(voc, goal))))
         rows = []
@@ -135,7 +140,7 @@ def render_index(cat, plans, generated_at):
                 h.esc(", ".join(n for n, w, mm in b["helper"]["hunt_rotation"])),
             ])
         parts.append(h.table(["nivel", "hunt de ref.", "DPS ciclo", "DPS boss", "HPS", "EHP", "aguenta o pack",
-                              "mana/s gasta / ganha", "supplies gold/h", "rotacao (hunt)"], rows,
+                              "mana/s gasta / ganha", "gold/h (pocoes + runas)", "rotacao (hunt)"], rows,
                              numeric=(0, 2, 3, 4, 5, 6, 7, 8)))
     parts.append('<h2>Como ler</h2><div class="cartao">'
                  "<p><b>DPS ciclo</b>: dano por segundo efectivo num ciclo de hunt — 57 monstros normais "
@@ -148,7 +153,10 @@ def render_index(cat, plans, generated_at):
                  "zero, por isso «gasta &gt; ganha» quer dizer «depende de regen/pocoes», nao «impossivel». "
                  "O roubo de vida e de mana so conta no ataque normal e nas magias de alvo unico, nunca nas "
                  "areas (cliente: texto dos charms Vampiric Embrace / Void's Call). "
-                 "<b>supplies</b>: pocoes que o Helper beberia com estes limiares, em gold por hora.</p></div>")
+                 "<b>gold/h (pocoes + runas)</b>: as runas ao gold por lancamento do cliente; as pocoes de vida "
+                 "as que o Helper beberia com estes limiares; as pocoes de mana <b>em regime</b> — cada ponto de "
+                 "mana que o leech e os itens nao repoem vem de uma pocao, ao preco por mana dela (a regen base do "
+                 "servidor e desconhecida e conta a 0: e um tecto).</p></div>")
     parts.append(h.source_line("simulador do BaiakVault (formulas do cliente + guia + convencoes marcadas)", cat.seen_at()))
     return h.page("Builds — BaiakVault", "".join(parts), root=root, here="builds", generated_at=generated_at)
 
@@ -186,7 +194,11 @@ def _metric_text(goal):
                 "e a sustentar a mana (knight/monk sem pocoes; os outros sem esgotar a mana); no druid, a cura "
                 "aliada sustentavel tem de cobrir a pressao do pack sobre o knight «melhor» da party. Cada "
                 "condicao falhada corta o DPS pela fraccao em que falha, ao quadrado",
-        "damage": "DPS efectivo no ciclo (57 normais + boss x3 HP)",
+        "damage": "DPS efectivo no ciclo (57 normais + boss x3 HP) — e XP/h — sem tecto de gold: pocoes de mana e "
+                  "runas a vontade nos mages e no paladin (o custo sai em gold/h); no knight e no monk conta so o DPS "
+                  "que a mana sustenta (o leech e os itens pagam os feiticos; o ataque normal e as runas nao gastam "
+                  "mana). Sobreviver ao pack inteiro e ao boss e restricao minima: falhada, corta o DPS pela fraccao "
+                  "em que falha, ao quadrado. Decisao do Andre, 16/09/2026 13:30",
         "tank": "EHP com o pack em cima x sustain (leech ate cobrir a pressao) x DPS^0,3",
         "heal": "cura/s sustentavel em 60 s (propria + metade da aliada) x DPS^0,3",
         "support": "cura/s sustentavel em 60 s (propria + metade da aliada) x DPS^0,3",
@@ -202,8 +214,13 @@ def render_level_section(cat, b, root, extra=""):
     out = ['<section class="nivel" id="n%d"><h2>Nivel %d — alvo de referencia: <a href="%shunts/%s.html">%s</a> (%d+)</h2>'
            % (level, level, root, hunt["id"], h.esc(hunt["nome"]), hunt.get("nivel_minimo") or 0)]
     # resumo
+    sustained = ""
+    if not prof.uses_mana_potions:
+        sustained = (' <small class="mudo">— sustentado (so os feiticos que a mana paga, %s deles): %s / %s / %s</small>'
+                     % (_pct(m["mana_sustain"] * 100, 0), _n(m["dps_cycle_sustained"]), _n(m["dps_pack_sustained"]),
+                        _n(m["dps_boss_sustained"])))
     out.append('<div class="cartao">' + h.kv([
-        ("DPS ciclo / pack / boss", "%s / %s / %s" % (_n(m["dps_cycle"]), _n(m["dps_pack"]), _n(m["dps_boss"]))),
+        ("DPS ciclo / pack / boss", "%s / %s / %s%s" % (_n(m["dps_cycle"]), _n(m["dps_pack"]), _n(m["dps_boss"]), sustained)),
         ("do ataque automatico", _n(m["auto_dps"]) + ' <small class="mudo">(convencao ⚠, ver Fontes)</small>'),
         ("cura/s sustentavel (propria / aliada)", "%s / %s" % (_n(m["hps_self"]), _n(m["hps_friend"]) if m["hps_friend"] else "—")),
         ("HP / mana", "%s / %s" % (_n(m["hp_max"]), _n(m["mana_max"]))),
@@ -214,8 +231,11 @@ def render_level_section(cat, b, root, extra=""):
         ("mana/s gasta / ganha", "%s / %s — %s%s" % (_n(m["mana_demand"], 1), _n(m["mana_income"], 1), _mana_verdict(m),
                                                     " ⚠ a mana por tiro da wand nao esta no catalogo: contou a 0"
                                                     if prof.wand and (prof.weapon or {}).get("mana_por_tiro") is None else "")),
-        ("supplies (hunt / boss)", "%s / %s gold/h — %d pocoes de vida e %d de mana por minuto"
-         % (h.kk(m["gold_per_hour"]), h.kk(m["boss_gold_per_hour"]), m["hp_potions"], m["mana_potions"])),
+        ("gold/h, pocoes + runas (hunt / boss)", "%s / %s — %d pocoes de vida e %d de mana por minuto nos 60 s; "
+         'as de mana contam em regime (ver a rotacao)%s'
+         % (h.kk(m["gold_per_hour"]), h.kk(m["boss_gold_per_hour"]), m["hp_potions"], m["mana_potions"],
+            (" — <b>tecto: %s gold/h</b>" % h.kk(b["gold_cap"])) if b.get("gold_cap") is not None
+            else ' <small class="mudo">(sem tecto: «nao importa o custo», Andre 16/09/2026)</small>')),
         ("skills assumidos", _skills_text(prof)),
         ("tactica (IA de combate)", _tactics_text(prof)),
     ]) + "</div>")
@@ -232,8 +252,8 @@ def render_level_section(cat, b, root, extra=""):
         out.append('<p class="aviso">⚠ No simulador o personagem morre (hunt aos %s s, boss aos %s s) — com esta '
                    "build a hunt de referencia e demasiado forte a solo; e o que o simulador diz, nao um erro da pagina.</p>"
                    % (h.fmt(m.get("death_at")), h.fmt(m.get("boss_death_at"))))
-    if b["goal"] == "best":
-        out.append(_constraints_block(m))
+    if b["goal"] in ("best", "damage"):
+        out.append(_constraints_block(m, b["goal"]))
     out.append(_tree_block(cat, b))
     out.append(_equipment_block(cat, b, root))
     out.append(_helper_block(cat, b, root))
@@ -251,9 +271,9 @@ CONSTRAINT_LABEL = {
 }
 
 
-def _constraints_block(m):
-    """As condicoes da build «melhor» e o que o simulador diz de cada uma."""
-    cons = B.best_constraints(m)
+def _constraints_block(m, goal="best"):
+    """As condicoes da build («melhor» ou «dano») e o que o simulador diz de cada uma."""
+    cons = B.goal_constraints(m, goal)
     rows = []
     for key, frac in cons.items():
         if key == "mana":
@@ -273,9 +293,10 @@ def _constraints_block(m):
                 _seconds(m["survive_pack_s"]), m.get("attackers_full") or 0, _n(m["full_hp_min"]))
         rows.append([CONSTRAINT_LABEL[key], "cumprida" if frac >= 1 else "<b>falha a %s</b>" % _pct(frac * 100, 0), detail])
     ok = all(f >= 1 for f in cons.values())
-    return ('<div class="cartao"><h4>Condicoes da build «melhor»%s</h4>%s</div>'
-            % ("" if ok else ' <span class="aviso">— nem todas cumpridas: a metrica da build (nao o DPS mostrado) '
-                              'esta cortada por isso; e o melhor que o optimizador encontrou a este nivel</span>',
+    label = "«melhor»" if goal == "best" else "de «dano» (restricao minima: nao morrer)"
+    return ('<div class="cartao"><h4>Condicoes da build %s%s</h4>%s</div>'
+            % (label, "" if ok else ' <span class="aviso">— nem todas cumpridas: a metrica da build (nao o DPS mostrado) '
+                                    'esta cortada por isso; e o melhor que o optimizador encontrou a este nivel</span>',
                h.table(["condicao", "estado", "o que o simulador diz"], rows)))
 
 
@@ -483,6 +504,63 @@ def _excluded_text(hc):
     return '<p class="mudo"><small>%s.</small></p>' % h.esc("; ".join(bits))
 
 
+ROTATION_HEADERS = ["slot", "magia", "≥N", "custo por lancamento", "lancamentos/min", "gold/h"]
+
+
+def _rotation_rows(rotation, costs, supplies, boss=False):
+    """As linhas da tabela da rotacao: por feitico o custo (mana, ou gold no caso das
+    runas — cliente), os lancamentos por minuto do simulador e o gold/h; no fim a
+    linha do total «gold/h (pocoes + runas)» — as pocoes de mana em regime."""
+    by_words = {c["words"]: c for c in costs}
+    rows = []
+    for i, (name, words, min_mobs) in enumerate(rotation, 1):
+        c = by_words.get(words)
+        if c and c["rune"]:
+            cost = "<b>%s gold</b> (runa; mana %s)" % (_n(c["gold_per_cast"]), _n(c["mana"]))
+        elif c:
+            cost = "%s mana" % _n(c["mana"])
+        else:
+            cost = h.UNKNOWN
+        rows.append(["slot %d" % i, "<b>%s</b> <code>%s</code>" % (h.esc(name), h.esc(words)),
+                     ("≥%d mobs" % min_mobs) if (min_mobs and not boss) else "—", cost,
+                     _n(c["casts_per_min"], 1) if c else h.UNKNOWN,
+                     h.kk(c["gold_per_hour"]) if c else h.UNKNOWN])
+    if supplies:
+        rows.append(["", "<b>gold/h (pocoes + runas)</b>", "", "runas %s · pocoes de vida %s · pocoes de mana em regime %s"
+                     % (h.kk(supplies["runes"]), h.kk(supplies["hp_potions"]), h.kk(supplies["mana_potions"])),
+                     "", "<b>%s</b>" % h.kk(supplies["total"])])
+    return rows
+
+
+def _runes_note(rotation, costs):
+    """O que se assumiu sobre as runas quando ha uma na rotacao (convencoes ⚠)."""
+    if not any(c["rune"] for c in (costs or [])):
+        return ""
+    return ('<p class="mudo"><small>Runas na rotacao (teste do Andre, 16/09/2026): o gold por lancamento e o '
+            "`goldCost` do cliente e a mana (5) tambem; assumido ⚠ que apanham o spellDmgPct e o elemento da "
+            "arvore como qualquer feitico e que ocupam o cooldown de grupo de ataque (2 s); o «≥%d» de uma runa "
+            "de area e convencao ⚠ (nao gasta mana, so gold).</small></p>" % F.RUNE_AREA_MIN_MOBS)
+
+
+def _no_runes_note(b):
+    """«Sem runas» — a mesma escolha so com magias de mana, para se ver o que as runas compram."""
+    bits = []
+    for label, rot_key, sim_key, base_key in (("hunt", "rotation_no_runes", "hunt_sim_no_runes", "hunt_sim"),
+                                              ("boss", "boss_rotation_no_runes", "boss_sim_no_runes", "boss_sim")):
+        rot, r, base = b.get(rot_key), b.get(sim_key), b.get(base_key)
+        if not rot or r is None or base is None:
+            continue
+        with_runes = any(sim.is_rune(sl.spell) for sl in (b["rotation"] if label == "hunt" else b["boss_rotation"]))
+        if not with_runes:
+            continue
+        bits.append("%s sem runas: %s → DPS %s (%s) por %s gold/h" % (
+            label, ", ".join(sl.spell["nome"] for sl in rot), _n(r.dps),
+            ("%+.0f%%" % ((r.dps / base.dps - 1) * 100)) if base.dps else h.UNKNOWN, h.kk(r.gold_per_hour)))
+    if not bits:
+        return ""
+    return '<p class="mudo">%s.</p>' % h.esc("; ".join(bits))
+
+
 def _helper_block(cat, b, root, print_link=True):
     hc = b["helper"]
     prof = b["profile"]
@@ -490,18 +568,9 @@ def _helper_block(cat, b, root, print_link=True):
     out = ["<h3>Rotacao para o Helper</h3>",
            '<p class="mudo">Com os nomes dos campos do jogo (etiquetas do cliente). O que vem do canal esta '
            "marcado [canal]; o resto e o simulador.</p>"]
-    rot_rows = []
-    for i, (name, words, min_mobs) in enumerate(hc["hunt_rotation"], 1):
-        rot_rows.append(["slot %d" % i, "<b>%s</b> <code>%s</code>" % (h.esc(name), h.esc(words)),
-                         ("≥%d mobs" % min_mobs) if min_mobs else "—"])
-    boss_rows = [["slot %d" % i, "<b>%s</b> <code>%s</code>" % (h.esc(n), h.esc(w)), "—"]
-                 for i, (n, w, mm) in enumerate(hc["boss_rotation"], 1)]
-    runes = b["boss_rotation_runes"]
-    rune_note = ""
-    if runes and b["boss_sim_runes"] and b["boss_sim"] and b["boss_sim_runes"].dps > b["boss_sim"].dps * 1.02:
-        rune_note = ('<p class="mudo">Com runas no boss: %s → DPS %s (+%s) por %s gold/h em runas.</p>'
-                     % (h.esc(", ".join(sl.spell["nome"] for sl in runes)), _n(b["boss_sim_runes"].dps),
-                        _pct((b["boss_sim_runes"].dps / b["boss_sim"].dps - 1) * 100, 0), h.kk(b["boss_sim_runes"].gold_per_hour)))
+    rot_rows = _rotation_rows(hc["hunt_rotation"], hc.get("hunt_costs") or [], hc.get("hunt_supplies"))
+    boss_rows = _rotation_rows(hc["boss_rotation"], hc.get("boss_costs") or [], hc.get("boss_supplies"), boss=True)
+    rune_note = _no_runes_note(b)
     heal_rune = hc.get("heal_rune_alternative")
     heal_rune_txt = ""
     if heal_rune:
@@ -519,7 +588,7 @@ def _helper_block(cat, b, root, print_link=True):
          ("<b>%s</b> a <b>%d%%</b> <small class=\"mudo\">(padrao do jogo, wiki)</small>" % (h.esc(hc["mana_potion"]), hc["mana_below"]))
          if hc["mana_potion"] else '<span class="mudo">nao bebe (cliente: usesManaPotions=false)</span>'),
         ("Magias de Ataque — Rotação (ordem = prioridade · ≥N = mín. de mobs)",
-         h.table(["slot", "magia", "≥N"], rot_rows) + _excluded_text(hc)),
+         h.table(ROTATION_HEADERS, rot_rows, numeric=(4, 5)) + _excluded_text(hc) + _runes_note(hc["hunt_rotation"], hc.get("hunt_costs"))),
         ("Posição de ataque / Distância do alvo", "%s · <b>%d tile%s</b> <small class=\"mudo\">[canal: EK «nao fazer nada»+menor vida; mages «mais perto» 3 tiles]</small>"
          % (h.esc(hc["position"]), hc["distance"], "s" if hc["distance"] != 1 else "")),
         ("Escudo mágico", ("<b>Mantém utamo vita sempre ativo</b>; Renovar escudo: <b>10%</b> <small class=\"mudo\">[canal 8HFN4cgQW1A]</small>"
@@ -533,7 +602,7 @@ def _helper_block(cat, b, root, print_link=True):
          % (h.esc(hc["emergency"]["ring_emergency"]), 40 if prof.vocation == "knight" else 50)),
     ]) + "</div>")
     out.append('<div class="cartao"><h4>Separador Boss</h4>' + h.kv([
-        ("Magias de Ataque — Rotação", h.table(["slot", "magia", "≥N"], boss_rows)),
+        ("Magias de Ataque — Rotação", h.table(ROTATION_HEADERS, boss_rows, numeric=(4, 5))),
         ("Posição de ataque / Distância do alvo", "<b>Fica num dos cantos diagonais do alvo</b> a <b>%d tiles</b> <small class=\"mudo\">[canal rP83AhzvK9M]</small>"
          % (2 if prof.vocation in ("knight", "monk") else 3)),
         ("Cura", "igual a da hunt; SSA abaixo de <b>%d%%</b> <small class=\"mudo\">[canal]</small>" % (65 if prof.vocation == "knight" else 60)),
@@ -656,9 +725,16 @@ def render_print(cat, b, generated_at):
     hc = b["helper"]
     prof = b["profile"]
     hunt = cat.hunt_by_id[b["hunt"]]["nome"]
-    rot = "".join("<li>%s <code>%s</code>%s</li>" % (h.esc(n), h.esc(w), (" ≥%d" % mm) if mm else "")
+    rune_gold = {c["words"]: c["gold_per_cast"] for c in (hc.get("hunt_costs") or []) + (hc.get("boss_costs") or []) if c["rune"]}
+
+    def rune_tag(w):
+        return (" · runa %s gold" % _n(rune_gold[w])) if w in rune_gold else ""
+    rot = "".join("<li>%s <code>%s</code>%s%s</li>" % (h.esc(n), h.esc(w), (" ≥%d" % mm) if mm else "", rune_tag(w))
                   for n, w, mm in hc["hunt_rotation"])
-    boss = "".join("<li>%s <code>%s</code></li>" % (h.esc(n), h.esc(w)) for n, w, mm in hc["boss_rotation"])
+    boss = "".join("<li>%s <code>%s</code>%s</li>" % (h.esc(n), h.esc(w), rune_tag(w)) for n, w, mm in hc["boss_rotation"])
+    hs, bs = hc.get("hunt_supplies"), hc.get("boss_supplies")
+    gold_line = ("<small>gold/h (pocoes + runas): hunt %s · boss %s</small>"
+                 % (h.kk(hs["total"]) if hs else h.UNKNOWN, h.kk(bs["total"]) if bs else h.UNKNOWN))
     body = ['<div class="card"><h1>Helper — %s, nivel %d</h1><small>ref. %s · BaiakVault %s</small>'
             % (h.esc(title(prof.vocation, b["goal"])), b["level"], h.esc(hunt), h.esc(generated_at)),
             "<h2>Cura automática</h2>",
@@ -670,6 +746,7 @@ def render_print(cat, b, generated_at):
             "<small>beams so no boss (Andre, 16/09/2026)%s</small>"
             % "".join("; %s fora: %s" % (h.esc(n), h.esc(why.split(":")[0])) for n, w, why in hc.get("hunt_excluded") or ()),
             "<h2>Magias de Ataque — Boss</h2><ol>%s</ol>" % boss,
+            gold_line,
             "<h2>Posição de ataque</h2>",
             h.kv([("Hunt", "%s · %d tile%s" % (h.esc(hc["position"]), hc["distance"], "s" if hc["distance"] != 1 else "")),
                   ("Boss", "diagonal · %d tiles" % (2 if prof.vocation in ("knight", "monk") else 3))])]

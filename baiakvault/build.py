@@ -36,7 +36,7 @@ PRINT_NEIGHBOURS = 5
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
-GOAL_LABEL = {"best": "melhor (DPS que aguenta e sustenta a mana)", "damage": "dano",
+GOAL_LABEL = {"best": "melhor (equilibrada: aguenta e sustenta a mana)", "damage": "dano (DPS do ciclo = XP/h; o custo nao conta)",
               "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
 INDEX_WARNING = ("Os indices de XP e de loot sao a conta que o proprio jogo faz para ordenar "
                  "as hunts: <b>XP por ponto de vida a abater — eficiencia, nao XP/h</b>. Uma hunt "
@@ -100,13 +100,16 @@ def render_index(cat, characters, generated_at, advice_by_slug=None):
                 ])))
         parts.append("</div>")
     parts.append("<h2>Atalhos</h2>")
-    best_links = " · ".join('<a href="builds/%s-best.html">%s</a>' % (voc, h.esc(VOCATION_LABEL[voc]))
-                            for voc, goal in builds_module.BUILDS if goal == "best")
-    parts.append('<ul><li><a href="builds/index.html">Builds</a> — a build <b>melhor</b> de cada vocacao (%s): '
-                 "o maior DPS do ciclo que aguenta o pack e o boss e sustenta a mana, por nivel — "
-                 "arvore por ordem de compra, equipamento BiS, rotacao do Helper e numeros do simulador; "
-                 "as 8 builds por objectivo (dano, tank, cura, support) ficam la tambem; "
-                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>' % best_links)
+    default_goal = builds_module.DEFAULT_GOAL
+    links = " · ".join('<a href="builds/%s-%s.html">%s</a>' % (voc, default_goal, h.esc(VOCATION_LABEL[voc]))
+                       for voc, goal in builds_module.BUILDS if goal == default_goal)
+    parts.append('<ul><li><a href="builds/index.html">Builds</a> — a build de <b>dano</b> de cada vocacao (%s): '
+                 "o maior DPS do ciclo (= XP/h), sem tecto de gold — pocoes e runas a vontade nos mages e no "
+                 "paladin, a mana como limite no knight e no monk, sobreviver so como restricao minima "
+                 "(decisao do Andre, 16/09/2026) — por nivel: arvore por ordem de compra, equipamento BiS, "
+                 "rotacao do Helper com o gold/h e numeros do simulador; a build «melhor» (equilibrada) e as "
+                 'builds por objectivo (tank, cura, support) ficam la tambem; '
+                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>' % links)
     parts.append('<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
                  '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li></ul>'
                  % (len(cat.hunts), len(cat.charms)))

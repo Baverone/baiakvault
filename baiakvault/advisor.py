@@ -26,7 +26,7 @@ from . import formulas as F
 from . import sim
 
 METRIC_LABEL = {"best": "DPS do ciclo sustentavel (aguenta + mana; druid: cura o knight)",
-                "damage": "DPS do ciclo", "tank": "EHP x sustain x DPS^0,3",
+                "damage": "DPS do ciclo (= XP/h; knight/monk: o que a mana sustenta) x nao morrer", "tank": "EHP x sustain x DPS^0,3",
                 "heal": "cura/s sustentavel x DPS^0,3", "support": "cura/s sustentavel x DPS^0,3"}
 SLOT_LABEL = {"weapon": "arma", "shield": "escudo", "helmet": "elmo", "armor": "armadura",
               "legs": "pernas", "boots": "botas", "amulet": "amuleto", "ring": "anel", "ammo": "municao",
