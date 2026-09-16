@@ -153,8 +153,10 @@ var first=(location.hash||'').slice(1);if(!document.getElementById(first)){first
 </script>"""
 
 
-def render_build(cat, vocation, goal, plans_by_level, generated_at):
+def render_build(cat, vocation, goal, plans_by_level, generated_at, extra_by_level=None):
+    """`extra_by_level` {nivel: HTML} entra no fim da seccao de cada nivel (os charms, ordem 3)."""
     root = "../"
+    extra_by_level = extra_by_level or {}
     parts = ["<h1>%s</h1>" % h.esc(title(vocation, goal))]
     parts.append('<p class="mudo">Objectivo pedido: «%s». Metrica: %s. O nivel e um parametro — escolhe o teu; '
                  "quando os personagens do Andre entrarem, a pagina de cada um chama o mesmo motor com o nivel exacto.</p>"
@@ -162,7 +164,7 @@ def render_build(cat, vocation, goal, plans_by_level, generated_at):
     parts.append('<nav class="niveis menu">%s</nav>' % "".join(
         '<a href="#n%d">nivel %d</a>' % (lv, lv) for lv in B.LEVELS))
     for level in B.LEVELS:
-        parts.append(render_level_section(cat, plans_by_level[level], root))
+        parts.append(render_level_section(cat, plans_by_level[level], root, extra_by_level.get(level, "")))
     parts.append(render_sources(cat, vocation))
     parts.append('<p><a href="index.html">&larr; todas as builds</a></p>')
     return h.page("%s — Builds — BaiakVault" % title(vocation, goal), "".join(parts) + _LEVEL_JS,
@@ -178,7 +180,7 @@ def _metric_text(goal):
     }[goal]
 
 
-def render_level_section(cat, b, root):
+def render_level_section(cat, b, root, extra=""):
     level = b["level"]
     m = b["metrics"]
     prof = b["profile"]
@@ -208,6 +210,7 @@ def render_level_section(cat, b, root):
     out.append(_tree_block(cat, b))
     out.append(_equipment_block(cat, b, root))
     out.append(_helper_block(cat, b, root))
+    out.append(extra)
     out.append(_alternatives_block(cat, b))
     out.append("</section>")
     return "".join(out)

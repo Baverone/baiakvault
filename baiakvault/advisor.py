@@ -20,6 +20,7 @@ Regras (decisao de 16/09/2026, registada no CLAUDE.md):
 import math
 
 from . import builds as B
+from . import charms as charms_module
 from . import db as db_module
 from . import formulas as F
 from . import sim
@@ -30,6 +31,7 @@ SLOT_LABEL = {"weapon": "arma", "shield": "escudo", "helmet": "elmo", "armor": "
               "legs": "pernas", "boots": "botas", "amulet": "amuleto", "ring": "anel", "ammo": "municao",
               "backpack": "mochila"}
 GOAL_CHARM_KIND = {"damage": "offensive", "tank": "defensive", "heal": "defensive", "support": "defensive"}
+CHARM_KIND_LABEL = {"offensive": "ofensivo", "defensive": "defensivo", "passive": "passivo"}
 # atributos da forja que o motor entende (somam-se aos do item, em %)
 FORGE_ATTRIBUTES = ("crit_chance", "crit_dano", "life_leech", "mana_leech")
 MIN_GAIN_PCT = 0.5           # abaixo disto e ruido do simulador, nao uma sugestao
@@ -344,12 +346,18 @@ def equipment_suggestions(cat, state, goal, target, equipment, rotation, current
 
 
 def charm_suggestions(cat, state, goal):
+    """O proximo charm a subir. Os maiores pagam-se em Charm Points e os menores
+    em Minor Charm Echoes (cliente `OVe`, ver docs/charms.md) — sao dois saldos;
+    aqui so os maiores, que sao os que o objectivo pede (os menores so valem
+    com echoes, que vem de subir maiores)."""
     points = state.get("charm_points") or {}
     available = points.get("points_available")
     have = {c["charm_key"]: c for c in state.get("charms") or []}
     kind = GOAL_CHARM_KIND[goal]
     options = []
     for charm in cat.charms:
+        if charm.get("category") != "major":
+            continue
         key = charm["key"]
         tier = have.get(key, {}).get("tier", 0) or 0
         if tier >= 3:
@@ -377,17 +385,21 @@ def charm_suggestions(cat, state, goal):
         verb = "Subir o charm" if o["owned"] else "Desbloquear o charm"
         return [_suggestion(
             "charm", "%s %s para tier %d" % (verb, o["charm"]["name"], o["tier"]),
-            "%s %s: chance %s%% → %s%%; %s" % (o["charm"]["kind"], "e o tipo do objectivo" if o["matches"] else "(o objectivo pede %s, mas nao ha nenhum que caiba)" % kind,
-                                              (o["charm"]["chance"] or [0, 0, 0])[o["tier"] - 2] if o["tier"] > 1 else 0,
-                                              (o["charm"]["chance"] or [0, 0, 0])[o["tier"] - 1],
-                                              "fica na criatura %s" % cat.creature_by_key[o["creature"]]["nome"]
-                                              if o["creature"] in cat.creature_by_key else "a criatura escolhe-se por hunt (ordem 3)"),
+            "%s %s: chance %s%% → %s%%; %s; da %d echoes de troco para os menores" % (
+                CHARM_KIND_LABEL.get(o["charm"]["kind"], o["charm"]["kind"]),
+                "e o tipo do objectivo" if o["matches"] else "(o objectivo pede %s, mas nao ha nenhum que caiba)" % CHARM_KIND_LABEL.get(kind, kind),
+                (o["charm"]["chance"] or [0, 0, 0])[o["tier"] - 2] if o["tier"] > 1 else 0,
+                (o["charm"]["chance"] or [0, 0, 0])[o["tier"] - 1],
+                "esta na criatura %s" % cat.creature_by_key[o["creature"]]["nome"]
+                if o["creature"] in cat.creature_by_key else "a criatura recomendada esta na seccao Charms desta pagina",
+                charms_module.echoes_for_upgrade(o["tier"] - 1)),
             "%d de %d pontos disponiveis" % (o["cost"], available), SOURCE_CATALOG, CHARM_SCORE,
             charm_key=o["charm"]["key"], tier=o["tier"])]
     o = options[0]
     return [_suggestion(
         "charm", "Juntar pontos para %s tier %d" % (o["charm"]["name"], o["tier"]),
-        "faltam %d pontos (tens %d); e o %s mais rentavel por ponto" % (o["cost"] - available, available, o["charm"]["kind"]),
+        "faltam %d pontos (tens %d); e o %s mais rentavel por ponto" % (
+            o["cost"] - available, available, CHARM_KIND_LABEL.get(o["charm"]["kind"], o["charm"]["kind"])),
         "%d pontos" % o["cost"], SOURCE_CATALOG, CHARM_SCORE * 0.5, charm_key=o["charm"]["key"], tier=o["tier"])]
 
 
@@ -424,7 +436,8 @@ def advise(cat, state, planner, max_items=MAX_SUGGESTIONS):
         missing.append(_missing("o nivel", "sem nivel nao ha orcamento da arvore nem itens equipaveis — modo de edicao, seccao Personagem"))
     if missing:
         return {"goal": state.get("goal"), "goal_defaulted": False, "hunt": None, "hunt_defaulted": False,
-                "plan": None, "current": None, "notes": [], "suggestions": missing}
+                "plan": None, "current": None, "notes": [], "suggestions": missing,
+                "profile": None, "equipment_known": False}
     goal = state.get("goal")
     goal_defaulted = goal is None
     if goal_defaulted:
@@ -458,4 +471,6 @@ def advise(cat, state, planner, max_items=MAX_SUGGESTIONS):
     return {"goal": goal, "goal_defaulted": goal_defaulted, "hunt": hunt, "hunt_defaulted": hunt_defaulted,
             "plan": plan, "current": current_metrics, "current_score": current_score,
             "plan_score": plan["score"], "metric": metric, "notes": notes, "suggestions": final,
-            "assumed_skill": prof.assumed_skill}
+            "assumed_skill": prof.assumed_skill,
+            # para o motor dos charms: as estatisticas dele (critico, roubo, HP) e se ha equipamento registado
+            "profile": prof, "equipment_known": bool(equipment)}

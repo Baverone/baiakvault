@@ -293,10 +293,18 @@ def _charms_form(cat, ch, vault, local, token):
     body = [_datalist("criaturas", creatures),
             '<p><label>charm points disponiveis <input type="number" name="points_available" min="0" value="%s"></label>'
             % h.esc(points.get("points_available") if points.get("points_available") is not None else ""),
-            '<label>gastos <input type="number" name="points_spent" min="0" value="%s"></label></p>'
+            '<label>gastos <input type="number" name="points_spent" min="0" value="%s"></label>'
             % h.esc(points.get("points_spent") if points.get("points_spent") is not None else ""),
+            '<label>echoes <input type="number" name="echoes" min="0" value="%s"></label></p>'
+            % h.esc(points.get("echoes") if points.get("echoes") is not None else ""),
+            '<p><label>limite de monstros com charm (o Y de «X/Y») <input type="number" name="slot_limit" min="1" value="%s"></label>'
+            % h.esc(points.get("slot_limit") if points.get("slot_limit") is not None else ""),
+            '<label>Charm Expansion <select name="expansion">%s</select></label></p>'
+            % _options([("1", "sim"), ("0", "nao")], points.get("expansion")),
             '<p class="mudo">A lista e a dos 24 charms do jogo; «nao tem» e uma afirmacao (o charm sai). '
-            "A criatura e a que esta atribuida agora (a escolha por hunt e da ordem 3).</p>",
+            "A criatura e a que esta atribuida agora no jogo; a recomendada por hunt esta na pagina do personagem "
+            "e de cada hunt. Sem limite registado o motor assume 2 monstros (6 com VIP) — o minimo "
+            '(<a href="/charms/regras.html">regras</a>). Um campo em branco nao apaga o que la esta.</p>',
             h.table(["charm", "tipo", "pontos t1/t2/t3", "tier", "criatura atribuida"], rows),
             "<p>%s</p>" % _seen_at_field(points.get("seen_at"))]
     return _form("/editar/%s/charms" % ch["slug"], "".join(body), local, token)
@@ -414,7 +422,10 @@ def apply_post(cat, vault, path, fields):
             charms.append((charm["key"], tier, _one(fields, "criatura_" + charm["key"])))
         n = vault.replace_charms(cid, charms, source="manual", seen_at=seen_at)
         vault.set_charm_points(cid, points_available=_int(fields, "points_available", "charm points disponiveis"),
-                               points_spent=_int(fields, "points_spent", "charm points gastos"), source="manual", seen_at=seen_at)
+                               points_spent=_int(fields, "points_spent", "charm points gastos"),
+                               slot_limit=_int(fields, "slot_limit", "limite de monstros com charm"),
+                               expansion=_int(fields, "expansion", "Charm Expansion"),
+                               echoes=_int(fields, "echoes", "echoes"), source="manual", seen_at=seen_at)
         return slug, "charms gravados (%d)" % n
     if action == "bestiario":
         kills = _int(fields, "kills", "kills")

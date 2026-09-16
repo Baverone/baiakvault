@@ -70,7 +70,14 @@ class BuildEmptyVault(unittest.TestCase):
         text = (self.out / "charms" / "index.html").read_text(encoding="utf-8")
         for name in ("Wound", "Divine Wrath", "Cripple", "Void Inversion", "Savage Blow"):
             self.assertIn(name, text)
-        self.assertIn("Os charms dele", text)
+        self.assertIn("Os teus charms", text)
+        self.assertIn('href="regras.html"', text)
+        self.assertTrue((self.out / "charms" / "regras.html").is_file())
+        # a hunt sem personagens fica com o tecto (todos os charms) e a ligacao as regras
+        hunt = (self.out / "hunts" / "cobra-cave.html").read_text(encoding="utf-8")
+        self.assertIn("Charms para esta hunt", hunt)
+        self.assertIn("Tecto", hunt)
+        self.assertIn("Cobra Vizier", hunt)
 
     def test_hunt_page_unknowns_are_question_marks(self):
         text = (self.out / "hunts" / "cobra-cave.html").read_text(encoding="utf-8")
@@ -116,6 +123,26 @@ class BuildWithCharacter(unittest.TestCase):
         self.assertIn("500.000.000", text)
         # pontos gastos e desconhecido na fixture: sai «?», nao 0
         self.assertRegex(text, r"<dt>pontos gastos</dt><dd>\?</dd>")
+
+    def test_charms_per_hunt_on_character_hunt_and_print(self):
+        text = (self.out / "personagens" / "teste-knight.html").read_text(encoding="utf-8")
+        self.assertIn("Charms por hunt", text)
+        self.assertIn("Hunt actual: Cobras", text)
+        self.assertIn("Hunts vizinhas em nivel", text)
+        hunt = (self.out / "hunts" / "cobra-cave.html").read_text(encoding="utf-8")
+        self.assertIn("Teste Knight", hunt)
+        self.assertIn("O que mudar", hunt)
+        # cartoes: a hunt actual + 5 vizinhas, e mais nenhum
+        cards = sorted(p.name for p in (self.out / "print").glob("charms-teste-knight-*.html"))
+        self.assertEqual(len(cards), 1 + build.PRINT_NEIGHBOURS, cards)
+        self.assertIn("charms-teste-knight-cobra-cave.html", cards)
+        card = (self.out / "print" / "charms-teste-knight-cobra-cave.html").read_text(encoding="utf-8")
+        self.assertIn("width:390px", card)
+        self.assertNotIn("<nav", card)
+        self.assertIn("Dodge", card)
+        # a pagina da build ganha os charms por nivel (tecto)
+        text = (self.out / "builds" / "knight-tank.html").read_text(encoding="utf-8")
+        self.assertIn("Charms recomendados em", text)
 
     def test_no_none_anywhere(self):
         for page in _pages(self.result):

@@ -16,23 +16,27 @@ from pathlib import Path
 from . import advisor
 from . import builds as builds_module
 from . import catalog as catalog_module
+from . import charms as charms_module
 from . import db as db_module
 from . import formulas as F
 from . import html as h
 from . import notes
 from . import pages_builds
+from . import pages_charms
 
 DEFAULT_OUT = Path(__file__).resolve().parent.parent / "docs"
 # A validacao cruzada e escrita a mao (com o que `scripts/validar_guia.py` mede) e vive no repo;
 # o build copia-a para `docs/builds/` e gera a versao HTML.
 VALIDATION_MD = DEFAULT_OUT / "builds" / "validacao.md"
+# As regras dos charms (lidas no cliente, com fonte) tambem sao escritas a mao e vivem no repo.
+CHARMS_MD = DEFAULT_OUT / "charms.md"
+# Cartoes de print dos charms: a hunt actual de cada personagem mais estas vizinhas em nivel
+# (nao se geram 79 x N cartoes).
+PRINT_NEIGHBOURS = 5
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
 GOAL_LABEL = {"damage": "dano", "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
-KIND_LABEL = {"offensive": "ofensivo", "defensive": "defensivo", "passive": "passivo"}
-ELEMENT_LABEL = {"physical": "fisico", "fire": "fogo", "earth": "terra", "ice": "gelo",
-                 "energy": "energia", "death": "morte", "holy": "sagrado"}
 INDEX_WARNING = ("Os indices de XP e de loot sao a conta que o proprio jogo faz para ordenar "
                  "as hunts: <b>XP por ponto de vida a abater — eficiencia, nao XP/h</b>. Uma hunt "
                  "de bichos gordos rende pouco no indice e muito por kill. XP/h e gold/h "
@@ -141,7 +145,7 @@ def render_hunts_index(cat, generated_at):
                   generated_at=generated_at)
 
 
-def render_hunt(cat, hunt, generated_at):
+def render_hunt(cat, hunt, generated_at, charm_section=""):
     root = "../"
     parts = ["<h1>%s</h1>" % h.esc(hunt["nome"])]
     note = notes.for_hunt(hunt["id"])
@@ -207,6 +211,8 @@ def render_hunt(cat, hunt, generated_at):
         else:
             parts.append('<p class="mudo">Loot do boss: nao esta no catalogo.</p>')
 
+    parts.append(charm_section)
+
     parts.append("<h2>Drops que mais valem</h2>")
     best = hunt.get("drops_que_mais_valem") or []
     if best:
@@ -236,54 +242,9 @@ def render_hunt(cat, hunt, generated_at):
 
 
 # --- Charms ---------------------------------------------------------------------------
-def _pct(value):
-    """5 -> «5%», 1.6 -> «1,6%», None -> «?»."""
-    if value is None:
-        return h.UNKNOWN
-    decimals = 1 if float(value) != int(float(value)) else 0
-    return h.fmt(value, decimals, "%")
-
-
-def _charm_rows(charms):
-    rows = []
-    for c in charms:
-        chance = c.get("chance") or [None, None, None]
-        points = c.get("points") or [None, None, None]
-        element = c.get("element")
-        rows.append([
-            "<b>%s</b>" % h.esc(c.get("name")),
-            h.esc(KIND_LABEL.get(c.get("kind"), c.get("kind"))),
-            h.esc(ELEMENT_LABEL.get(element, element)) if element else '<span class="mudo">&mdash;</span>',
-            " / ".join(_pct(x) for x in chance),
-            " / ".join(h.fmt(x) for x in points),
-            h.esc(c.get("desc")),
-        ])
-    return rows
-
-
-def render_charms(cat, generated_at):
-    root = "../"
-    major = [c for c in cat.charms if c.get("category") == "major"]
-    minor = [c for c in cat.charms if c.get("category") == "minor"]
-    headers = ["charm", "tipo", "elemento", "chance T1 / T2 / T3", "pontos T1 / T2 / T3", "o que faz"]
-    parts = ["<h1>Charms</h1>",
-             '<p class="mudo">Os %d charms tal como estao no cliente do jogo: categoria, tipo, '
-             "elemento, chance e custo em pontos por tier, e a descricao a letra. Cada charm "
-             "prende-se a uma criatura do bestiario.</p>" % len(cat.charms),
-             '<h2>Maiores <span class="marca major">%d</span></h2>' % len(major),
-             h.table(headers, _charm_rows(major), numeric=(3, 4)),
-             '<h2>Menores <span class="marca minor">%d</span></h2>' % len(minor),
-             h.table(headers, _charm_rows(minor), numeric=(3, 4)),
-             "<h2>Os charms dele</h2>",
-             '<div class="cartao"><p class="mudo">Que charm por em que criatura para cada hunt, a '
-             "partir dos charms que ele tem — chega na ordem 3. Ate la, os charms de cada "
-             "personagem aparecem na pagina do personagem.</p></div>",
-             '<p class="aviso">Os charm points que cada entrada do bestiario da <b>nao estao no '
-             "cliente</b> (e o servidor que calcula); le-se no ecra dos Charms. Aqui fica «?» "
-             "ate haver leitura.</p>",
-             h.source_line(cat.source_of("bestiario"), cat.seen_at("bestiario"))]
-    return h.page("Charms — BaiakVault", "".join(parts), root=root, here="charms",
-                  generated_at=generated_at)
+def render_charms(cat, generated_at, characters=(), states=None, advice_by_slug=None):
+    """O guia dos 24 + «os teus charms» (ordem 3: `pages_charms`)."""
+    return pages_charms.render_index(cat, list(characters), states or {}, advice_by_slug or {}, generated_at)
 
 
 # --- Personagem -------------------------------------------------------------------------
@@ -393,7 +354,7 @@ def render_equipment_section(cat, equipment, plan):
     return "".join(out)
 
 
-def render_character(cat, vault, character, generated_at, advice=None):
+def render_character(cat, vault, character, generated_at, advice=None, charm_section=""):
     root = "../"
     cid = character["id"]
     advice = advice or {"suggestions": [], "goal": character.get("goal"), "goal_defaulted": False}
@@ -416,10 +377,13 @@ def render_character(cat, vault, character, generated_at, advice=None):
     parts.append(render_equipment_section(cat, vault.equipment_of(cid), advice.get("plan")))
 
     parts.append("<h3>Charms</h3>")
-    points = vault.charm_points_of(cid)
+    points = vault.charm_points_of(cid) or {}
     parts.append(h.kv([
-        ("pontos disponiveis", h.fmt(points["points_available"]) if points else h.UNKNOWN),
-        ("pontos gastos", h.fmt(points["points_spent"]) if points else h.UNKNOWN),
+        ("pontos disponiveis", h.fmt(points.get("points_available"))),
+        ("pontos gastos", h.fmt(points.get("points_spent"))),
+        ("echoes (menores)", h.fmt(points.get("echoes"))),
+        ("limite de criaturas com charm", h.fmt(points.get("slot_limit"))),
+        ("Charm Expansion", h.yes_no(points.get("expansion"))),
     ]))
     charms = vault.charms_of(cid)
     if charms:
@@ -434,6 +398,7 @@ def render_character(cat, vault, character, generated_at, advice=None):
         parts.append(h.table(["charm", "tier", "criatura", "fonte"], rows, numeric=(1,)))
     else:
         parts.append('<p class="mudo">Sem charms registados.</p>')
+    parts.append(charm_section)
 
     parts.append("<h3>Bestiario</h3>")
     bestiary = vault.bestiary_of(cid)
@@ -482,12 +447,46 @@ def build_plans(cat, planner=None):
     return plans
 
 
-def character_advice(cat, vault, character, planner):
-    """O estado do personagem lido pelo `Vault` e passado ao motor puro."""
+def character_state(cat, vault, character):
+    """O estado do personagem lido pelo `Vault`, no formato do motor puro."""
     cid = character["id"]
-    state = advisor.state_from_rows(character, vault.tree_of(cid), vault.equipment_of(cid), vault.charms_of(cid),
-                                    vault.charm_points_of(cid), vault.bestiary_of(cid))
-    return advisor.advise(cat, state, planner)
+    return advisor.state_from_rows(character, vault.tree_of(cid), vault.equipment_of(cid), vault.charms_of(cid),
+                                   vault.charm_points_of(cid), vault.bestiary_of(cid))
+
+
+def character_advice(cat, vault, character, planner):
+    return advisor.advise(cat, character_state(cat, vault, character), planner)
+
+
+def ceiling_owner(level):
+    """O tecto de uma hunt: todos os charms ao tier 3, requisitos do equipamento
+    assumidos; HP/mana do dono desconhecidos (Overpower/Overflux ficam «?»)."""
+    own = charms_module.owner(level=level, charms=None)
+    own["assume_requirements"] = True
+    return own
+
+
+def charm_recommendations(cat, characters, states, advice_by_slug):
+    """Por personagem: {hunt_id: rec} para as 79 hunts, mais os cartoes a imprimir
+    (hunt actual + vizinhas). Devolve `(recs_by_slug, print_keys)`."""
+    recs = {}
+    print_keys = set()
+    for c in characters:
+        slug = c["slug"]
+        state = states[slug]
+        advice = advice_by_slug.get(slug) or {}
+        own = charms_module.owner_from_state(state, advice.get("profile"), advice.get("equipment_known", False))
+        if state.get("level") is None:
+            recs[slug] = {}
+            continue
+        recs[slug] = {hunt["id"]: charms_module.recommend(cat, own, hunt["id"]) for hunt in cat.hunts}
+        wanted = charms_module.neighbour_hunts(cat, state["level"], state.get("current_hunt"), PRINT_NEIGHBOURS)
+        if state.get("current_hunt"):
+            wanted = [state["current_hunt"]] + wanted
+        for hid in wanted:
+            recs[slug][hid]["_print"] = True
+            print_keys.add((slug, hid))
+    return recs, print_keys
 
 
 def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, with_builds=True, planner=None,
@@ -508,23 +507,49 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
         written = []
         written.append(_write(out / "estilo.css", h.CSS))
         written.append(_write(out / ".nojekyll", ""))
-        advice_by_slug = {c["slug"]: character_advice(cat, vault, c, planner) for c in characters}
+        states = {c["slug"]: character_state(cat, vault, c) for c in characters}
+        advice_by_slug = {c["slug"]: advisor.advise(cat, states[c["slug"]], planner) for c in characters}
+        recs, print_keys = charm_recommendations(cat, characters, states, advice_by_slug)
         written.append(_write(out / "index.html", render_index(cat, characters, generated_at, advice_by_slug)))
         written.append(_write(out / "hunts" / "index.html", render_hunts_index(cat, generated_at)))
         for hunt in cat.hunts:
+            level = hunt.get("nivel_minimo") or builds_module.MIN_LEVEL
+            ceiling = charms_module.recommend(cat, ceiling_owner(level), hunt["id"])
+            ceiling["_level"] = level
+            per_character = [(c, recs[c["slug"]][hunt["id"]]) for c in characters if hunt["id"] in recs[c["slug"]]]
+            section = pages_charms.render_hunt_section(cat, "../", per_character, ceiling)
             written.append(_write(out / "hunts" / (hunt["id"] + ".html"),
-                                  render_hunt(cat, hunt, generated_at)))
-        written.append(_write(out / "charms" / "index.html", render_charms(cat, generated_at)))
+                                  render_hunt(cat, hunt, generated_at, section)))
+        written.append(_write(out / "charms" / "index.html", render_charms(cat, generated_at, characters, states, advice_by_slug)))
+        md = CHARMS_MD if CHARMS_MD.is_file() else (out / "charms.md")
+        if md.is_file():
+            text = md.read_text(encoding="utf-8")
+            if md != out / "charms.md":
+                written.append(_write(out / "charms.md", text))
+            written.append(_write(out / "charms" / "regras.html", pages_charms.render_rules(text, generated_at)))
         for c in characters:
-            written.append(_write(out / "personagens" / (c["slug"] + ".html"),
-                                  render_character(cat, vault, c, generated_at, advice_by_slug[c["slug"]])))
+            slug = c["slug"]
+            by_hunt = recs[slug]
+            current = by_hunt.get(c["current_hunt"]) if c.get("current_hunt") else None
+            neighbours = [(cat.hunt_by_id[hid], by_hunt[hid]) for hid in
+                          charms_module.neighbour_hunts(cat, c.get("level") or 0, c.get("current_hunt"), PRINT_NEIGHBOURS)
+                          if hid in by_hunt]
+            section = pages_charms.render_character_section(cat, "../", c, current, neighbours, bool(by_hunt))
+            written.append(_write(out / "personagens" / (slug + ".html"),
+                                  render_character(cat, vault, c, generated_at, advice_by_slug[slug], section)))
+            for hid in sorted(hid for s, hid in print_keys if s == slug):
+                written.append(_write(out / "print" / ("charms-%s-%s.html" % (slug, hid)),
+                                      pages_charms.render_print(cat, c, by_hunt[hid], generated_at)))
         if with_builds:
             plans = plans or build_plans(cat, planner)
             written.append(_write(out / "builds" / "index.html", pages_builds.render_index(cat, plans, generated_at)))
             for voc, goal in builds_module.BUILDS:
                 by_level = {lv: plans[(voc, goal, lv)] for lv in builds_module.LEVELS}
+                charm_blocks = {lv: pages_charms.render_build_charms(
+                    cat, charms_module.recommend(cat, charms_module.owner_from_plan(b), b["hunt"]), "../")
+                    for lv, b in by_level.items()}
                 written.append(_write(out / "builds" / (pages_builds.slug(voc, goal) + ".html"),
-                                      pages_builds.render_build(cat, voc, goal, by_level, generated_at)))
+                                      pages_builds.render_build(cat, voc, goal, by_level, generated_at, charm_blocks)))
                 for lv in builds_module.LEVELS:
                     written.append(_write(out / "print" / ("helper-%s-%d.html" % (pages_builds.slug(voc, goal), lv)),
                                           pages_builds.render_print(cat, plans[(voc, goal, lv)], generated_at)))

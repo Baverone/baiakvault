@@ -59,7 +59,15 @@ INSERT INTO characters_v2 SELECT id, name, slug, vocation, level, current_hunt, 
 DROP TABLE characters;
 ALTER TABLE characters_v2 RENAME TO characters;
 """
-MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2]
+# v3 (16/09/2026, ordem 3): o ecra dos Charms mostra «X/Y monstros com charm»
+# (Y = 2, 6 com VIP, 25 com a Charm Expansion), se a Expansion esta comprada e
+# os Minor Charm Echoes. Sao leituras do ecra; NULL = nao lido.
+_SCHEMA_V3 = """
+ALTER TABLE character_charm_points ADD COLUMN slot_limit INTEGER CHECK (slot_limit IS NULL OR slot_limit >= 1);
+ALTER TABLE character_charm_points ADD COLUMN expansion INTEGER CHECK (expansion IS NULL OR expansion IN (0, 1));
+ALTER TABLE character_charm_points ADD COLUMN echoes INTEGER CHECK (echoes IS NULL OR echoes >= 0);
+"""
+MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3]
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
@@ -423,19 +431,35 @@ class Vault:
             (character_id,))]
 
     def set_charm_points(self, character_id, points_available=None, points_spent=None,
-                         source=None, seen_at=None):
+                         source=None, seen_at=None, slot_limit=None, expansion=None, echoes=None):
+        """As leituras do ecra dos Charms. Um campo a `None` **nao apaga** o que
+        la estava (a mesma regra do `upsert_character`: uma leitura parcial nao
+        limpa o resto); para apagar de proposito ha `clear_charm_points_field`."""
         self._character_id(character_id)
-        points_available = _opt_int(points_available, "points_available")
-        points_spent = _opt_int(points_spent, "points_spent")
+        values = {
+            "points_available": _opt_int(points_available, "points_available"),
+            "points_spent": _opt_int(points_spent, "points_spent"),
+            "slot_limit": _opt_int(slot_limit, "slot_limit"),
+            "expansion": _opt_int(expansion, "expansion"),
+            "echoes": _opt_int(echoes, "echoes"),
+        }
         _check_source(source)
+        sets = ", ".join("%s = COALESCE(excluded.%s, character_charm_points.%s)" % (k, k, k) for k in values)
         with self.conn:
             self.conn.execute(
-                "INSERT INTO character_charm_points (character_id, points_available, "
-                "points_spent, source, seen_at) VALUES (?, ?, ?, ?, ?) "
-                "ON CONFLICT (character_id) DO UPDATE SET "
-                "points_available = excluded.points_available, points_spent = excluded.points_spent, "
-                "source = excluded.source, seen_at = excluded.seen_at",
-                (character_id, points_available, points_spent, source, seen_at))
+                "INSERT INTO character_charm_points (character_id, points_available, points_spent, "
+                "slot_limit, expansion, echoes, source, seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT (character_id) DO UPDATE SET %s, "
+                "source = excluded.source, seen_at = excluded.seen_at" % sets,
+                (character_id, values["points_available"], values["points_spent"], values["slot_limit"],
+                 values["expansion"], values["echoes"], source, seen_at))
+
+    def clear_charm_points_field(self, character_id, field):
+        if field not in ("points_available", "points_spent", "slot_limit", "expansion", "echoes"):
+            raise VaultError("campo desconhecido: %r" % field)
+        with self.conn:
+            self.conn.execute("UPDATE character_charm_points SET %s = NULL WHERE character_id = ?" % field,
+                              (character_id,))
 
     def charm_points_of(self, character_id):
         row = self.conn.execute("SELECT * FROM character_charm_points WHERE character_id = ?",

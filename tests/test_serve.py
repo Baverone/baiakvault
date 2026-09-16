@@ -171,7 +171,8 @@ class EditMode(unittest.TestCase):
         status, _, _ = self.server.request(
             "POST", "/editar/teste-knight/charms",
             {"token": t, "tier_wound": "3", "criatura_wound": "Cobra Vizier", "tier_dodge": "", "tier_parry": "1",
-             "points_available": "120", "points_spent": "", "seen_at": "2026-09-16"})
+             "points_available": "120", "points_spent": "", "slot_limit": "6", "expansion": "0", "echoes": "",
+             "seen_at": "2026-09-16"})
         self.assertEqual(status, 303)
         status, _, _ = self.server.request(
             "POST", "/editar/teste-knight/bestiario", {"token": t, "criatura": "Cobra Scout", "kills": "2400"})
@@ -199,6 +200,9 @@ class EditMode(unittest.TestCase):
             points = vault.charm_points_of(cid)
             self.assertEqual(points["points_available"], 120)
             self.assertIsNone(points["points_spent"])
+            self.assertEqual(points["slot_limit"], 6)
+            self.assertEqual(points["expansion"], 0)
+            self.assertIsNone(points["echoes"])
             best = {b["creature_key"]: b["kills"] for b in vault.bestiary_of(cid)}
             self.assertEqual(best["cobra_scout"], 2400)
         finally:

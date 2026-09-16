@@ -68,6 +68,28 @@ class Schema(unittest.TestCase):
         finally:
             conn.close()
 
+    def test_v2_to_v3_adds_charm_screen_columns_and_keeps_rows(self):
+        path = helpers.temp_dir() / "v2.db"
+        conn = sqlite3.connect(str(path))
+        conn.executescript(db.MIGRATIONS[0])
+        conn.executescript(db.MIGRATIONS[1])
+        conn.execute("PRAGMA user_version = 2")
+        conn.execute("INSERT INTO characters (id, name, slug, vocation, updated_at) VALUES (1, 'K', 'k', 'knight', 'x')")
+        conn.execute("INSERT INTO character_charm_points (character_id, points_available, points_spent) VALUES (1, 350, 100)")
+        conn.commit()
+        conn.close()
+        conn = db.connect(path)
+        try:
+            self.assertEqual(db.schema_version(conn), 3)
+            row = conn.execute("SELECT * FROM character_charm_points WHERE character_id = 1").fetchone()
+            self.assertEqual((row["points_available"], row["points_spent"]), (350, 100))
+            self.assertIsNone(row["slot_limit"])
+            self.assertIsNone(row["echoes"])
+            with self.assertRaises(sqlite3.IntegrityError):
+                conn.execute("UPDATE character_charm_points SET expansion = 2 WHERE character_id = 1")
+        finally:
+            conn.close()
+
 
 class Characters(unittest.TestCase):
     def setUp(self):
@@ -211,7 +233,25 @@ class CharmsBestiaryReadings(unittest.TestCase):
         p = self.vault.charm_points_of(self.cid)
         self.assertEqual(p["points_available"], 120)
         self.assertIsNone(p["points_spent"])
+        self.assertIsNone(p["slot_limit"])
+        self.assertIsNone(p["expansion"])
+        self.assertIsNone(p["echoes"])
         self.assertIsNone(self.vault.charm_points_of(999))
+
+    def test_charm_points_partial_write_keeps_the_rest(self):
+        # v3: uma leitura parcial nao limpa o resto (a regra do upsert_character); apagar e explicito
+        self.vault.set_charm_points(self.cid, points_available=120, slot_limit=6, expansion=0, echoes=50)
+        self.vault.set_charm_points(self.cid, points_spent=240)
+        p = self.vault.charm_points_of(self.cid)
+        self.assertEqual((p["points_available"], p["points_spent"], p["slot_limit"], p["expansion"], p["echoes"]),
+                         (120, 240, 6, 0, 50))
+        self.vault.clear_charm_points_field(self.cid, "slot_limit")
+        self.assertIsNone(self.vault.charm_points_of(self.cid)["slot_limit"])
+        with self.assertRaises(db.VaultError):
+            self.vault.set_charm_points(self.cid, expansion="sim")
+        with self.assertRaises(db.VaultError):
+            self.vault.clear_charm_points_field(self.cid, "inventado")
+        self.assertEqual(db.schema_version(self.conn), 3)
 
     def test_bestiary(self):
         self.vault.set_bestiary(self.cid, "cobra_vizier", 10)
