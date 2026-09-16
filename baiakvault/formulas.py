@@ -164,6 +164,23 @@ TACTICS_RADIUS_TO_TARGETS = _c("tactics_radius_to_targets", True, SOURCE_CONVENT
                                "(raio 1 = 3 alvos, 2 = 5, 3+ = o pack); um raio de procura maior encontra a posicao "
                                "que apanha mais bichos")
 
+# Runas (`adori …`): o cliente da-lhes `goldCost` por lancamento, `mana: 5` e `cd: 2000`
+# (bruto/feiticos.json). Desde 16/09/2026 (ordem 7, ponto 6, teste do Andre das 13:20) sao
+# candidatas normais da rotacao de hunt e de boss, com o gold por lancamento a vista; e a
+# decisao do Andre das 13:30 («quero dano, nao importa o custo») poe a omissao sem tecto
+# de gold/h (`builds.GOLD_CAP_DEFAULT`). O que o cliente NAO diz sobre elas fica aqui como
+# convencao ⚠.
+RUNE_AREA_MIN_MOBS = _c("rune_area_min_mobs", 2, SOURCE_CONVENTION,
+                        "o «≥N bichos» de uma runa de area (raio 3) no Helper: 2 — a runa nao gasta mana, so gold, "
+                        "por isso nao se compara com o melhor strike como as areas de mana (ordem 7, ponto 6 ⚠)")
+RUNES_USE_SPELL_BONUSES = _c("runes_use_spell_bonuses", True, SOURCE_CONVENTION,
+                             "assume-se que as runas apanham o `spellDmgPct` e o `elementDmgPct` da arvore como "
+                             "qualquer feitico (o cliente calcula-as pela mesma formula `(e,t)` mas a aplicacao dos "
+                             "bonus e do servidor) ⚠ por confirmar")
+RUNES_SHARE_ATTACK_GCD = _c("runes_share_attack_gcd", True, SOURCE_CONVENTION,
+                            "assume-se que uma runa ocupa o cooldown de grupo de ataque (2 s) como um feitico: o "
+                            "cliente da-lhes `cd: 2000` mas nao diz o grupo ⚠ por confirmar")
+
 # --- guia -----------------------------------------------------------------------
 ARMOR_DENOMINATOR = _c("armor_denominator", 520, SOURCE_GUIDE, GUIDE_PLANNER + " — `j/(j+520)*100`")
 ARMOR_CAP_PCT = _c("armor_cap_pct", 24, SOURCE_GUIDE, GUIDE_PLANNER + " — `W(...,0,24)`")

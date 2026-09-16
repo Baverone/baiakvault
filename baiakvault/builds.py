@@ -10,7 +10,13 @@ heal/damage, sorcerer damage, paladin damage, monk support/damage.
 Metricas por objectivo (decisao de 16/09/2026, registada no CLAUDE.md):
 
 - ``damage``  — DPS efectivo num ciclo de hunt (57 normais com as areas a
-  apanhar o pack + o boss da wave 10 com x3 HP, so alvo unico).
+  apanhar o pack + o boss da wave 10 com x3 HP, so alvo unico). E a omissao
+  desde 16/09/2026 13:30 («quero dano, nao importa o custo»): pocoes e runas a
+  vontade nos mages e no paladin, sem tecto de gold; no knight e no monk a mana
+  continua a ser a restricao (sem pocoes de mana, cliente); sobreviver ao pack
+  e ao boss e restricao minima, nao peso (`damage_constraints`).
+- ``best``    — o mesmo DPS sujeito a aguentar, a sustentar a mana em todos e,
+  no druid, a curar o knight da party (`best_constraints`) — a equilibrada.
 - ``tank``    — tempo ate morrer com o pack inteiro em cima (HP / pressao
   mitigada menos o leech) x DPS^0,3: matar mais depressa tambem e sobreviver,
   mas um no de ataque so ganha a um de defesa se render ~3x mais em %.
@@ -33,13 +39,19 @@ import time
 from . import formulas as F
 from . import sim
 
-# A build «melhor» por vocacao (pedido do Andre, 16/09/2026 12:20) vem primeiro e e a
-# omissao; as oito anteriores ficam disponiveis.
-BUILDS = (("knight", "best"), ("druid", "best"), ("sorcerer", "best"), ("paladin", "best"), ("monk", "best"),
-          ("knight", "tank"), ("knight", "damage"), ("druid", "heal"), ("druid", "damage"),
-          ("sorcerer", "damage"), ("paladin", "damage"), ("monk", "support"), ("monk", "damage"))
+# A omissao e a build de «dano» (decisao do Andre, 16/09/2026 13:30: «quero dano, nao
+# importa o custo, importa e o dano e a XP» — sobrepoe-se ao pedido das 12:20, que punha a
+# «melhor» a frente). A «melhor» (equilibrada) e as outras ficam disponiveis.
+DEFAULT_GOAL = "damage"
+BUILDS = (("knight", "damage"), ("druid", "damage"), ("sorcerer", "damage"), ("paladin", "damage"), ("monk", "damage"),
+          ("knight", "best"), ("druid", "best"), ("sorcerer", "best"), ("paladin", "best"), ("monk", "best"),
+          ("knight", "tank"), ("druid", "heal"), ("monk", "support"))
 LEVELS = (50, 100, 200, 300, 500, 800, 1200, 1500)
 GOAL_LABEL = {"best": "melhor", "damage": "dano", "tank": "tank", "heal": "cura", "support": "support"}
+# Tecto de gold/h dos supplies (pocoes em regime + runas) na escolha da rotacao: existe como
+# parametro (`Planner(gold_cap=…)`, `choose_rotation(gold_cap=…)`) mas a omissao e SEM tecto
+# — «nao importa o custo» (Andre, 16/09/2026 13:30).
+GOLD_CAP_DEFAULT = None
 GOAL_ASKED = {("knight", "tank"): "Sobreviver", ("knight", "damage"): "Dar dano",
               ("druid", "heal"): "Curar bastante", ("druid", "damage"): "Dar dano",
               ("sorcerer", "damage"): "Dar dano", ("paladin", "damage"): "Dar dano",
@@ -102,13 +114,16 @@ def reference_hunt(cat, level):
 def rotation_slots(profile, target, spells):
     """Slots por prioridade (dano por lancamento decrescente) com o minimo de
     bichos das areas: a area so compensa a partir de N alvos quando N x dano por
-    alvo ultrapassa o melhor golpe de alvo unico."""
+    alvo ultrapassa o melhor golpe de alvo unico. Uma runa de area nao gasta mana
+    (so gold): fica a `F.RUNE_AREA_MIN_MOBS` (convencao ⚠)."""
     strikes = [s for s in spells if s["tipo"] != "area"]
     best_single = max([sim.spell_damage(profile, s, target, True) for s in strikes] or [0.0])
     slots = []
     for s in spells:
         min_mobs = 1
-        if s["tipo"] == "area" and best_single > 0:
+        if s["tipo"] == "area" and sim.is_rune(s):
+            min_mobs = max(1, min(target.pack, F.RUNE_AREA_MIN_MOBS))
+        elif s["tipo"] == "area" and best_single > 0:
             per_target = sim.spell_damage(profile, s, target, True)
             if per_target > 0:
                 min_mobs = max(1, min(target.pack, int(math.ceil(best_single / per_target))))
@@ -123,6 +138,8 @@ def evaluate(profile, target, rotation, boss_rotation=None, heal=None, attackers
     pack = sim.simulate(profile, target, rotation, boss=False, heal=heal)
     boss = sim.simulate(profile, target, boss_rotation or rotation, boss=True, heal=heal)
     dps_cycle = sim.cycle_dps(pack.dps, boss.dps, target)
+    # o mesmo ciclo com o DPS sustentado (knight/monk: so os feiticos que a mana paga)
+    dps_cycle_sustained = sim.cycle_dps(pack.dps_sustained, boss.dps_sustained, target)
     n_att = attackers if attackers is not None else target.pack
     # o pack inteiro em cima, com as curas e as pocoes do Helper: e o «aguenta» da build
     # «best» (o `ttd_pack` analitico abaixo ignora curas e pocoes e fica na pagina)
@@ -145,6 +162,9 @@ def evaluate(profile, target, rotation, boss_rotation=None, heal=None, attackers
     ehp = profile.hp_max / max(0.05, 1 - mitigated_share)
     return {
         "dps_pack": pack.dps, "dps_boss": boss.dps, "dps_cycle": dps_cycle, "auto_dps": pack.auto_dps,
+        "dps_pack_sustained": pack.dps_sustained, "dps_boss_sustained": boss.dps_sustained,
+        "dps_cycle_sustained": dps_cycle_sustained, "mana_sustain": pack.mana_sustain,
+        "boss_mana_sustain": boss.mana_sustain,
         "hps_self": hps_self, "hps_friend": hps_friend, "heal_spell": heal_spell, "friend_spell": friend_spell,
         "hps_sim": pack.hps, "leech_hps": leech_hps, "leech_dps": pack.leech_dps,
         "pressure_one": pack.pressure, "pressure_pack": pressure_pack, "max_hit": max_hit,
@@ -190,13 +210,33 @@ def best_constraints(metrics):
     return out
 
 
+def damage_constraints(metrics):
+    """As condicoes da build de «dano» (Andre, 16/09/2026 13:30: so dano e XP, o custo
+    nao conta): sobrevivencia como restricao MINIMA — nao morrer no pack inteiro nem
+    no boss da hunt de referencia (as mesmas leituras da «melhor»). A mana do knight
+    e do monk (sem pocoes, cliente) nao e condicao a parte: entra no proprio DPS
+    sustentado (`dps_cycle_sustained`: so os feiticos que o leech e os itens pagam).
+    Mages e paladin bebem pocoes a vontade: o custo sai em «gold/h»."""
+    return {"survive_pack": max(0.01, min(1.0, metrics["survive_pack_s"] / TTD_CAP)),
+            "survive_boss": max(0.01, min(1.0, metrics["survive_boss_s"] / TTD_CAP))}
+
+
+def goal_constraints(metrics, goal):
+    """As condicoes que a metrica do objectivo impoe ({} nos objectivos sem elas)."""
+    if goal == "best":
+        return best_constraints(metrics)
+    if goal == "damage":
+        return damage_constraints(metrics)
+    return {}
+
+
 def score_of(metrics, goal):
     dps = max(1e-6, metrics["dps_cycle"])
-    if goal == "damage":
-        return dps
-    if goal == "best":
+    if goal in ("damage", "best"):
+        if goal == "damage":
+            dps = max(1e-6, metrics.get("dps_cycle_sustained", metrics["dps_cycle"]))
         factor = 1.0
-        for frac in best_constraints(metrics).values():
+        for frac in goal_constraints(metrics, goal).values():
             factor *= max(1e-3, frac) ** BEST_PENALTY_POWER
         return dps * factor
     if goal == "tank":
@@ -221,19 +261,24 @@ def default_heal(profile):
 
 # --- rotacao -------------------------------------------------------------------------------
 def rotation_value(r, profile, goal):
-    """O que uma rotacao vale: o DPS dos 60 s; na build «best» cortado pela
-    fraccao da mana que nao se sustenta (knight/monk sem pocoes: o que o leech
-    repoe contra o que se gasta; os outros: se a mana se esgota nos 60 s)."""
-    if goal != "best":
+    """O que uma rotacao vale: o DPS dos 60 s; nas builds «best» e «dano» o DPS
+    SUSTENTADO no knight/monk (sem pocoes de mana: so a fraccao dos feiticos de
+    mana que o leech e os itens pagam se mantem — o ataque normal e as runas nao
+    dependem da mana; `sim.simulate`); na «best» os outros ainda perdem se a mana
+    se esgota nos 60 s. Na «dano» mages/paladin bebem a vontade (ponto 0,
+    16/09/2026). Ate 16/09/2026 (ordem 7, ponto 6) era o DPS todo x (fraccao)^2:
+    com as runas a nao gastar mana isso deixava o monk so com Sudden Death no boss."""
+    if goal not in ("best", "damage"):
         return r.dps
-    if profile.uses_mana_potions:
-        frac = 1.0 if r.mana_empty_at is None else max(0.01, r.mana_empty_at / 60.0)
-    else:
-        frac = 1.0 if r.mana_demand <= 0 else min(1.0, r.mana_income / r.mana_demand)
+    if not profile.uses_mana_potions:
+        return r.dps_sustained
+    if goal == "damage":
+        return r.dps
+    frac = 1.0 if r.mana_empty_at is None else max(0.01, r.mana_empty_at / 60.0)
     return r.dps * max(1e-3, frac) ** BEST_PENALTY_POWER
 
 
-def hunt_exclusions(profile, target, runes=False):
+def hunt_exclusions(profile, target, runes=True):
     """{palavras: motivo} dos feiticos de ataque que nao entram na rotacao de
     HUNT: os beams (regra do Andre) e os do elemento a que o pack e imune
     (`HUNT_ELEMENT_MIN_MULT`). No boss nao ha exclusoes."""
@@ -252,13 +297,14 @@ def hunt_exclusions(profile, target, runes=False):
     return out
 
 
-def choose_rotation(profile, target, boss=False, runes=False, top=ROTATION_POOL, size=4, goal=None):
-    """Escolhe ate 4 feiticos por forca bruta entre os `top` melhores por
-    lancamento: o conjunto que o simulador diz render mais DPS (no cenario
-    pedido; na «best», DPS sustentavel — `rotation_value`) e a ordem de
-    prioridade = dano por lancamento decrescente. Na hunt, sem os beams nem os
-    feiticos do elemento a que o pack e imune (`hunt_exclusions`); se isso nao
-    deixasse nenhum, fica so a regra dos beams."""
+def rotation_pool(profile, target, boss=False, runes=True, top=ROTATION_POOL):
+    """Os candidatos da forca bruta: os `top` feiticos de mana com mais dano por
+    lancamento, mais a melhor runa de area e a melhor runa de alvo unico contra
+    este alvo (as runas de area do cliente tem todas a mesma formula e so mudam
+    de elemento: entra «a melhor runa do elemento da hunt», nao quatro iguais a
+    ocupar a pool). Na hunt, sem os beams nem os feiticos do elemento a que o pack
+    e imune (`hunt_exclusions`); se isso nao deixasse nenhum, fica so a regra dos
+    beams."""
     spells = sim.attack_spells(profile, runes=runes)
     if not boss and spells:
         excluded = hunt_exclusions(profile, target, runes)
@@ -267,19 +313,45 @@ def choose_rotation(profile, target, boss=False, runes=False, top=ROTATION_POOL,
             kept = [s for s in spells if s["palavras"] not in BEAM_SPELLS]
         spells = kept
     if not spells:
-        return [], None
+        return []
     spells.sort(key=lambda s: -sim.spell_damage(profile, s, target, boss))
-    pool = spells[:top]
+    pool = [s for s in spells if not sim.is_rune(s)][:top]
+    for kind in ("area", "strike"):
+        best_rune = next((s for s in spells if sim.is_rune(s) and s["tipo"] == kind), None)
+        if best_rune is not None and sim.spell_damage(profile, best_rune, target, boss) > 0:
+            pool.append(best_rune)
+    return pool
+
+
+def choose_rotation(profile, target, boss=False, runes=True, top=ROTATION_POOL, size=4, goal=None,
+                    gold_cap=GOLD_CAP_DEFAULT):
+    """Escolhe ate 4 feiticos por forca bruta na `rotation_pool`: o conjunto que
+    o simulador diz render mais (pela metrica do objectivo — `rotation_value`) e
+    a ordem de prioridade = dano por lancamento decrescente. As runas entram como
+    candidatas normais, com o gold por lancamento (ponto 6, 16/09/2026); com
+    `gold_cap` (gold/h de pocoes em regime + runas) as rotacoes acima dele nao
+    entram — a omissao e sem tecto (`GOLD_CAP_DEFAULT`, decisao do Andre)."""
+    pool = rotation_pool(profile, target, boss, runes, top)
+    if not pool:
+        return [], None
     heal = default_heal(profile)
     best = None
+    fallback = None
     for k in range(1, min(size, len(pool)) + 1):
         for combo in itertools.combinations(pool, k):
             slots = rotation_slots(profile, target, list(combo))
             r = sim.simulate(profile, target, slots, boss=boss, heal=heal)
             value = rotation_value(r, profile, goal)
+            if gold_cap is not None and r.gold_per_hour > gold_cap:
+                # acima do tecto: so serve se nada couber (a mais barata das que passam nao existe)
+                if fallback is None or r.gold_per_hour < fallback[2].gold_per_hour:
+                    fallback = (value, slots, r)
+                continue
             # empate (ate 0,5 %): mais feiticos no Helper e melhor, cobre mais situacoes
             if best is None or value > best[0] * 1.005:
                 best = (value, slots, r)
+    if best is None:
+        best = fallback
     return best[1], best[2]
 
 
@@ -342,7 +414,8 @@ def choose_imbuements(item, goal, target, vocation=None):
         return []
     dominant = target.dominant_element()
     prot_name = "elemental protection " + dominant
-    if goal == "best":
+    if goal in ("best", "damage"):
+        # na «dano» a mana continua a ser a restricao do knight/monk (ponto 0, 16/09/2026)
         goal = "damage" if (vocation is None or F.USES_MANA_POTIONS.get(vocation, True)) else "sustain"
     prefs = {
         "sustain": ["mana leech", "life leech", "critical hit", prot_name],
@@ -372,20 +445,21 @@ def _imb_keys(cat, categories):
     return keys
 
 
-def optimize_equipment(cat, vocation, level, goal, tree, target, rotation=None, passes=EQUIPMENT_PASSES):
+def optimize_equipment(cat, vocation, level, goal, tree, target, rotation=None, passes=EQUIPMENT_PASSES,
+                       gold_cap=GOLD_CAP_DEFAULT):
     """BiS por slot: para cada slot, o candidato que mais sobe a metrica com o
     resto do equipamento fixo; duas passagens para as dependencias (arma <->
     escudo, skills). Devolve (equipamento, alternativas por slot, metricas)."""
     equipment = {}
     alternatives = {}
     prof = sim.Profile(cat, vocation, level, tree, equipment)
-    rot = rotation or choose_rotation(prof, target, goal=goal)[0]
+    rot = rotation or choose_rotation(prof, target, goal=goal, gold_cap=gold_cap)[0]
 
     def metric_for(eq):
         # a metrica do objectivo, com empates (ate 0,5 %) decididos pela
         # sobrevivencia: entre duas armas iguais em DPS fica a que da mais EHP
         p = sim.Profile(cat, vocation, level, tree, eq)
-        r = rot if rot else choose_rotation(p, target, goal=goal)[0]
+        r = rot if rot else choose_rotation(p, target, goal=goal, gold_cap=gold_cap)[0]
         m = evaluate(p, target, r)
         s = score_of(m, goal)
         return (round(math.log(max(1e-9, s)) / 0.005), m["ehp"] * m["ttd_pack"]), m
@@ -685,10 +759,11 @@ class Planner:
     objectivo), equipamento e rotacao nos niveis representativos, e a build
     completa por nivel. `plan(vocation, goal, level)` responde a qualquer nivel."""
 
-    def __init__(self, cat, levels=LEVELS, hunt_by_level=None):
+    def __init__(self, cat, levels=LEVELS, hunt_by_level=None, gold_cap=GOLD_CAP_DEFAULT):
         self.cat = cat
         self.levels = tuple(levels)
         self.hunt_by_level = hunt_by_level or {}
+        self.gold_cap = gold_cap   # tecto de gold/h dos supplies na rotacao; None = sem tecto (omissao)
         self._targets = {}
         self._equipment = {}   # (voc, goal, checkpoint) -> equipment
         self._rotation = {}    # (voc, goal, checkpoint) -> (hunt rotation, boss rotation)
@@ -756,17 +831,20 @@ class Planner:
         if key not in self._equipment:
             tree = dict(ranks) if ranks is not None else self._tree_prefix(vocation, goal, F.tree_budget(cp), hunt_id)
             target = self.target_for(vocation, goal, cp, hunt_id)
-            eq, alts, _ = optimize_equipment(self.cat, vocation, cp, goal, tree, target)
+            eq, alts, _ = optimize_equipment(self.cat, vocation, cp, goal, tree, target, gold_cap=self.gold_cap)
             self._equipment[key] = (eq, alts)
         return self._equipment[key][0]
+
+    def rotation(self, profile, target, boss, goal, runes=True):
+        return choose_rotation(profile, target, boss=boss, runes=runes, goal=goal, gold_cap=self.gold_cap)
 
     def rotation_at(self, vocation, goal, level, profile, hunt_id=None):
         cp = self.checkpoint(level)
         key = (vocation, goal, cp, hunt_id)
         if key not in self._rotation:
             target = self.target_for(vocation, goal, cp, hunt_id)
-            hunt_rot, _ = choose_rotation(profile, target, boss=False, goal=goal)
-            boss_rot, _ = choose_rotation(profile, target, boss=True, goal=goal)
+            hunt_rot, _ = self.rotation(profile, target, False, goal)
+            boss_rot, _ = self.rotation(profile, target, True, goal)
             self._rotation[key] = (hunt_rot, boss_rot)
         return self._rotation[key][0]
 
@@ -804,10 +882,10 @@ class Planner:
         if key in self._equipment and self.target(level, hunt_id).hunt_id == target.hunt_id:
             eq, alts = self._equipment[key]
         else:
-            eq, alts, _ = optimize_equipment(cat, vocation, level, goal, tree, target)
+            eq, alts, _ = optimize_equipment(cat, vocation, level, goal, tree, target, gold_cap=self.gold_cap)
         prof = sim.Profile(cat, vocation, level, tree, eq)
-        hunt_rot, _ = choose_rotation(prof, target, boss=False, goal=goal)
-        boss_rot, _ = choose_rotation(prof, target, boss=True, goal=goal)
+        hunt_rot, _ = self.rotation(prof, target, False, goal)
+        boss_rot, _ = self.rotation(prof, target, True, goal)
         heal = default_heal(prof)
         # o que o caminho deixa por gastar (a poupar para um notable) gasta-se
         # agora ao nivel da pagina, e depois uma melhoria local: se desviar os
@@ -816,9 +894,11 @@ class Planner:
         tree, improved = local_improve(cat, vocation, goal, level, tree, steps + fill_steps, eq, target,
                                        hunt_rot, boss_rot, heal)
         prof = sim.Profile(cat, vocation, level, tree, eq)
-        hunt_rot, hunt_sim = choose_rotation(prof, target, boss=False, goal=goal)
-        boss_rot, boss_sim = choose_rotation(prof, target, boss=True, goal=goal)
-        boss_rot_runes, boss_sim_runes = choose_rotation(prof, target, boss=True, runes=True, goal=goal)
+        hunt_rot, hunt_sim = self.rotation(prof, target, False, goal)
+        boss_rot, boss_sim = self.rotation(prof, target, True, goal)
+        # a mesma escolha so com magias de mana: e o que as runas compram (a pagina mostra os dois)
+        hunt_rot_no_runes, hunt_sim_no_runes = self.rotation(prof, target, False, goal, runes=False)
+        boss_rot_no_runes, boss_sim_no_runes = self.rotation(prof, target, True, goal, runes=False)
         heal = default_heal(prof)
         metrics = evaluate(prof, target, hunt_rot, boss_rot, heal)
         alternatives = tree_alternatives(cat, vocation, goal, level, tree, steps + fill_steps, eq, target,
@@ -835,10 +915,14 @@ class Planner:
             "profile": prof, "tree": tree, "steps": steps, "fill_steps": fill_steps, "improved": improved,
             "next_step": next_step, "points_spent": spent, "points_budget": budget,
             "equipment": eq, "equipment_alternatives": alts,
-            "rotation": hunt_rot, "boss_rotation": boss_rot, "boss_rotation_runes": boss_rot_runes,
-            "hunt_sim": hunt_sim, "boss_sim": boss_sim, "boss_sim_runes": boss_sim_runes,
+            "rotation": hunt_rot, "boss_rotation": boss_rot,
+            "hunt_sim": hunt_sim, "boss_sim": boss_sim,
+            "rotation_no_runes": hunt_rot_no_runes, "hunt_sim_no_runes": hunt_sim_no_runes,
+            "boss_rotation_no_runes": boss_rot_no_runes, "boss_sim_no_runes": boss_sim_no_runes,
             "heal": heal, "metrics": metrics, "score": score_of(metrics, goal),
-            "tree_alternatives": alternatives, "helper": helper_config(prof, target, hunt_rot, boss_rot, heal, metrics),
+            "tree_alternatives": alternatives,
+            "helper": helper_config(prof, target, hunt_rot, boss_rot, heal, metrics, hunt_sim, boss_sim),
+            "gold_cap": self.gold_cap,
         }
 
 
@@ -964,7 +1048,34 @@ def potion_threshold(profile, target, rotation, heal):
     return 85
 
 
-def helper_config(profile, target, hunt_rot, boss_rot, heal, metrics):
+def spell_costs(rotation, result):
+    """Por feitico da rotacao: mana e gold por lancamento (cliente), lancamentos
+    por minuto no simulador e o gold/h que isso da — para a coluna «gold/h» da
+    pagina. `result` e o SimResult da rotacao (None = sem lancamentos contados)."""
+    out = []
+    casts = (result.casts if result is not None else {}) or {}
+    seconds = float(result.seconds) if result is not None else 60.0
+    for sl in rotation:
+        sp = sl.spell
+        n = casts.get(sp["palavras"], 0)
+        per_min = n * 60.0 / seconds
+        gold_cast = sp.get("custo_gold") or 0
+        out.append({"name": sp["nome"], "words": sp["palavras"], "rune": sim.is_rune(sp),
+                    "mana": sp["mana"], "gold_per_cast": gold_cast, "casts_per_min": per_min,
+                    "gold_per_hour": gold_cast * per_min * 60.0})
+    return out
+
+
+def supplies(result):
+    """{runes, hp_potions, mana_potions, total} em gold/h, do SimResult (pocoes de
+    mana em regime — ver `sim.simulate`)."""
+    if result is None:
+        return None
+    return {"runes": result.runes_per_hour, "hp_potions": result.hp_potions_per_hour,
+            "mana_potions": result.mana_potions_per_hour, "total": result.gold_per_hour}
+
+
+def helper_config(profile, target, hunt_rot, boss_rot, heal, metrics, hunt_sim=None, boss_sim=None):
     """Os campos do Helper com os nomes do jogo (etiquetas do cliente)."""
     canal_85 = 85
     computed = potion_threshold(profile, target, boss_rot or hunt_rot, heal)
@@ -990,6 +1101,9 @@ def helper_config(profile, target, hunt_rot, boss_rot, heal, metrics):
         # (nome, palavras, motivo) do que ficou fora da rotacao de hunt — beams e imunidades
         "hunt_excluded": [(s["nome"], s["palavras"], excluded[s["palavras"]]) for s in sim.attack_spells(profile)
                           if s["palavras"] in excluded],
+        # custos por feitico e gold/h (pocoes em regime + runas) dos dois cenarios
+        "hunt_costs": spell_costs(hunt_rot, hunt_sim), "boss_costs": spell_costs(boss_rot, boss_sim),
+        "hunt_supplies": supplies(hunt_sim), "boss_supplies": supplies(boss_sim),
         "position": _position(profile),
         "distance": _distance(profile),
         "magic_shield": profile.vocation in sim.MAGES,
