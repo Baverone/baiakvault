@@ -55,16 +55,17 @@ def load_fixture(vault, data=None):
     modo de edicao. Devolve o id do personagem."""
     data = data or fixture()
     cid = vault.upsert_character(**data["character"])
-    for t in data["tree"]:
+    for t in data.get("tree") or []:
         vault.set_tree_node(cid, **t)
-    for e in data["equipment"]:
+    for e in data.get("equipment") or []:
         vault.set_equipment(cid, **e)
-    for c in data["charms"]:
+    for c in data.get("charms") or []:
         vault.set_charm(cid, **c)
-    vault.set_charm_points(cid, **data["charm_points"])
-    for b in data["bestiary"]:
+    if data.get("charm_points"):
+        vault.set_charm_points(cid, **data["charm_points"])
+    for b in data.get("bestiary") or []:
         vault.set_bestiary(cid, **b)
-    for r in data["readings"]:
+    for r in data.get("readings") or []:
         vault.add_reading(cid, **r)
     return cid
 

@@ -9,3 +9,6 @@ __pycache__/
 
 # rascunhos locais de exploracao
 scripts/_rascunho*.py
+
+# token de escrita do modo de edicao (nasce no primeiro `serve`)
+data/serve.token

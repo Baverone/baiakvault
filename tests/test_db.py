@@ -39,6 +39,35 @@ class Schema(unittest.TestCase):
         self.assertEqual(conn.execute("SELECT count(*) FROM readings").fetchone()[0], 0)
         conn.close()
 
+    def test_v1_to_v2_keeps_children_and_maps_sustain(self):
+        """Uma BD na v1 com um druid «sustain» e filhos (arvore, leituras) migra
+        para a v2 sem perder os filhos e com o objectivo da vocacao."""
+        path = helpers.temp_dir() / "v1.db"
+        conn = sqlite3.connect(str(path))
+        conn.executescript(db.MIGRATIONS[0])
+        conn.execute("PRAGMA user_version = 1")
+        conn.execute("INSERT INTO characters (id, name, slug, vocation, goal, updated_at) VALUES (1, 'D', 'd', 'druid', 'sustain', 'x')")
+        conn.execute("INSERT INTO characters (id, name, slug, vocation, goal, updated_at) VALUES (2, 'S', 's', 'sorcerer', 'sustain', 'x')")
+        conn.execute("INSERT INTO character_tree (character_id, node_key, rank) VALUES (1, 'd_nature', 2)")
+        conn.execute("INSERT INTO readings (character_id, at, level) VALUES (1, '2026-09-16 10:00:00', 50)")
+        conn.commit()
+        conn.close()
+        conn = db.connect(path)
+        try:
+            self.assertEqual(db.schema_version(conn), db.SCHEMA_VERSION)
+            self.assertEqual(conn.execute("SELECT goal FROM characters WHERE id = 1").fetchone()[0], "heal")
+            self.assertIsNone(conn.execute("SELECT goal FROM characters WHERE id = 2").fetchone()[0])
+            self.assertEqual(conn.execute("SELECT count(*) FROM character_tree").fetchone()[0], 1)
+            self.assertEqual(conn.execute("SELECT count(*) FROM readings").fetchone()[0], 1)
+            self.assertEqual(conn.execute("PRAGMA foreign_key_check").fetchall(), [])
+            with self.assertRaises(sqlite3.IntegrityError):
+                conn.execute("INSERT INTO characters (name, slug, goal, updated_at) VALUES ('X', 'x', 'sustain', 'x')")
+            # as chaves estrangeiras continuam a apontar para a tabela nova
+            conn.execute("DELETE FROM characters WHERE id = 1")
+            self.assertEqual(conn.execute("SELECT count(*) FROM character_tree").fetchone()[0], 0)
+        finally:
+            conn.close()
+
 
 class Characters(unittest.TestCase):
     def setUp(self):

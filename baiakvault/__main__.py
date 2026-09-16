@@ -4,21 +4,21 @@
            a BD estiverem mal — nao se publica meia pagina.
 - `check`  valida catalogo + BD e sai != 0 se algo estiver mal. E o que as
            tarefas do runner do ai-pc vao usar.
-- `serve`  serve `docs/` em http://127.0.0.1:8774/ para ver no telemovel em
-           casa. Na ordem 1 e so leitura; o modo de edicao (a unica porta de
-           escrita na vault.db) chega na ordem 2 neste mesmo comando.
+- `serve`  serve `docs/` em http://127.0.0.1:8774/ e o modo de edicao em
+           `/editar` (a unica porta de escrita na vault.db). Com
+           `BAIAKVAULT_BIND=0.0.0.0` fica na rede de casa: ler e livre,
+           escrever exige o token de `data/serve.token`.
 
 Nada disto fala com o baiakidle.com.
 """
 import argparse
-import http.server
-import os
 import sys
 from pathlib import Path
 
 from . import build as build_module
 from . import catalog as catalog_module
 from . import db as db_module
+from . import serve as serve_module
 
 PORT = 8774  # 8770 riftvault, 8771 mtgvault, 8773 o Treinador antigo
 
@@ -75,16 +75,7 @@ def cmd_serve(args):
     if not (docs / "index.html").is_file():
         print("nao ha site em %s — corre `py -m baiakvault build` primeiro" % docs)
         return 1
-    bind = os.environ.get("BAIAKVAULT_BIND", "127.0.0.1")
-    handler = lambda *a, **k: http.server.SimpleHTTPRequestHandler(  # noqa: E731
-        *a, directory=str(docs), **k)
-    with http.server.ThreadingHTTPServer((bind, args.port), handler) as srv:
-        print("BaiakVault em http://%s:%d/ (so leitura; Ctrl+C para parar)" % (bind, args.port))
-        try:
-            srv.serve_forever()
-        except KeyboardInterrupt:
-            pass
-    return 0
+    return serve_module.serve(docs, port=args.port, db_path=args.db, catalog_dir=args.catalog)
 
 
 def main(argv=None):
@@ -97,7 +88,7 @@ def main(argv=None):
     b.set_defaults(fn=cmd_build)
     c = sub.add_parser("check", help="valida catalogo e BD; sai != 0 se algo estiver mal")
     c.set_defaults(fn=cmd_check)
-    s = sub.add_parser("serve", help="serve docs/ no porto 8774")
+    s = sub.add_parser("serve", help="serve docs/ e o modo de edicao (/editar) no porto 8774")
     s.add_argument("--out", default=None)
     s.add_argument("--port", type=int, default=PORT)
     s.set_defaults(fn=cmd_serve)

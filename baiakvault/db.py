@@ -292,6 +292,33 @@ class Vault:
                 "rank = excluded.rank, source = excluded.source, seen_at = excluded.seen_at",
                 (character_id, node_key, rank, source, seen_at))
 
+    def set_tree_nodes(self, character_id, ranks, source=None, seen_at=None):
+        """Varios nos de uma vez, tudo ou nada: um formulario com uma chave ou um
+        rank errado nao deixa metade escrita. `ranks` e {node_key: rank}."""
+        ch = self._character_id(character_id)
+        _check_source(source)
+        rows = []
+        for node_key, rank in ranks.items():
+            self._node(node_key, ch["vocation"])
+            if not isinstance(rank, int) or isinstance(rank, bool) or rank < 0:
+                raise VaultError("rank de %r tem de ser inteiro >= 0, nao %r" % (node_key, rank))
+            max_rank = self.cat.node_by_id[node_key].get("rank_maximo")
+            if max_rank is not None and rank > max_rank:
+                raise VaultError("o no %r tem rank maximo %d, nao %d" % (node_key, max_rank, rank))
+            rows.append((character_id, node_key, rank, source, seen_at))
+        with self.conn:
+            self.conn.executemany(
+                "INSERT INTO character_tree (character_id, node_key, rank, source, seen_at) "
+                "VALUES (?, ?, ?, ?, ?) ON CONFLICT (character_id, node_key) DO UPDATE SET "
+                "rank = excluded.rank, source = excluded.source, seen_at = excluded.seen_at", rows)
+        return len(rows)
+
+    def clear_tree(self, character_id):
+        """Esquece a arvore toda (volta a «desconhecida», nao a zero)."""
+        self._character_id(character_id)
+        with self.conn:
+            self.conn.execute("DELETE FROM character_tree WHERE character_id = ?", (character_id,))
+
     def tree_of(self, character_id):
         return [dict(r) for r in self.conn.execute(
             "SELECT * FROM character_tree WHERE character_id = ? ORDER BY node_key",
@@ -329,6 +356,14 @@ class Vault:
                  None if attributes is None else json.dumps(attributes, ensure_ascii=False),
                  source, seen_at))
 
+    def forget_equipment(self, character_id, slot):
+        """O slot volta a «desconhecido» (a linha sai); `set_equipment(item_key=None)`
+        e outra coisa: «sei que esta vazio»."""
+        self._character_id(character_id)
+        with self.conn:
+            self.conn.execute("DELETE FROM character_equipment WHERE character_id = ? AND slot = ?",
+                              (character_id, self._slot(slot)))
+
     def equipment_of(self, character_id):
         rows = []
         for r in self.conn.execute(
@@ -357,6 +392,25 @@ class Vault:
                 "assigned_creature_key = excluded.assigned_creature_key, "
                 "source = excluded.source, seen_at = excluded.seen_at",
                 (character_id, charm_key, tier, creature, source, seen_at))
+
+    def replace_charms(self, character_id, charms, source=None, seen_at=None):
+        """A lista inteira dos charms dele, tudo ou nada: `charms` e uma lista de
+        (charm_key, tier, assigned_creature_key ou None). O que nao vier sai
+        (o formulario mostra os 24; «nao tem» e uma afirmacao dele)."""
+        self._character_id(character_id)
+        _check_source(source)
+        rows = []
+        for charm_key, tier, creature in charms:
+            self._charm(charm_key)
+            if tier not in (1, 2, 3):
+                raise VaultError("tier de %r tem de ser 1, 2 ou 3, nao %r" % (charm_key, tier))
+            rows.append((character_id, charm_key, tier, self._creature(creature), source, seen_at))
+        with self.conn:
+            self.conn.execute("DELETE FROM character_charms WHERE character_id = ?", (character_id,))
+            self.conn.executemany(
+                "INSERT INTO character_charms (character_id, charm_key, tier, assigned_creature_key, "
+                "source, seen_at) VALUES (?, ?, ?, ?, ?, ?)", rows)
+        return len(rows)
 
     def remove_charm(self, character_id, charm_key):
         with self.conn:

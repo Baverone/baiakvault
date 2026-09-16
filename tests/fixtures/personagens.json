@@ -1,0 +1,48 @@
+{
+  "_nota": "Um personagem ficticio por vocacao, SO para os testes do advisor. Nenhum e do Andre.",
+  "personagens": [
+    {
+      "character": {"name": "Ficticio Knight", "vocation": "knight", "level": 150, "current_hunt": "orclops-cave", "vip": 0, "goal": "tank", "source": "manual", "seen_at": "2026-09-16"},
+      "tree": [{"node_key": "k_fury", "rank": 4}, {"node_key": "k_vigor", "rank": 3}, {"node_key": "k_haste", "rank": 1}],
+      "equipment": [{"slot": "weapon", "item_key": "axe", "upgrade_level": 0, "imbuements": []},
+                    {"slot": "shield", "item_key": null},
+                    {"slot": "helmet", "item_key": null}],
+      "charms": [{"charm_key": "dodge", "tier": 1, "assigned_creature_key": null}],
+      "charm_points": {"points_available": 400, "points_spent": 240},
+      "bestiary": [{"creature_key": "cobra_scout", "kills": 2300}]
+    },
+    {
+      "character": {"name": "Ficticio Druid", "vocation": "druid", "level": 150, "current_hunt": "orclops-cave", "vip": 1, "goal": null, "source": "manual", "seen_at": "2026-09-16"},
+      "tree": [{"node_key": "d_nature", "rank": 2}, {"node_key": "d_spring", "rank": 2}],
+      "equipment": [{"slot": "weapon", "item_key": "astral rod", "upgrade_level": null, "imbuements": null}],
+      "charms": [],
+      "charm_points": null,
+      "bestiary": []
+    },
+    {
+      "character": {"name": "Ficticio Sorcerer", "vocation": "sorcerer", "level": 150, "current_hunt": null, "vip": null, "goal": "damage", "source": "manual", "seen_at": "2026-09-16"},
+      "tree": [{"node_key": "s_arcane", "rank": 3}],
+      "equipment": [],
+      "charms": [{"charm_key": "wound", "tier": 2, "assigned_creature_key": null}],
+      "charm_points": {"points_available": 50, "points_spent": null},
+      "bestiary": []
+    },
+    {
+      "character": {"name": "Ficticio Paladin", "vocation": "paladin", "level": 150, "current_hunt": "orclops-cave", "vip": 0, "goal": "damage", "source": "manual", "seen_at": "2026-09-16"},
+      "tree": [],
+      "equipment": [{"slot": "weapon", "item_key": "bow", "upgrade_level": 2, "imbuements": []},
+                    {"slot": "ammo", "item_key": null}],
+      "charms": [],
+      "charm_points": {"points_available": 0, "points_spent": 0},
+      "bestiary": []
+    },
+    {
+      "character": {"name": "Ficticio Monk", "vocation": "monk", "level": 150, "current_hunt": "orclops-cave", "vip": 0, "goal": "support", "source": "manual", "seen_at": "2026-09-16"},
+      "tree": [{"node_key": "m_fists", "rank": 5}, {"node_key": "m_iron", "rank": 5}, {"node_key": "m_focus", "rank": 5}],
+      "equipment": [{"slot": "weapon", "item_key": "durable exercise axe", "upgrade_level": 0, "imbuements": []}],
+      "charms": [],
+      "charm_points": {"points_available": 1000, "points_spent": 0},
+      "bestiary": []
+    }
+  ]
+}
