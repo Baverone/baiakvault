@@ -1,0 +1,409 @@
+"""O gerador: catalogo + vault.db -> `docs/` (ou `--out`).
+
+Uma funcao por pagina, todas puras a menos da escrita final. O `build()`
+devolve o que escreveu e quanto tempo levou, para o `check` e os testes
+provarem o efeito (ficheiros no disco, tamanho, tempo) em vez de confiarem no
+«ok».
+
+O que a fonte nao tem sai «?» (ver `html.fmt`). As contas que aqui se fazem
+sao as do proprio jogo (gold esperado de um drop) ou nenhuma — XP/h e gold/h
+nao existem em fonte nenhuma e nao se inventam.
+"""
+import time
+from datetime import datetime
+from pathlib import Path
+
+from . import catalog as catalog_module
+from . import db as db_module
+from . import html as h
+from . import notes
+
+DEFAULT_OUT = Path(__file__).resolve().parent.parent / "docs"
+
+VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
+                  "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
+GOAL_LABEL = {"damage": "dano", "tank": "tank", "sustain": "sustain"}
+KIND_LABEL = {"offensive": "ofensivo", "defensive": "defensivo", "passive": "passivo"}
+ELEMENT_LABEL = {"physical": "fisico", "fire": "fogo", "earth": "terra", "ice": "gelo",
+                 "energy": "energia", "death": "morte", "holy": "sagrado"}
+INDEX_WARNING = ("Os indices de XP e de loot sao a conta que o proprio jogo faz para ordenar "
+                 "as hunts: <b>XP por ponto de vida a abater — eficiencia, nao XP/h</b>. Uma hunt "
+                 "de bichos gordos rende pouco no indice e muito por kill. XP/h e gold/h "
+                 "absolutos nao existem em fonte nenhuma; so medindo na conta.")
+
+
+def gold_expected(drop):
+    """Gold medio por kill de uma linha de loot, pela conta do proprio jogo:
+    `chance/100000 x (1+max)/2 x preco do NPC`. `None` sem preco ou chance."""
+    if not drop:
+        return None
+    chance, price = drop.get("chance_por_100k"), drop.get("preco_npc")
+    maximum = drop.get("max") or 1
+    if chance is None or price is None:
+        return None
+    return chance / 100000.0 * (1 + maximum) / 2.0 * price
+
+
+def _hunt_href(root, hunt_id):
+    return "%shunts/%s.html" % (root, hunt_id)
+
+
+def _hunt_link(root, cat, hunt_id):
+    hunt = cat.hunt_by_id.get(hunt_id)
+    if not hunt:
+        return h.esc(hunt_id)
+    return '<a href="%s">%s</a>' % (_hunt_href(root, hunt_id), h.esc(hunt["nome"]))
+
+
+# --- Inicio -------------------------------------------------------------------
+def render_index(cat, characters, generated_at):
+    parts = ["<h1>BaiakVault</h1>",
+             '<p class="mudo">Os personagens do Andre no Baiak Idle, a build de cada um e o '
+             "proximo passo. Nada aqui toca no jogo nem na conta.</p>"]
+    parts.append("<h2>Personagens</h2>")
+    if not characters:
+        parts.append('<div class="cartao"><p>Ainda nao ha personagens.</p>'
+                     "<p>Como adicionar: o modo de edicao local (<code>py -m baiakvault serve</code>, "
+                     "porto 8774) chega na ordem 2; a leitura de capturas de ecra "
+                     "(<code>capturas/</code>) chega na ordem 4. Ate la a BD esta vazia de "
+                     "proposito — nao se inventam personagens.</p></div>")
+    else:
+        parts.append('<div class="grelha">')
+        for c in characters:
+            parts.append(
+                '<div class="cartao"><h3><a href="personagens/%s.html">%s</a></h3>%s</div>'
+                % (h.esc(c["slug"]), h.esc(c["name"]), h.kv([
+                    ("vocacao", h.esc(VOCATION_LABEL.get(c["vocation"], c["vocation"]))),
+                    ("nivel", h.fmt(c["level"])),
+                    ("hunt actual", _hunt_link("", cat, c["current_hunt"]) if c["current_hunt"] else h.UNKNOWN),
+                    ("VIP", h.yes_no(c["vip"])),
+                    ("objectivo", h.esc(GOAL_LABEL.get(c["goal"])) if c["goal"] else h.UNKNOWN),
+                    ("proximo passo", '<span class="mudo">chega na ordem 2</span>'),
+                ])))
+        parts.append("</div>")
+    parts.append("<h2>Atalhos</h2>")
+    parts.append('<ul><li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
+                 '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li></ul>'
+                 % (len(cat.hunts), len(cat.charms)))
+    parts.append('<p class="mudo"><small>Catalogo do jogo visto a %s. Gerado a %s.</small></p>'
+                 % (h.esc(cat.seen_at()), h.esc(generated_at)))
+    return h.page("BaiakVault", "".join(parts), root="", here="inicio", generated_at=generated_at)
+
+
+# --- Hunts ------------------------------------------------------------------------
+def _hunts_sorted(cat):
+    return sorted(cat.hunts, key=lambda x: (x.get("nivel_minimo") or 0, x["nome"].lower()))
+
+
+def render_hunts_index(cat, generated_at):
+    root = "../"
+    rows = []
+    for hunt in _hunts_sorted(cat):
+        note = notes.for_hunt(hunt["id"])
+        boss = hunt.get("boss_da_wave_10")
+        rows.append([
+            h.fmt(hunt.get("nivel_minimo")),
+            h.fmt(hunt.get("nivel_estimado_pelo_jogo")),
+            '<a href="%s.html">%s</a>' % (h.esc(hunt["id"]), h.esc(hunt["nome"])),
+            h.esc(", ".join(m["nome"] for m in hunt.get("monstros") or [])),
+            h.esc(boss["nome"]) if boss else '<span class="mudo">sem boss</span>',
+            h.fmt(hunt.get("indice_xp"), 1),
+            h.fmt(hunt.get("indice_loot"), 1),
+            h.esc(hunt.get("tende_para")),
+            ('%s <small class="mudo">[%s]</small>' % (h.esc(note["text"]), h.esc(note["video"])))
+            if note else "",
+        ])
+    body = ["<h1>Hunts</h1>",
+            '<p class="aviso">%s</p>' % INDEX_WARNING,
+            '<p class="mudo">«Nivel» e o minimo sugerido pelo jogo; «estim.» e o nivel que a '
+            "formula do proprio cliente estima pela dificuldade dos monstros. O minimo e "
+            "orientacao, nao bloqueio. A coluna «canal» e opiniao do %s — nao foi medida.</p>"
+            % h.esc(notes.CHANNEL),
+            h.table(["nivel", "estim.", "hunt", "monstros", "boss (wave 10)", "ind. XP",
+                     "ind. loot", "tende para", "canal"], rows, numeric=(0, 1, 5, 6)),
+            h.source_line(cat.source_of("hunts"), cat.seen_at("hunts"))]
+    return h.page("Hunts — BaiakVault", "".join(body), root=root, here="hunts",
+                  generated_at=generated_at)
+
+
+def render_hunt(cat, hunt, generated_at):
+    root = "../"
+    parts = ["<h1>%s</h1>" % h.esc(hunt["nome"])]
+    note = notes.for_hunt(hunt["id"])
+    parts.append('<div class="cartao">' + h.kv([
+        ("nivel minimo", h.fmt(hunt.get("nivel_minimo"))),
+        ("nivel estimado pelo jogo", h.fmt(hunt.get("nivel_estimado_pelo_jogo"))),
+        ("indice XP", h.fmt(hunt.get("indice_xp"), 1)),
+        ("indice loot", h.fmt(hunt.get("indice_loot"), 1)),
+        ("tende para", h.esc(hunt.get("tende_para"))),
+        ("XP por kill (media)", h.fmt(hunt.get("exp_por_kill"), 1)),
+        ("gold por kill (media)", h.fmt(hunt.get("gold_por_kill"), 1)),
+        ("dificuldade (ecr)", h.fmt(hunt.get("dificuldade_ecr"), 1)),
+        ("XP/h", h.UNKNOWN + ' <small class="mudo">so medindo na conta</small>'),
+        ("gold/h", h.UNKNOWN + ' <small class="mudo">so medindo na conta</small>'),
+    ]) + "</div>")
+    parts.append('<p class="aviso">%s</p>' % INDEX_WARNING)
+    if note:
+        parts.append('<div class="cartao"><b>O canal diz:</b> %s<br><small class="mudo">fonte: %s '
+                     "— opiniao em directo, nao medida</small></div>"
+                     % (h.esc(note["text"]), h.esc(note["source"])))
+
+    monsters = hunt.get("monstros") or []
+    parts.append("<h2>Monstros</h2>")
+    has_weights = any(m.get("peso") is not None for m in monsters)
+    headers = ["monstro", "XP", "HP", "meta do bestiario"]
+    numeric = (1, 2, 3)
+    if has_weights:
+        headers.append("peso")
+        numeric = (1, 2, 3, 4)
+    rows = []
+    for m in monsters:
+        row = [h.esc(m["nome"]), h.fmt(m.get("exp")), h.fmt(m.get("hp")),
+               h.fmt(m.get("meta_kills_bestiario"))]
+        if has_weights:
+            row.append(h.fmt(m.get("peso")))
+        rows.append(row)
+    parts.append(h.table(headers, rows, numeric=numeric))
+    if not has_weights:
+        parts.append('<p class="mudo"><small>Pesos de spawn: o cliente nao os publica para esta '
+                     "hunt (fica «?», nao se assume igual).</small></p>")
+    parts.append('<p class="mudo"><small>Pack maximo: %s vivos; spawn a cada %s ms.</small></p>'
+                 % (h.fmt(hunt.get("max_vivos")), h.fmt(hunt.get("spawn_ms"))))
+
+    boss = hunt.get("boss_da_wave_10")
+    parts.append("<h2>Boss da wave 10</h2>")
+    if not boss:
+        parts.append('<p class="mudo">Esta hunt nao tem boss de wave 10 no catalogo.</p>')
+    else:
+        parts.append("<p><b>%s</b> — XP base %s. Multiplicadores da wave 10 (do guia, nao do "
+                     "cliente): x3 HP, x1,5 dano, x2,5 XP.</p>"
+                     % (h.esc(boss["nome"]), h.fmt(boss.get("exp"))))
+        wave = cat.wave10_by_hunt.get(hunt["id"])
+        drops = []
+        for d in (wave or {}).get("drops") or []:
+            drops.append((gold_expected(d), d))
+        drops.sort(key=lambda x: -(x[0] if x[0] is not None else -1))
+        if drops:
+            parts.append(h.table(
+                ["drop", "chance", "max", "preco NPC", "gold esperado/kill"],
+                [[h.esc(d["item"]), h.pct_of_100k(d.get("chance_por_100k")), h.fmt(d.get("max")),
+                  h.fmt(d.get("preco_npc")), h.fmt(g, 1)] for g, d in drops[:12]],
+                numeric=(1, 2, 3, 4)))
+        else:
+            parts.append('<p class="mudo">Loot do boss: nao esta no catalogo.</p>')
+
+    parts.append("<h2>Drops que mais valem</h2>")
+    best = hunt.get("drops_que_mais_valem") or []
+    if best:
+        parts.append(h.table(["item", "gold esperado por kill"],
+                             [[h.esc(d["item"]), h.fmt(d.get("gold_esperado_por_kill"), 1)]
+                              for d in best], numeric=(1,)))
+        parts.append('<p class="mudo"><small>Gold esperado = chance/100 000 x (1+max)/2 x preco '
+                     "do NPC, media ponderada pelos monstros da hunt — a conta do proprio "
+                     "jogo.</small></p>")
+    else:
+        parts.append('<p class="mudo">Sem tabela de drops no catalogo.</p>')
+
+    parts.append("<h2>Lista do Codex desta hunt</h2>")
+    codex = hunt.get("codex_da_hunt") or []
+    if codex:
+        parts.append(h.table(["item", "quantidade"],
+                             [[h.esc(c["item"]), h.fmt(c.get("qty"))] for c in codex], numeric=(1,)))
+        parts.append('<p class="mudo"><small>E o que o Auto Collect vai apanhar nesta hunt; a '
+                     "recompensa por fechar a lista nao esta no cliente.</small></p>")
+    else:
+        parts.append('<p class="mudo">Esta hunt nao tem lista de Codex.</p>')
+
+    parts.append(h.source_line(hunt.get("fonte") or cat.source_of("hunts"), hunt.get("visto_em")))
+    parts.append('<p><a href="index.html">&larr; todas as hunts</a></p>')
+    return h.page("%s — Hunts — BaiakVault" % hunt["nome"], "".join(parts), root=root,
+                  here="hunts", generated_at=generated_at)
+
+
+# --- Charms ---------------------------------------------------------------------------
+def _pct(value):
+    """5 -> «5%», 1.6 -> «1,6%», None -> «?»."""
+    if value is None:
+        return h.UNKNOWN
+    decimals = 1 if float(value) != int(float(value)) else 0
+    return h.fmt(value, decimals, "%")
+
+
+def _charm_rows(charms):
+    rows = []
+    for c in charms:
+        chance = c.get("chance") or [None, None, None]
+        points = c.get("points") or [None, None, None]
+        element = c.get("element")
+        rows.append([
+            "<b>%s</b>" % h.esc(c.get("name")),
+            h.esc(KIND_LABEL.get(c.get("kind"), c.get("kind"))),
+            h.esc(ELEMENT_LABEL.get(element, element)) if element else '<span class="mudo">&mdash;</span>',
+            " / ".join(_pct(x) for x in chance),
+            " / ".join(h.fmt(x) for x in points),
+            h.esc(c.get("desc")),
+        ])
+    return rows
+
+
+def render_charms(cat, generated_at):
+    root = "../"
+    major = [c for c in cat.charms if c.get("category") == "major"]
+    minor = [c for c in cat.charms if c.get("category") == "minor"]
+    headers = ["charm", "tipo", "elemento", "chance T1 / T2 / T3", "pontos T1 / T2 / T3", "o que faz"]
+    parts = ["<h1>Charms</h1>",
+             '<p class="mudo">Os %d charms tal como estao no cliente do jogo: categoria, tipo, '
+             "elemento, chance e custo em pontos por tier, e a descricao a letra. Cada charm "
+             "prende-se a uma criatura do bestiario.</p>" % len(cat.charms),
+             '<h2>Maiores <span class="marca major">%d</span></h2>' % len(major),
+             h.table(headers, _charm_rows(major), numeric=(3, 4)),
+             '<h2>Menores <span class="marca minor">%d</span></h2>' % len(minor),
+             h.table(headers, _charm_rows(minor), numeric=(3, 4)),
+             "<h2>Os charms dele</h2>",
+             '<div class="cartao"><p class="mudo">Que charm por em que criatura para cada hunt, a '
+             "partir dos charms que ele tem — chega na ordem 3. Ate la, os charms de cada "
+             "personagem aparecem na pagina do personagem.</p></div>",
+             '<p class="aviso">Os charm points que cada entrada do bestiario da <b>nao estao no '
+             "cliente</b> (e o servidor que calcula); le-se no ecra dos Charms. Aqui fica «?» "
+             "ate haver leitura.</p>",
+             h.source_line(cat.source_of("bestiario"), cat.seen_at("bestiario"))]
+    return h.page("Charms — BaiakVault", "".join(parts), root=root, here="charms",
+                  generated_at=generated_at)
+
+
+# --- Personagem -------------------------------------------------------------------------
+def render_character(cat, vault, character, generated_at):
+    root = "../"
+    cid = character["id"]
+    parts = ["<h1>%s</h1>" % h.esc(character["name"])]
+    parts.append('<div class="cartao">' + h.kv([
+        ("vocacao", h.esc(VOCATION_LABEL.get(character["vocation"], character["vocation"]))),
+        ("nivel", h.fmt(character["level"])),
+        ("hunt actual", _hunt_link(root, cat, character["current_hunt"]) if character["current_hunt"] else h.UNKNOWN),
+        ("VIP", h.yes_no(character["vip"])),
+        ("objectivo", h.esc(GOAL_LABEL.get(character["goal"])) if character["goal"] else h.UNKNOWN),
+        ("notas", h.esc(character["notes"]) if character["notes"] else '<span class="mudo">—</span>'),
+        ("fonte", h.esc(character["source"])),
+        ("visto a", h.esc(character["seen_at"])),
+        ("actualizado a", h.esc(character["updated_at"])),
+    ]) + "</div>")
+    parts.append('<h2>Proximo passo</h2><div class="cartao"><p class="mudo">Chega na ordem 2 '
+                 "(a build e o que comprar/subir/trocar a seguir).</p></div>")
+
+    parts.append("<h2>Arvore</h2>")
+    tree = vault.tree_of(cid)
+    if tree:
+        rows = []
+        for t in tree:
+            node = cat.node_by_id.get(t["node_key"]) or {}
+            rows.append([h.esc(node.get("nome") or t["node_key"]),
+                         "%s / %s" % (h.fmt(t["rank"]), h.fmt(node.get("rank_maximo"))),
+                         h.esc(node.get("tipo")), h.esc(t["source"]), h.esc(t["seen_at"])])
+        parts.append(h.table(["no", "rank", "tipo", "fonte", "visto a"], rows, numeric=(1,)))
+        parts.append('<p class="mudo"><small>%d nos registados. Os que nao estao aqui sao '
+                     "desconhecidos, nao zero.</small></p>" % len(tree))
+    else:
+        parts.append('<p class="mudo">Sem nos registados — nao se sabe o que ja comprou.</p>')
+
+    parts.append("<h2>Equipamento</h2>")
+    equipment = vault.equipment_of(cid)
+    if equipment:
+        rows = []
+        for e in equipment:
+            item = cat.item_by_key.get(e["item_key"] or "") or {}
+            imb = e["imbuements"]
+            rows.append([
+                h.esc(e["slot"]),
+                h.esc(e["item_name"] or e["item_key"]) if (e["item_name"] or e["item_key"]) else h.UNKNOWN,
+                h.fmt(item.get("nivel")),
+                h.fmt(e["upgrade_level"]),
+                (h.esc(", ".join(str(x) for x in imb)) if imb else '<span class="mudo">nenhum</span>')
+                if imb is not None else h.UNKNOWN,
+                h.esc(e["source"]),
+            ])
+        parts.append(h.table(["slot", "item", "nivel do item", "upgrade", "imbuements", "fonte"],
+                             rows, numeric=(2, 3)))
+    else:
+        parts.append('<p class="mudo">Sem equipamento registado.</p>')
+
+    parts.append("<h2>Charms</h2>")
+    points = vault.charm_points_of(cid)
+    parts.append(h.kv([
+        ("pontos disponiveis", h.fmt(points["points_available"]) if points else h.UNKNOWN),
+        ("pontos gastos", h.fmt(points["points_spent"]) if points else h.UNKNOWN),
+    ]))
+    charms = vault.charms_of(cid)
+    if charms:
+        rows = []
+        for c in charms:
+            charm = cat.charm_by_key.get(c["charm_key"]) or {}
+            creature = cat.creature_by_key.get(c["assigned_creature_key"] or "")
+            rows.append([h.esc(charm.get("name") or c["charm_key"]),
+                         h.fmt(c["tier"]),
+                         h.esc(creature["nome"]) if creature else '<span class="mudo">sem criatura</span>',
+                         h.esc(c["source"])])
+        parts.append(h.table(["charm", "tier", "criatura", "fonte"], rows, numeric=(1,)))
+    else:
+        parts.append('<p class="mudo">Sem charms registados.</p>')
+
+    parts.append("<h2>Bestiario</h2>")
+    bestiary = vault.bestiary_of(cid)
+    if bestiary:
+        rows = []
+        for b in sorted(bestiary, key=lambda x: -x["kills"]):
+            creature = cat.creature_by_key.get(b["creature_key"]) or {}
+            goal = creature.get("meta_kills")
+            rows.append([h.esc(creature.get("nome") or b["creature_key"]),
+                         h.fmt(b["kills"]), h.fmt(goal),
+                         h.fmt(max(0, goal - b["kills"])) if goal is not None else h.UNKNOWN])
+        parts.append(h.table(["criatura", "kills", "meta", "faltam"], rows, numeric=(1, 2, 3)))
+    else:
+        parts.append('<p class="mudo">Sem kills registados.</p>')
+
+    parts.append("<h2>Leituras</h2>")
+    readings = vault.readings_of(cid, limit=20)
+    if readings:
+        parts.append(h.table(
+            ["quando", "nivel", "XP", "gold", "stamina (min)", "hunt", "fonte"],
+            [[h.esc(r["at"]), h.fmt(r["level"]), h.fmt(r["xp"]), h.fmt(r["gold"]),
+              h.fmt(r["stamina"]), _hunt_link(root, cat, r["hunt"]) if r["hunt"] else h.UNKNOWN,
+              h.esc(r["source"])] for r in readings], numeric=(1, 2, 3, 4)))
+    else:
+        parts.append('<p class="mudo">Sem leituras de estado. Sem duas leituras nao ha XP/h.</p>')
+    return h.page("%s — BaiakVault" % character["name"], "".join(parts), root=root,
+                  generated_at=generated_at)
+
+
+# --- escrever ---------------------------------------------------------------------------
+def _write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
+
+
+def build(out_dir=None, db_path=None, catalog_dir=None, now=None):
+    """Gera o site inteiro. Devolve `{"files": [...], "seconds": float, "out": Path}`."""
+    started = time.perf_counter()
+    out = Path(out_dir or DEFAULT_OUT)
+    cat = catalog_module.load(catalog_dir)
+    conn = db_module.connect(db_path)
+    try:
+        vault = db_module.Vault(conn, cat)
+        generated_at = (now or datetime.now()).replace(microsecond=0).isoformat(sep=" ")
+        characters = vault.characters()
+        written = []
+        written.append(_write(out / "estilo.css", h.CSS))
+        written.append(_write(out / ".nojekyll", ""))
+        written.append(_write(out / "index.html", render_index(cat, characters, generated_at)))
+        written.append(_write(out / "hunts" / "index.html", render_hunts_index(cat, generated_at)))
+        for hunt in cat.hunts:
+            written.append(_write(out / "hunts" / (hunt["id"] + ".html"),
+                                  render_hunt(cat, hunt, generated_at)))
+        written.append(_write(out / "charms" / "index.html", render_charms(cat, generated_at)))
+        for c in characters:
+            written.append(_write(out / "personagens" / (c["slug"] + ".html"),
+                                  render_character(cat, vault, c, generated_at)))
+    finally:
+        conn.close()
+    return {"files": written, "seconds": time.perf_counter() - started, "out": out,
+            "characters": len(characters), "hunts": len(cat.hunts)}
