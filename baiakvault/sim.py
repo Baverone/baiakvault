@@ -446,7 +446,10 @@ class RotationSlot:
         self.min_mobs = min_mobs
 
 
-def attack_spells(profile, runes=False):
+def attack_spells(profile, runes=True):
+    """Os feiticos de ataque do perfil. As runas (`custo_gold`) entram por omissao
+    desde 16/09/2026 (ordem 7, ponto 6): sao candidatas normais da rotacao, com o
+    gold por lancamento a vista; `runes=False` da a rotacao so de mana."""
     out = []
     for s in profile.spells:
         if s["tipo"] not in ("strike", "area") or not s.get("formula_dano"):
@@ -455,6 +458,10 @@ def attack_spells(profile, runes=False):
             continue
         out.append(s)
     return out
+
+
+def is_rune(spell):
+    return bool(spell.get("custo_gold"))
 
 
 def heal_spells(profile, friend=False):
@@ -537,6 +544,7 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
     healed = 0.0
     hp_potions = mana_potions = 0
     gold = 0.0
+    gold_runes = 0.0   # so o `goldCost` das runas lancadas (o resto do gold sao pocoes)
     mana_spent = 0.0
     mana_attacks = 0.0   # so a rotacao (sem as curas): e o que a validacao a mao confere
     mana_min = mana
@@ -584,6 +592,7 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
     mana_pot_mana = (mana_pot.get("mana") or 0) if mana_pot else 0
     mana_pot_cost = mana_pot["cost"] if mana_pot else 0
     leech_dealt = 0.0   # a parte do dano que rouba vida/mana: ataque normal + strikes
+    dealt_mana_spells = 0.0   # o dano que depende de mana (feiticos sem `goldCost`): e o que a mana limita
     mid = int(seconds) // 2
     hp_mid = hp
     for t in range(int(seconds)):
@@ -613,7 +622,11 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
                 dealt_now += dmg
                 if leeches:
                     leech_now += dmg
-                gold += gold_cost
+                if gold_cost:
+                    gold += gold_cost
+                    gold_runes += gold_cost
+                else:
+                    dealt_mana_spells += dmg
                 break
         dealt += dealt_now
         leech_dealt += leech_now
@@ -671,15 +684,44 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
     if heal_casts:
         casts[heal_spell["palavras"]] = heal_casts
     income = mp_regen + (leech_dealt / seconds) * mana_leech
+    demand = mana_spent / seconds
+    # gold/h em regime (o que uma hunt de horas custa, nao o que os 60 s a partir da pool
+    # cheia beberam): as runas ao `goldCost` de cada lancamento; as pocoes de vida as que
+    # o Helper bebeu; as de mana pelo DEFICIT — cada ponto de mana que o leech e os itens
+    # nao repoem vem de uma pocao, ao preco por mana da pocao (regen base do servidor
+    # desconhecida conta a 0: e um tecto). Sem pocoes de mana (knight/monk) nao ha esse termo.
+    runes_per_hour = gold_runes * 3600.0 / seconds
+    hp_potions_per_hour = hp_pot_cost * hp_potions * 3600.0 / seconds
+    mana_potions_per_hour = 0.0
+    if mana_pot and mana_pot_mana:
+        # as pocoes de vida do paladin/monk (spirit) tambem dao mana: essa parte ja esta paga
+        from_hp_potions = hp_pot_mana * hp_potions / float(seconds)
+        mana_potions_per_hour = max(0.0, demand - income - from_hp_potions) * 3600.0 * mana_pot_cost / mana_pot_mana
+    # DPS sustentado (o que uma hunt de horas rende, nao os 60 s a partir da pool cheia):
+    # sem pocoes de mana (knight/monk) so a fraccao dos feiticos de mana que o leech e os
+    # itens pagam se mantem — o ataque normal e as runas nao dependem da mana; com pocoes
+    # e o proprio DPS (a pocao repoe o que falta e o custo sai em gold/h)
+    mana_sustain = 1.0 if demand <= 0 else min(1.0, income / demand)
+    dps = dealt / seconds
+    if profile.uses_mana_potions:
+        dps_sustained = dps
+    else:
+        dps_sustained = (dealt - dealt_mana_spells) / seconds + (dealt_mana_spells / seconds) * mana_sustain
     return SimResult(
-        seconds=seconds, boss=boss, dps=dealt / seconds, dealt=dealt, casts=casts, cast_log=cast_log,
+        seconds=seconds, boss=boss, dps=dps, dealt=dealt, casts=casts, cast_log=cast_log,
+        dps_mana_spells=dealt_mana_spells / seconds, dps_free=(dealt - dealt_mana_spells) / seconds,
+        mana_sustain=mana_sustain, dps_sustained=dps_sustained,
         leech_dps=leech_dealt / seconds, leech_hps=(leech_dealt / seconds) * life_leech,
         healed=healed, hps=healed / seconds, hp_min=hp_min, hp_end=hp, hp_mid=hp_mid, hp_max=hp_max, death_at=death_at,
         attackers=attackers,
         mana_end=mana, mana_min=mana_min, mana_max=mana_max, mana_spent=mana_spent,
-        mana_demand=mana_spent / seconds, mana_demand_attacks=mana_attacks / seconds, mana_income=income,
+        mana_demand=demand, mana_demand_attacks=mana_attacks / seconds, mana_income=income,
         mana_empty_at=empty_at,
-        hp_potions=hp_potions, mana_potions=mana_potions, gold=gold, gold_per_hour=gold * 3600.0 / seconds,
+        hp_potions=hp_potions, mana_potions=mana_potions, gold=gold, gold_runes=gold_runes,
+        gold_sim_per_hour=gold * 3600.0 / seconds,   # o que os 60 s custaram, tal e qual
+        runes_per_hour=runes_per_hour, hp_potions_per_hour=hp_potions_per_hour,
+        mana_potions_per_hour=mana_potions_per_hour,
+        gold_per_hour=runes_per_hour + hp_potions_per_hour + mana_potions_per_hour,
         pressure=dps_in, max_hit=max_hit, auto_dps=auto_per_s,
     )
 

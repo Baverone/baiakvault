@@ -107,7 +107,7 @@ class Advisor(unittest.TestCase):
     def test_defaults_and_measured_gains(self):
         druid = self.advice["druid"]
         self.assertTrue(druid["goal_defaulted"])
-        self.assertEqual(druid["goal"], "best")   # omissao desde a ordem 6 (16/09/2026)
+        self.assertEqual(druid["goal"], "damage")   # omissao desde a ordem 7 (16/09/2026 13:30: «quero dano»)
         self.assertTrue(any("upgrade de arma desconhecido" in n for n in druid["notes"]), druid["notes"])
         knight = self.advice["knight"]
         self.assertEqual(knight["goal"], "tank")
@@ -198,13 +198,15 @@ class Advisor(unittest.TestCase):
 
 
 class Goals(unittest.TestCase):
-    def test_default_goal_is_best_and_the_old_ones_stay(self):
-        # omissao «best» desde 16/09/2026 (ordem 6); os objectivos da ordem 2 ficam
+    def test_default_goal_is_damage_and_the_old_ones_stay(self):
+        # omissao «damage» desde 16/09/2026 13:30 (ordem 7, «quero dano, nao importa o custo»);
+        # a «best» da ordem 6 e os objectivos da ordem 2 ficam
         for voc in ("knight", "druid", "monk", "sorcerer", "paladin"):
-            self.assertEqual(db.default_goal(voc), "best")
-        self.assertEqual(db.GOALS_BY_VOCATION["knight"][1:], ("tank", "damage"))
-        self.assertEqual(db.GOALS_BY_VOCATION["druid"][1:], ("heal", "damage"))
-        self.assertEqual(db.GOALS_BY_VOCATION["monk"][1:], ("support", "damage"))
+            self.assertEqual(db.default_goal(voc), "damage")
+            self.assertIn("best", db.GOALS_BY_VOCATION[voc])
+        self.assertEqual(db.GOALS_BY_VOCATION["knight"][1:], ("best", "tank"))
+        self.assertEqual(db.GOALS_BY_VOCATION["druid"][1:], ("best", "heal"))
+        self.assertEqual(db.GOALS_BY_VOCATION["monk"][1:], ("best", "support"))
         self.assertIsNone(db.default_goal(None))
 
     def test_goal_must_belong_to_vocation(self):
@@ -217,7 +219,7 @@ class Goals(unittest.TestCase):
                 vault.upsert_character("K", goal="heal")
             # muda de vocacao: o objectivo antigo deixa de valer e cai para a omissao da nova
             vault.upsert_character("K", vocation="druid")
-            self.assertEqual(vault.character(cid)["goal"], "best")
+            self.assertEqual(vault.character(cid)["goal"], "damage")
         finally:
             conn.close()
 

@@ -170,10 +170,76 @@ class Optimizer(unittest.TestCase):
                 for sl in rot:
                     self.assertEqual(sl.spell["vocacao"], voc)
                     self.assertLessEqual(sl.spell["nivel"], level)
-                    self.assertFalse(sl.spell.get("custo_gold"), "runa na rotacao base")
+                # e a rotacao so de mana (para se ver o que as runas compram) nao tem runas
+                for sl in b["rotation_no_runes"] + b["boss_rotation_no_runes"]:
+                    self.assertFalse(sim.is_rune(sl.spell), (voc, goal, level, sl.spell["nome"]))
             heal = b["heal"]
             self.assertIsNotNone(heal, (voc, goal, level))
             self.assertEqual(heal["tipo"], "heal")
+            self.assertFalse(heal.get("custo_gold"), "a cura do Helper e sem runa; a runa e alternativa")
+
+    def test_runes_are_normal_candidates_with_gold_per_cast_and_the_cap_is_a_parameter(self):
+        """Ponto 6 da ordem 7 (teste do Andre, 16/09/2026 13:20): as runas de area e a
+        Sudden Death entram na rotacao de hunt e de boss com o gold por lancamento do
+        cliente; sem tecto por omissao (ponto 0), com tecto so o que cabe."""
+        target = sim.Target(self.cat, "livrariafire-cave")
+        sorc = sim.Profile(self.cat, "sorcerer", 471)
+        pool = builds.rotation_pool(sorc, target, boss=False)
+        runes = [s for s in pool if sim.is_rune(s)]
+        self.assertTrue(runes, "sem runa na pool")
+        self.assertTrue(all(s["tipo"] in ("area", "strike") for s in runes))
+        self.assertLessEqual(len(runes), 2, "so a melhor runa de area e a melhor de alvo unico")
+        for s in runes:
+            self.assertGreater(s["custo_gold"], 0)
+            self.assertNotEqual(F.spell_element(s["palavras"]), "fire", "runa de fogo na Livraria FIRE")
+        # sem tecto: a rotacao de hunt do sorcerer leva uma runa e rende mais do que sem
+        rot, r = builds.choose_rotation(sorc, target, boss=False, goal="damage")
+        rot0, r0 = builds.choose_rotation(sorc, target, boss=False, goal="damage", runes=False)
+        self.assertTrue(any(sim.is_rune(sl.spell) for sl in rot), [sl.spell["nome"] for sl in rot])
+        self.assertGreater(r.dps, r0.dps)
+        self.assertGreater(r.runes_per_hour, 0)
+        self.assertAlmostEqual(r.gold_per_hour, r.runes_per_hour + r.hp_potions_per_hour + r.mana_potions_per_hour)
+        area_rune = [sl for sl in rot if sim.is_rune(sl.spell) and sl.spell["tipo"] == "area"]
+        for sl in area_rune:
+            self.assertEqual(sl.min_mobs, F.RUNE_AREA_MIN_MOBS)
+        # com tecto: nenhuma rotacao acima dele (ou, se nenhuma cabe, a mais barata)
+        cap = r0.gold_per_hour * 0.5
+        rot_cap, r_cap = builds.choose_rotation(sorc, target, boss=False, goal="damage", gold_cap=cap)
+        self.assertLessEqual(r_cap.gold_per_hour, cap + 1e-6, [sl.spell["nome"] for sl in rot_cap])
+        # a pagina: custo por lancamento em gold nas runas, e o total «gold/h (pocoes + runas)»
+        b = self.plans[("sorcerer", "damage", 500)]
+        costs = b["helper"]["hunt_costs"]
+        self.assertEqual([c["words"] for c in costs], [w for _, w, _ in b["helper"]["hunt_rotation"]])
+        for c in costs:
+            self.assertEqual(c["rune"], c["gold_per_cast"] > 0)
+        self.assertIsNotNone(b["helper"]["hunt_supplies"])
+        self.assertIsNone(b["gold_cap"])
+
+    def test_sustained_dps_limits_knight_and_monk_not_potion_users(self):
+        """Ponto 0 (16/09/2026): no knight/monk so o DPS que a mana sustenta conta (o ataque
+        normal e as runas nao dependem da mana); mages/paladin bebem pocoes a vontade."""
+        target = sim.Target(self.cat, "livrariafire-cave")
+        monk = sim.Profile(self.cat, "monk", 306)
+        spells = sim.attack_spells(monk)
+        rot = builds.rotation_slots(monk, target, [s for s in spells if not sim.is_rune(s)][:3])
+        r = sim.simulate(monk, target, rot, boss=True, heal=sim.best_heal(monk))
+        self.assertLess(r.mana_sustain, 1.0)
+        self.assertLess(r.dps_sustained, r.dps)
+        self.assertAlmostEqual(r.dps_sustained, r.dps_free + r.dps_mana_spells * r.mana_sustain, places=6)
+        self.assertEqual(builds.rotation_value(r, monk, "damage"), r.dps_sustained)
+        sorc = sim.Profile(self.cat, "sorcerer", 471)
+        rs = sim.simulate(sorc, target, builds.rotation_slots(sorc, target, sim.attack_spells(sorc)[:2]), heal=sim.best_heal(sorc))
+        self.assertEqual(rs.dps_sustained, rs.dps)
+        self.assertEqual(builds.rotation_value(rs, sorc, "damage"), rs.dps)
+        # a metrica de dano: DPS sustentado do ciclo x sobreviver (sem condicao de mana a parte)
+        for key, b in self.plans.items():
+            if key[1] != "damage":
+                continue
+            m = b["metrics"]
+            cons = builds.goal_constraints(m, "damage")
+            self.assertEqual(set(cons), {"survive_pack", "survive_boss"}, key)
+            if not m["uses_mana_potions"]:
+                self.assertLessEqual(m["dps_cycle_sustained"], m["dps_cycle"] + 1e-6, key)
 
     def test_beams_and_immune_elements_stay_out_of_the_hunt_rotation(self):
         """Regras de 16/09/2026 (ordem 7): beams so no boss (Andre); um feitico do
@@ -238,9 +304,10 @@ class Optimizer(unittest.TestCase):
 
     def test_goal_metric_beats_the_other_goal_of_the_same_vocation(self):
         """A build de tank do knight tem mais EHP do que a de dano; a de dano
-        tem mais DPS do que a de tank. O mesmo para druid e monk."""
+        tem mais DPS (sustentado: e a metrica dela desde o ponto 0 da ordem 7 — no
+        knight/monk so o que a mana paga) do que a de tank. O mesmo para druid e monk."""
         # 16/09/2026 (ordem 7): com o factor da IA de combate o guloso da monk-damage a 800
-        # fica 17 % abaixo da monk-support em DPS (a support compra Battle Tactics mais cedo);
+        # fica abaixo da monk-support em DPS (a support compra Battle Tactics mais cedo);
         # e uma falha conhecida do guloso, registada no relatorio-7, nao escondida: fica aqui
         # a vista ate se corrigir o optimizador
         known_greedy_gaps = {("monk", 800)}
@@ -249,7 +316,7 @@ class Optimizer(unittest.TestCase):
                 ma = self.plans[(voc, a, level)]["metrics"]
                 mb = self.plans[(voc, b_goal, level)]["metrics"]
                 if (voc, level) not in known_greedy_gaps:
-                    self.assertGreaterEqual(mb["dps_cycle"], ma["dps_cycle"] * 0.999, (voc, level))
+                    self.assertGreaterEqual(mb["dps_cycle_sustained"], ma["dps_cycle_sustained"] * 0.999, (voc, level))
                 if a == "tank":
                     self.assertGreater(ma["ehp"], mb["ehp"], (voc, level))
                 else:

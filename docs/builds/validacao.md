@@ -30,31 +30,71 @@ Curva do guia: `7,012 x nivel^0,948` (guiabaiakidle.com/_astro/character-planner
 
 | build | nivel | hunt | DPS ciclo (simulador) | curva do guia | razao |
 |---|---|---|---|---|---|
-| Knight (EK) — A melhor possivel | 50 | Crawler | 293 | 286 | x1,03 |
-| Knight (EK) — A melhor possivel | 100 | Orclops | 357 | 552 | x0,65 |
-| Knight (EK) — A melhor possivel | 200 | Undead Dragon | 942 | 1.065 | x0,89 |
-| Knight (EK) — A melhor possivel | 300 | Naga Lair | 2.151 | 1.564 | x1,38 |
-| Knight (EK) — A melhor possivel | 500 | Livraria EARTH | 3.882 | 2.538 | x1,53 |
-| Knight (EK) — A melhor possivel | 800 | Bony Sea Devil | 8.887 | 3.963 | x2,24 |
-| Knight (EK) — A melhor possivel | 1200 | Bony Sea Devil | 16.226 | 5.820 | x2,79 |
-| Knight (EK) — A melhor possivel | 1500 | Rotten man-maggot | 20.710 | 7.191 | x2,88 |
-| Druid (ED) — A melhor possivel | 50 | Crawler | 296 | 286 | x1,04 |
-| Druid (ED) — A melhor possivel | 100 | Orclops | 632 | 552 | x1,14 |
-| Druid (ED) — A melhor possivel | 200 | Undead Dragon | 724 | 1.065 | x0,68 |
-| Druid (ED) — A melhor possivel | 300 | Naga Lair | 1.366 | 1.564 | x0,87 |
-| Druid (ED) — A melhor possivel | 500 | Livraria EARTH | 2.478 | 2.538 | x0,98 |
-| Druid (ED) — A melhor possivel | 800 | Bony Sea Devil | 4.966 | 3.963 | x1,25 |
-| Druid (ED) — A melhor possivel | 1200 | Bony Sea Devil | 9.381 | 5.820 | x1,61 |
-| Druid (ED) — A melhor possivel | 1500 | Rotten man-maggot | 12.826 | 7.191 | x1,78 |
-| Sorcerer (MS) — A melhor possivel | 50 | Crawler | 336 | 286 | x1,17 |
-| Sorcerer (MS) — A melhor possivel | 100 | Orclops | 777 | 552 | x1,41 |
-| Sorcerer (MS) — A melhor possivel | 200 | Undead Dragon | 1.498 | 1.065 | x1,41 |
-| Sorcerer (MS) — A melhor possivel | 300 | Naga Lair | 2.397 | 1.564 | x1,53 |
-| Sorcerer (MS) — A melhor possivel | 500 | Livraria EARTH | 4.031 | 2.538 | x1,59 |
-| Sorcerer (MS) — A melhor possivel | 800 | Bony Sea Devil | 9.048 | 3.963 | x2,28 |
-| Sorcerer (MS) — A melhor possivel | 1200 | Bony Sea Devil | 18.002 | 5.820 | x3,09 |
-| Sorcerer (MS) — A melhor possivel | 1500 | Rotten man-maggot | 21.444 | 7.191 | x2,98 |
-| Paladin (RP) — A melhor possivel | 50 | Crawler | 663 | 286 | x2,32 |
+| Knight (EK) — Dar dano | 50 | Crawler | 392 | 286 | x1,37 |
+| Knight (EK) — Dar dano | 100 | Orclops | 436 | 552 | x0,79 |
+| Knight (EK) — Dar dano | 200 | Undead Dragon | 904 | 1.065 | x0,85 |
+| Knight (EK) — Dar dano | 300 | Naga Lair | 2.324 | 1.564 | x1,49 |
+| Knight (EK) — Dar dano | 500 | Livraria EARTH | 3.769 | 2.538 | x1,48 |
+| Knight (EK) — Dar dano | 800 | Bony Sea Devil | 7.576 | 3.963 | x1,91 |
+| Knight (EK) — Dar dano | 1200 | Bony Sea Devil | 9.625 | 5.820 | x1,65 |
+| Knight (EK) — Dar dano | 1500 | Rotten man-maggot | 13.094 | 7.191 | x1,82 |
+| Druid (ED) — Dar dano | 50 | Crawler | 347 | 286 | x1,21 |
+| Druid (ED) — Dar dano | 100 | Orclops | 715 | 552 | x1,30 |
+| Druid (ED) — Dar dano | 200 | Undead Dragon | 982 | 1.065 | x0,92 |
+| Druid (ED) — Dar dano | 300 | Naga Lair | 2.225 | 1.564 | x1,42 |
+| Druid (ED) — Dar dano | 500 | Livraria EARTH | 2.936 | 2.538 | x1,16 |
+| Druid (ED) — Dar dano | 800 | Bony Sea Devil | 5.960 | 3.963 | x1,50 |
+| Druid (ED) — Dar dano | 1200 | Bony Sea Devil | 11.298 | 5.820 | x1,94 |
+| Druid (ED) — Dar dano | 1500 | Rotten man-maggot | 16.094 | 7.191 | x2,24 |
+| Sorcerer (MS) — Dar dano | 50 | Crawler | 352 | 286 | x1,23 |
+| Sorcerer (MS) — Dar dano | 100 | Orclops | 785 | 552 | x1,42 |
+| Sorcerer (MS) — Dar dano | 200 | Undead Dragon | 1.522 | 1.065 | x1,43 |
+| Sorcerer (MS) — Dar dano | 300 | Naga Lair | 2.421 | 1.564 | x1,55 |
+| Sorcerer (MS) — Dar dano | 500 | Livraria EARTH | 4.069 | 2.538 | x1,60 |
+| Sorcerer (MS) — Dar dano | 800 | Bony Sea Devil | 9.179 | 3.963 | x2,32 |
+| Sorcerer (MS) — Dar dano | 1200 | Bony Sea Devil | 18.301 | 5.820 | x3,14 |
+| Sorcerer (MS) — Dar dano | 1500 | Rotten man-maggot | 21.731 | 7.191 | x3,02 |
+| Paladin (RP) — Dar dano | 50 | Crawler | 689 | 286 | x2,41 |
+| Paladin (RP) — Dar dano | 100 | Orclops | 986 | 552 | x1,79 |
+| Paladin (RP) — Dar dano | 200 | Undead Dragon | 1.741 | 1.065 | x1,64 |
+| Paladin (RP) — Dar dano | 300 | Naga Lair | 2.310 | 1.564 | x1,48 |
+| Paladin (RP) — Dar dano | 500 | Livraria EARTH | 3.282 | 2.538 | x1,29 |
+| Paladin (RP) — Dar dano | 800 | Bony Sea Devil | 5.666 | 3.963 | x1,43 |
+| Paladin (RP) — Dar dano | 1200 | Bony Sea Devil | 10.417 | 5.820 | x1,79 |
+| Paladin (RP) — Dar dano | 1500 | Rotten man-maggot | 14.077 | 7.191 | x1,96 |
+| Monk — Dar dano | 50 | Crawler | 230 | 286 | x0,80 |
+| Monk — Dar dano | 100 | Orclops | 384 | 552 | x0,70 |
+| Monk — Dar dano | 200 | Undead Dragon | 766 | 1.065 | x0,72 |
+| Monk — Dar dano | 300 | Naga Lair | 1.179 | 1.564 | x0,75 |
+| Monk — Dar dano | 500 | Livraria EARTH | 1.870 | 2.538 | x0,74 |
+| Monk — Dar dano | 800 | Bony Sea Devil | 4.241 | 3.963 | x1,07 |
+| Monk — Dar dano | 1200 | Bony Sea Devil | 7.140 | 5.820 | x1,23 |
+| Monk — Dar dano | 1500 | Rotten man-maggot | 9.366 | 7.191 | x1,30 |
+| Knight (EK) — A melhor possivel | 50 | Crawler | 403 | 286 | x1,41 |
+| Knight (EK) — A melhor possivel | 100 | Orclops | 409 | 552 | x0,74 |
+| Knight (EK) — A melhor possivel | 200 | Undead Dragon | 1.024 | 1.065 | x0,96 |
+| Knight (EK) — A melhor possivel | 300 | Naga Lair | 2.164 | 1.564 | x1,38 |
+| Knight (EK) — A melhor possivel | 500 | Livraria EARTH | 4.786 | 2.538 | x1,89 |
+| Knight (EK) — A melhor possivel | 800 | Bony Sea Devil | 8.397 | 3.963 | x2,12 |
+| Knight (EK) — A melhor possivel | 1200 | Bony Sea Devil | 13.586 | 5.820 | x2,33 |
+| Knight (EK) — A melhor possivel | 1500 | Rotten man-maggot | 15.307 | 7.191 | x2,13 |
+| Druid (ED) — A melhor possivel | 50 | Crawler | 313 | 286 | x1,09 |
+| Druid (ED) — A melhor possivel | 100 | Orclops | 650 | 552 | x1,18 |
+| Druid (ED) — A melhor possivel | 200 | Undead Dragon | 916 | 1.065 | x0,86 |
+| Druid (ED) — A melhor possivel | 300 | Naga Lair | 2.112 | 1.564 | x1,35 |
+| Druid (ED) — A melhor possivel | 500 | Livraria EARTH | 2.583 | 2.538 | x1,02 |
+| Druid (ED) — A melhor possivel | 800 | Bony Sea Devil | 5.743 | 3.963 | x1,45 |
+| Druid (ED) — A melhor possivel | 1200 | Bony Sea Devil | 10.930 | 5.820 | x1,88 |
+| Druid (ED) — A melhor possivel | 1500 | Rotten man-maggot | 15.591 | 7.191 | x2,17 |
+| Sorcerer (MS) — A melhor possivel | 50 | Crawler | 352 | 286 | x1,23 |
+| Sorcerer (MS) — A melhor possivel | 100 | Orclops | 785 | 552 | x1,42 |
+| Sorcerer (MS) — A melhor possivel | 200 | Undead Dragon | 1.522 | 1.065 | x1,43 |
+| Sorcerer (MS) — A melhor possivel | 300 | Naga Lair | 2.421 | 1.564 | x1,55 |
+| Sorcerer (MS) — A melhor possivel | 500 | Livraria EARTH | 4.069 | 2.538 | x1,60 |
+| Sorcerer (MS) — A melhor possivel | 800 | Bony Sea Devil | 9.179 | 3.963 | x2,32 |
+| Sorcerer (MS) — A melhor possivel | 1200 | Bony Sea Devil | 18.301 | 5.820 | x3,14 |
+| Sorcerer (MS) — A melhor possivel | 1500 | Rotten man-maggot | 21.731 | 7.191 | x3,02 |
+| Paladin (RP) — A melhor possivel | 50 | Crawler | 689 | 286 | x2,41 |
 | Paladin (RP) — A melhor possivel | 100 | Orclops | 986 | 552 | x1,79 |
 | Paladin (RP) — A melhor possivel | 200 | Undead Dragon | 1.741 | 1.065 | x1,64 |
 | Paladin (RP) — A melhor possivel | 300 | Naga Lair | 2.310 | 1.564 | x1,48 |
@@ -62,78 +102,38 @@ Curva do guia: `7,012 x nivel^0,948` (guiabaiakidle.com/_astro/character-planner
 | Paladin (RP) — A melhor possivel | 800 | Bony Sea Devil | 5.666 | 3.963 | x1,43 |
 | Paladin (RP) — A melhor possivel | 1200 | Bony Sea Devil | 10.417 | 5.820 | x1,79 |
 | Paladin (RP) — A melhor possivel | 1500 | Rotten man-maggot | 14.077 | 7.191 | x1,96 |
-| Monk — A melhor possivel | 50 | Crawler | 129 | 286 | x0,45 |
-| Monk — A melhor possivel | 100 | Orclops | 287 | 552 | x0,52 |
-| Monk — A melhor possivel | 200 | Undead Dragon | 533 | 1.065 | x0,50 |
-| Monk — A melhor possivel | 300 | Naga Lair | 1.015 | 1.564 | x0,65 |
-| Monk — A melhor possivel | 500 | Livraria EARTH | 1.277 | 2.538 | x0,50 |
-| Monk — A melhor possivel | 800 | Bony Sea Devil | 4.335 | 3.963 | x1,09 |
-| Monk — A melhor possivel | 1200 | Bony Sea Devil | 9.246 | 5.820 | x1,59 |
-| Monk — A melhor possivel | 1500 | Rotten man-maggot | 10.705 | 7.191 | x1,49 |
-| Knight (EK) — Sobreviver | 50 | Crawler | 329 | 286 | x1,15 |
-| Knight (EK) — Sobreviver | 100 | Orclops | 322 | 552 | x0,58 |
-| Knight (EK) — Sobreviver | 200 | Undead Dragon | 985 | 1.065 | x0,93 |
-| Knight (EK) — Sobreviver | 300 | Naga Lair | 1.749 | 1.564 | x1,12 |
-| Knight (EK) — Sobreviver | 500 | Livraria EARTH | 3.016 | 2.538 | x1,19 |
-| Knight (EK) — Sobreviver | 800 | Bony Sea Devil | 6.250 | 3.963 | x1,58 |
-| Knight (EK) — Sobreviver | 1200 | Bony Sea Devil | 11.891 | 5.820 | x2,04 |
-| Knight (EK) — Sobreviver | 1500 | Rotten man-maggot | 17.251 | 7.191 | x2,40 |
-| Knight (EK) — Dar dano | 50 | Crawler | 411 | 286 | x1,44 |
-| Knight (EK) — Dar dano | 100 | Orclops | 392 | 552 | x0,71 |
-| Knight (EK) — Dar dano | 200 | Undead Dragon | 1.005 | 1.065 | x0,94 |
-| Knight (EK) — Dar dano | 300 | Naga Lair | 2.881 | 1.564 | x1,84 |
-| Knight (EK) — Dar dano | 500 | Livraria EARTH | 4.132 | 2.538 | x1,63 |
-| Knight (EK) — Dar dano | 800 | Bony Sea Devil | 8.959 | 3.963 | x2,26 |
-| Knight (EK) — Dar dano | 1200 | Bony Sea Devil | 18.248 | 5.820 | x3,14 |
-| Knight (EK) — Dar dano | 1500 | Rotten man-maggot | 23.854 | 7.191 | x3,32 |
-| Druid (ED) — Curar bastante | 50 | Crawler | 274 | 286 | x0,96 |
-| Druid (ED) — Curar bastante | 100 | Orclops | 556 | 552 | x1,01 |
-| Druid (ED) — Curar bastante | 200 | Undead Dragon | 609 | 1.065 | x0,57 |
-| Druid (ED) — Curar bastante | 300 | Naga Lair | 1.386 | 1.564 | x0,89 |
-| Druid (ED) — Curar bastante | 500 | Livraria EARTH | 1.891 | 2.538 | x0,75 |
-| Druid (ED) — Curar bastante | 800 | Bony Sea Devil | 2.864 | 3.963 | x0,72 |
-| Druid (ED) — Curar bastante | 1200 | Bony Sea Devil | 7.193 | 5.820 | x1,24 |
-| Druid (ED) — Curar bastante | 1500 | Rotten man-maggot | 11.713 | 7.191 | x1,63 |
-| Druid (ED) — Dar dano | 50 | Crawler | 329 | 286 | x1,15 |
-| Druid (ED) — Dar dano | 100 | Orclops | 704 | 552 | x1,27 |
-| Druid (ED) — Dar dano | 200 | Undead Dragon | 843 | 1.065 | x0,79 |
-| Druid (ED) — Dar dano | 300 | Naga Lair | 1.866 | 1.564 | x1,19 |
-| Druid (ED) — Dar dano | 500 | Livraria EARTH | 2.666 | 2.538 | x1,05 |
-| Druid (ED) — Dar dano | 800 | Bony Sea Devil | 5.175 | 3.963 | x1,31 |
-| Druid (ED) — Dar dano | 1200 | Bony Sea Devil | 9.383 | 5.820 | x1,61 |
-| Druid (ED) — Dar dano | 1500 | Rotten man-maggot | 13.067 | 7.191 | x1,82 |
-| Sorcerer (MS) — Dar dano | 50 | Crawler | 336 | 286 | x1,17 |
-| Sorcerer (MS) — Dar dano | 100 | Orclops | 777 | 552 | x1,41 |
-| Sorcerer (MS) — Dar dano | 200 | Undead Dragon | 1.498 | 1.065 | x1,41 |
-| Sorcerer (MS) — Dar dano | 300 | Naga Lair | 2.397 | 1.564 | x1,53 |
-| Sorcerer (MS) — Dar dano | 500 | Livraria EARTH | 4.031 | 2.538 | x1,59 |
-| Sorcerer (MS) — Dar dano | 800 | Bony Sea Devil | 9.048 | 3.963 | x2,28 |
-| Sorcerer (MS) — Dar dano | 1200 | Bony Sea Devil | 18.002 | 5.820 | x3,09 |
-| Sorcerer (MS) — Dar dano | 1500 | Rotten man-maggot | 21.444 | 7.191 | x2,98 |
-| Paladin (RP) — Dar dano | 50 | Crawler | 663 | 286 | x2,32 |
-| Paladin (RP) — Dar dano | 100 | Orclops | 986 | 552 | x1,79 |
-| Paladin (RP) — Dar dano | 200 | Undead Dragon | 1.856 | 1.065 | x1,74 |
-| Paladin (RP) — Dar dano | 300 | Naga Lair | 2.413 | 1.564 | x1,54 |
-| Paladin (RP) — Dar dano | 500 | Livraria EARTH | 3.648 | 2.538 | x1,44 |
-| Paladin (RP) — Dar dano | 800 | Bony Sea Devil | 7.600 | 3.963 | x1,92 |
-| Paladin (RP) — Dar dano | 1200 | Bony Sea Devil | 13.844 | 5.820 | x2,38 |
-| Paladin (RP) — Dar dano | 1500 | Rotten man-maggot | 19.609 | 7.191 | x2,73 |
-| Monk — Curar (support) | 50 | Crawler | 202 | 286 | x0,71 |
-| Monk — Curar (support) | 100 | Orclops | 518 | 552 | x0,94 |
-| Monk — Curar (support) | 200 | Undead Dragon | 898 | 1.065 | x0,84 |
-| Monk — Curar (support) | 300 | Naga Lair | 1.310 | 1.564 | x0,84 |
-| Monk — Curar (support) | 500 | Livraria EARTH | 2.486 | 2.538 | x0,98 |
-| Monk — Curar (support) | 800 | Bony Sea Devil | 5.626 | 3.963 | x1,42 |
-| Monk — Curar (support) | 1200 | Bony Sea Devil | 11.244 | 5.820 | x1,93 |
-| Monk — Curar (support) | 1500 | Rotten man-maggot | 13.384 | 7.191 | x1,86 |
-| Monk — Dar dano | 50 | Crawler | 196 | 286 | x0,68 |
-| Monk — Dar dano | 100 | Orclops | 262 | 552 | x0,48 |
-| Monk — Dar dano | 200 | Undead Dragon | 960 | 1.065 | x0,90 |
-| Monk — Dar dano | 300 | Naga Lair | 1.380 | 1.564 | x0,88 |
-| Monk — Dar dano | 500 | Livraria EARTH | 2.229 | 2.538 | x0,88 |
-| Monk — Dar dano | 800 | Bony Sea Devil | 4.684 | 3.963 | x1,18 |
-| Monk — Dar dano | 1200 | Bony Sea Devil | 11.718 | 5.820 | x2,01 |
-| Monk — Dar dano | 1500 | Rotten man-maggot | 14.747 | 7.191 | x2,05 |
+| Monk — A melhor possivel | 50 | Crawler | 222 | 286 | x0,78 |
+| Monk — A melhor possivel | 100 | Orclops | 381 | 552 | x0,69 |
+| Monk — A melhor possivel | 200 | Undead Dragon | 738 | 1.065 | x0,69 |
+| Monk — A melhor possivel | 300 | Naga Lair | 1.063 | 1.564 | x0,68 |
+| Monk — A melhor possivel | 500 | Livraria EARTH | 1.717 | 2.538 | x0,68 |
+| Monk — A melhor possivel | 800 | Bony Sea Devil | 3.391 | 3.963 | x0,86 |
+| Monk — A melhor possivel | 1200 | Bony Sea Devil | 7.797 | 5.820 | x1,34 |
+| Monk — A melhor possivel | 1500 | Rotten man-maggot | 8.692 | 7.191 | x1,21 |
+| Knight (EK) — Sobreviver | 50 | Crawler | 339 | 286 | x1,19 |
+| Knight (EK) — Sobreviver | 100 | Orclops | 392 | 552 | x0,71 |
+| Knight (EK) — Sobreviver | 200 | Undead Dragon | 794 | 1.065 | x0,75 |
+| Knight (EK) — Sobreviver | 300 | Naga Lair | 1.588 | 1.564 | x1,02 |
+| Knight (EK) — Sobreviver | 500 | Livraria EARTH | 2.433 | 2.538 | x0,96 |
+| Knight (EK) — Sobreviver | 800 | Bony Sea Devil | 6.807 | 3.963 | x1,72 |
+| Knight (EK) — Sobreviver | 1200 | Bony Sea Devil | 11.977 | 5.820 | x2,06 |
+| Knight (EK) — Sobreviver | 1500 | Rotten man-maggot | 16.922 | 7.191 | x2,35 |
+| Druid (ED) — Curar bastante | 50 | Crawler | 290 | 286 | x1,01 |
+| Druid (ED) — Curar bastante | 100 | Orclops | 566 | 552 | x1,03 |
+| Druid (ED) — Curar bastante | 200 | Undead Dragon | 706 | 1.065 | x0,66 |
+| Druid (ED) — Curar bastante | 300 | Naga Lair | 1.653 | 1.564 | x1,06 |
+| Druid (ED) — Curar bastante | 500 | Livraria EARTH | 1.759 | 2.538 | x0,69 |
+| Druid (ED) — Curar bastante | 800 | Bony Sea Devil | 3.317 | 3.963 | x0,84 |
+| Druid (ED) — Curar bastante | 1200 | Bony Sea Devil | 8.406 | 5.820 | x1,44 |
+| Druid (ED) — Curar bastante | 1500 | Rotten man-maggot | 13.727 | 7.191 | x1,91 |
+| Monk — Curar (support) | 50 | Crawler | 233 | 286 | x0,82 |
+| Monk — Curar (support) | 100 | Orclops | 519 | 552 | x0,94 |
+| Monk — Curar (support) | 200 | Undead Dragon | 902 | 1.065 | x0,85 |
+| Monk — Curar (support) | 300 | Naga Lair | 1.319 | 1.564 | x0,84 |
+| Monk — Curar (support) | 500 | Livraria EARTH | 2.265 | 2.538 | x0,89 |
+| Monk — Curar (support) | 800 | Bony Sea Devil | 4.617 | 3.963 | x1,17 |
+| Monk — Curar (support) | 1200 | Bony Sea Devil | 9.014 | 5.820 | x1,55 |
+| Monk — Curar (support) | 1500 | Rotten man-maggot | 13.273 | 7.191 | x1,85 |
 
 ## 3. Onde o guia e o cliente discordam
 
