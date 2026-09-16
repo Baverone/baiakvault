@@ -93,7 +93,17 @@ INSERT INTO characters_v4 SELECT id, name, slug, vocation, level, current_hunt, 
 DROP TABLE characters;
 ALTER TABLE characters_v4 RENAME TO characters;
 """
-MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4]
+# v5 (16/09/2026, ordem 8): a rotacao e a arma que o Andre FIXOU para um personagem
+# (decisao dele das 14:30: Sorcerer Rage of the Skies + Avalanche, Druid Eternal Winter +
+# Avalanche, Knight Fierce Berserk + Groundshaker com o Soulmaimer). Sao dados, nao
+# sugestoes: a arvore recomendada calcula-se para elas e o optimizador mostra a sua ao lado.
+# `fixed_rotation_json` = lista JSON ordenada de nomes de feiticos da vocacao; `fixed_weapon` =
+# itens.nome em minusculas. NULL = nao fixou (fica a do optimizador).
+_SCHEMA_V5 = """
+ALTER TABLE characters ADD COLUMN fixed_rotation_json TEXT;
+ALTER TABLE characters ADD COLUMN fixed_weapon TEXT;
+"""
+MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4, _SCHEMA_V5]
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
@@ -313,7 +323,7 @@ class Vault:
             self.conn.execute("DELETE FROM characters WHERE id = ?", (character_id,))
 
     def characters(self):
-        return [dict(r) for r in self.conn.execute(
+        return [self._character_dict(r) for r in self.conn.execute(
             "SELECT * FROM characters ORDER BY name")]
 
     def character(self, slug_or_id):
@@ -321,7 +331,62 @@ class Vault:
             row = self.conn.execute("SELECT * FROM characters WHERE id = ?", (slug_or_id,)).fetchone()
         else:
             row = self.conn.execute("SELECT * FROM characters WHERE slug = ?", (slug_or_id,)).fetchone()
-        return dict(row) if row else None
+        return self._character_dict(row) if row else None
+
+    @staticmethod
+    def _character_dict(row):
+        d = dict(row)
+        raw = d.get("fixed_rotation_json")
+        d["fixed_rotation"] = json.loads(raw) if raw else None
+        return d
+
+    # --- rotacao e arma fixadas (v5, ordem 8) ---------------------------------
+    def _spell_names(self, vocation):
+        voc = self.cat.vocation_by_name.get(vocation) or {}
+        return {s["nome"].lower(): s["nome"] for s in voc.get("feiticos") or []}
+
+    def set_fixed_rotation(self, character_id, spells, source=None, seen_at=None):
+        """A rotacao que ELE fixou (lista ordenada de nomes de feiticos de ataque da
+        vocacao; `None`/`[]` = deixa de estar fixada). E um dado dele: o motor calcula
+        a arvore para esta rotacao e mostra a sua ao lado, nunca a substitui."""
+        ch = self._character_id(character_id)
+        _check_source(source)
+        if not spells:
+            names = None
+        else:
+            if not ch["vocation"]:
+                raise VaultError("sem vocacao nao ha feiticos para fixar")
+            known = self._spell_names(ch["vocation"])
+            names = []
+            for s in spells:
+                key = str(s or "").strip().lower()
+                if key not in known:
+                    raise VaultError("feitico desconhecido para %s: %r" % (ch["vocation"], s))
+                if known[key] in names:
+                    raise VaultError("feitico repetido: %r" % s)
+                names.append(known[key])
+            if len(names) > 4:
+                raise VaultError("o Helper tem 4 slots de ataque, nao %d" % len(names))
+        with self.conn:
+            self.conn.execute("UPDATE characters SET fixed_rotation_json = ?, updated_at = ? WHERE id = ?",
+                              (None if names is None else json.dumps(names, ensure_ascii=False), now_iso(), character_id))
+        return names
+
+    def set_fixed_weapon(self, character_id, item_key, source=None, seen_at=None):
+        """A arma que ELE fixou (itens.nome em minusculas; `None` = deixa de estar
+        fixada). Tem de ser uma arma que a vocacao possa usar."""
+        ch = self._character_id(character_id)
+        _check_source(source)
+        key = self._item(item_key, "weapon")
+        if key is not None:
+            item = self.cat.item_by_key[key]
+            vocs = item.get("vocacoes")
+            if ch["vocation"] and vocs and ch["vocation"] not in vocs:
+                raise VaultError("%s nao e arma de %s" % (item["nome"], ch["vocation"]))
+        with self.conn:
+            self.conn.execute("UPDATE characters SET fixed_weapon = ?, updated_at = ? WHERE id = ?",
+                              (key, now_iso(), character_id))
+        return key
 
     # --- arvore -----------------------------------------------------------------
     def set_tree_node(self, character_id, node_key, rank, source=None, seen_at=None):
@@ -557,9 +622,16 @@ def check(conn, cat):
         problems.append("esquema na versao %d, esperava %d" % (version, SCHEMA_VERSION))
         return problems
     q = conn.execute
-    for r in q("SELECT name, current_hunt, vocation FROM characters"):
+    for r in q("SELECT name, current_hunt, vocation, fixed_rotation_json, fixed_weapon FROM characters"):
         if r["current_hunt"] is not None and not cat.has_hunt(r["current_hunt"]):
             problems.append("%s: hunt %r desconhecida" % (r["name"], r["current_hunt"]))
+        if r["fixed_weapon"] is not None and not cat.has_item(r["fixed_weapon"]):
+            problems.append("%s: arma fixada %r desconhecida" % (r["name"], r["fixed_weapon"]))
+        if r["fixed_rotation_json"]:
+            known = {s["nome"] for s in (cat.vocation_by_name.get(r["vocation"]) or {}).get("feiticos") or []}
+            for name in json.loads(r["fixed_rotation_json"]):
+                if name not in known:
+                    problems.append("%s: feitico fixado %r nao e de %s" % (r["name"], name, r["vocation"]))
     for r in q("SELECT c.name, t.node_key, t.rank, c.vocation FROM character_tree t "
                "JOIN characters c ON c.id = t.character_id"):
         if not cat.has_node(r["node_key"]):

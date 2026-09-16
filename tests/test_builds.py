@@ -10,7 +10,7 @@
 import unittest
 
 import helpers
-from baiakvault import builds, formulas as F, sim
+from baiakvault import builds, formulas as F, sim, treecode
 
 planner = helpers.planner
 
@@ -105,8 +105,98 @@ class Optimizer(unittest.TestCase):
         self.assertEqual(len(self.plans), len(builds.BUILDS) * len(builds.LEVELS))
         self.assertEqual(len(self.plans), 104)
         # 16/09/2026 (ordem 6): a «best» corre o simulador 3x por avaliacao (pack, boss, pack
-        # inteiro) e testa as poupancas; o tecto sobe de 10 s para 60 s
-        self.assertLess(helpers.PLAN_SECONDS, 60.0, "13 builds x 8 niveis levaram %.1f s" % helpers.PLAN_SECONDS)
+        # inteiro) e testa as poupancas; o tecto subiu de 10 s para 60 s. Ordem 8: cada plano
+        # avalia tambem o outro caminho, poda rank a rank e mede o papel de cada no (~1,2 s por
+        # plano): o tecto passa a 240 s
+        self.assertLess(helpers.PLAN_SECONDS, 240.0, "13 builds x 8 niveis levaram %.1f s" % helpers.PLAN_SECONDS)
+
+    def test_every_tree_passes_the_client_rules_and_the_order_is_clickable(self):
+        """Ordem 8, ponto 3: toda a arvore que o optimizador devolve passa O3e (ligada a
+        partir do tier 0) e Up <= nivel, e a ordem de compra e clicavel a mao (cada no,
+        quando entra, ja tem um vizinho comprado — yD). Inclui os 5 personagens dele
+        (Livraria FIRE, com as rotacoes fixadas)."""
+        cases = list(self.plans.items())
+        for voc, level, rot, weapon in (("knight", 527, ["Fierce Berserk", "Groundshaker"], "soulmaimer"),
+                                        ("druid", 488, ["Eternal Winter", "Avalanche"], None),
+                                        ("sorcerer", 471, ["Rage of the Skies", "Avalanche"], None),
+                                        ("monk", 306, None, None), ("paladin", 226, None, None)):
+            b = self.pl.plan(voc, "damage", level, hunt_id="livrariafire-cave", fixed_rotation=rot, fixed_weapon=weapon)
+            cases.append(((voc, "damage", level, "dele"), b))
+        for key, b in cases:
+            voc, level, tree = b["vocation"], b["level"], b["tree"]
+            self.assertTrue(treecode.is_connected(self.cat, voc, tree), key)
+            self.assertLessEqual(treecode.points_spent(self.cat, voc, tree), level, key)
+            chk = builds.tree_check(self.cat, voc, level, tree)
+            self.assertTrue(chk["ok"], (key, chk))
+            order = [(st.node_id, st.rank) for st in b["order"]]
+            self.assertEqual(len(order), sum(tree.values()), key)
+            self.assertIsNone(treecode.purchase_order_is_clickable(self.cat, voc, order, level=level), key)
+            self.assertEqual(b["order"][-1].cumulative, b["points_spent"], key)
+            # o codigo da arvore volta a arvore
+            code = treecode.encode(self.cat, voc, level, tree)
+            self.assertEqual(treecode.decode(self.cat, code), (voc, level, tree), key)
+            # cada no tem papel: «so ligacao» segura o ramo (tira-lo desliga a arvore); «ponto que
+            # sobrou» rende ~0 e nada depende dele; «dano» rende; «tactica» e o Battle Tactics
+            self.assertEqual(set(b["roles"]), set(tree), key)
+            for nid, (role, gain) in b["roles"].items():
+                self.assertIn(role, (builds.ROLE_DAMAGE, builds.ROLE_LINK, builds.ROLE_TACTICS, builds.ROLE_LEFTOVER), key)
+                without = {k: v for k, v in tree.items() if k != nid}
+                if role == builds.ROLE_TACTICS:
+                    self.assertEqual(self.cat.node_by_id[nid]["especial"]["key"], "tactics")
+                elif role == builds.ROLE_LINK:
+                    self.assertFalse(treecode.is_connected(self.cat, voc, without), (key, nid))
+                    self.assertLess(gain, builds.PRUNE_GAIN_PCT, (key, nid))
+                elif role == builds.ROLE_LEFTOVER:
+                    self.assertTrue(treecode.is_connected(self.cat, voc, without), (key, nid))
+                    self.assertLess(gain, builds.PRUNE_GAIN_PCT, (key, nid))
+                else:
+                    self.assertGreaterEqual(gain, builds.PRUNE_GAIN_PCT, (key, nid))
+
+    def test_prune_removes_dead_links_and_fixed_rotation_and_weapon_are_data(self):
+        """Ordem 8, pontos 2 e 4: na Livraria FIRE o sorcerer nao fica com nos de fogo
+        sem uso (Pyromancy/Ignite podados quando rendem ~0); a rotacao fixada e a do
+        Helper de hunt (o boss e do optimizador), a do modelo vem ao lado; a arma fixada
+        fica (duas maos: sem escudo)."""
+        pl = self.pl
+        s = pl.plan("sorcerer", "damage", 471, hunt_id="livrariafire-cave", fixed_rotation=["Rage of the Skies", "Avalanche"])
+        self.assertEqual([sl.spell["nome"] for sl in s["rotation"]], ["Rage of the Skies", "Avalanche"])
+        self.assertEqual(s["fixed_rotation"], ["Rage of the Skies", "Avalanche"])
+        self.assertIsNotNone(s["model_rotation"])
+        self.assertIsNotNone(s["model_sim"])
+        self.assertEqual([n for n, w, mm in s["helper"]["hunt_rotation"]], ["Rage of the Skies", "Avalanche"])
+        self.assertTrue(s["boss_rotation"])
+        # nos de fogo (elementDmgPct fire) na Livraria FIRE: no maximo rank 1, e so como ligacao
+        # (o que o Andre viu: Pyromancy 3 e Ignite 3 a render 0)
+        for nid, r in s["tree"].items():
+            node = self.cat.node_by_id[nid]
+            per = node.get("efeito_por_rank") or {}
+            if isinstance(per.get("elementDmgPct"), dict) and "fire" in per["elementDmgPct"]:
+                role, gain = s["roles"][nid]
+                self.assertLessEqual(r, 1, (node["nome"], r, gain))
+                self.assertEqual(role, builds.ROLE_LINK, (node["nome"], r, gain))
+        self.assertTrue(s["pruned"], "a poda nao tirou nada ao sorcerer 471 na Livraria FIRE")
+        k = pl.plan("knight", "damage", 527, hunt_id="livrariafire-cave", fixed_rotation=["Fierce Berserk", "Groundshaker"],
+                    fixed_weapon="soulmaimer")
+        self.assertEqual(k["equipment"]["weapon"]["item"]["nome"], "soulmaimer")
+        self.assertTrue(k["equipment"]["weapon"].get("fixed"))
+        self.assertNotIn("shield", k["equipment"])
+        self.assertEqual([sl.spell["nome"] for sl in k["rotation"]], ["Fierce Berserk", "Groundshaker"])
+        # abaixo do nivel da arma (400) o optimizador escolhe outra
+        k100 = pl.plan("knight", "damage", 100, hunt_id="livrariafire-cave", fixed_rotation=["Fierce Berserk", "Groundshaker"],
+                       fixed_weapon="soulmaimer")
+        self.assertNotEqual(k100["equipment"]["weapon"]["item"]["nome"], "soulmaimer")
+        # sem nada fixado: sem comparacao com o modelo, e a chave de cache e None
+        self.assertIsNone(self.plans[("sorcerer", "damage", 500)]["model_rotation"])
+        self.assertIsNone(builds.Planner.fixed_key(None, None))
+        self.assertEqual(builds.Planner.fixed_key(["A"], "Soulmaimer"), (("A",), "soulmaimer"))
+
+    def test_the_other_path_is_a_candidate_and_never_loses_to_the_own_path(self):
+        """Ordem 8, ponto 5: o plano avalia o prefixo do caminho da «best» com a metrica
+        de dano e fica com o melhor — nunca pior do que so o proprio caminho."""
+        for key, b in self.plans.items():
+            scores = b["path_scores"]
+            self.assertIn(b["path_goal"], scores, key)
+            self.assertGreaterEqual(b["score"], max(scores.values()) * 0.97, (key, b["score"], scores))
 
     def test_tree_respects_budget_max_rank_prerequisites_and_vocation(self):
         for (voc, goal, level), b in self.plans.items():

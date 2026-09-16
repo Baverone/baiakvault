@@ -31,6 +31,7 @@ from . import catalog as catalog_module
 from . import db as db_module
 from . import formulas as F
 from . import html as h
+from . import treecode
 
 PORT = 8774
 LOCAL_ADDRESSES = ("127.0.0.1", "::1", "localhost")
@@ -221,11 +222,44 @@ def _tree_form(cat, ch, vault, local, token):
             % (h.fmt(spent), h.fmt(F.tree_budget(level)) if level else h.UNKNOWN),
             h.table(["no", "tipo", "tier", "rank", "max", "custo gasto / ate ao max", "requer"], rows, numeric=(2, 4, 5)),
             "<p>%s</p>" % _seen_at_field()]
-    out = _form("/editar/%s/arvore" % ch["slug"], "".join(body), local, token)
+    # a melhor fonte que ha (ordem 8): o codigo «Exportar» da arvore do jogo, exacto, sem capturas
+    code_body = ['<p><b>Cola aqui o codigo Exportar da tua arvore</b> (na arvore do jogo, botao «Exportar» — copia um '
+                 "codigo <code>BT1-…</code> para o clipboard). Valida-se como o cliente valida ao importar: vocacao, "
+                 "ligacao ao tier 0 e pontos ≤ nivel; grava a arvore INTEIRA (o que nao esta no codigo fica a 0, que "
+                 "e uma afirmacao).</p>",
+                 '<p><input type="text" name="codigo" size="70" placeholder="BT1-%s%s-…" spellcheck="false"> %s</p>'
+                 % (h.esc(treecode.VOCATION_LETTER.get(voc, "?")), h.esc(str(level or "F")), _seen_at_field())]
+    out = _form("/editar/%s/arvore/codigo" % ch["slug"], "".join(code_body), local, token, "Gravar a arvore do codigo")
+    out += _form("/editar/%s/arvore" % ch["slug"], "".join(body), local, token)
     out += _form("/editar/%s/arvore/limpar" % ch["slug"],
                  '<p class="mudo">Esquecer a arvore toda (volta a «desconhecida»): '
                  '<label><input type="checkbox" name="confirmar" required> confirmo</label></p>', local, token, "Limpar arvore")
     return out
+
+
+def _rotation_form(cat, ch, local, token):
+    """A rotacao e a arma que ELE fixou (ordem 8): sao dados, nao sugestoes."""
+    voc = ch.get("vocation")
+    if not voc:
+        return '<p class="mudo">Sem vocacao nao ha feiticos. Grava a vocacao primeiro.</p>'
+    spells = sorted((s for s in cat.vocation_by_name[voc]["feiticos"] if s["tipo"] in ("strike", "area") and s.get("formula_dano")),
+                    key=lambda s: (s["nivel"], s["nome"]))
+    fixed = ch.get("fixed_rotation") or []
+    body = ['<p class="mudo">A rotacao de hunt que decidiste (ordem = prioridade, ate 4). Com ela fixada, a arvore '
+            "recomendada e calculada para ela e a pagina mostra ao lado a que o optimizador escolheria, com a diferenca "
+            "em numero — nunca a substitui. Em branco nos 4 = nao fixada (fica a do optimizador).</p><p>"]
+    for i in range(4):
+        body.append('<label>slot %d <select name="spell_%d">%s</select></label>' % (
+            i + 1, i, _options([(s["nome"], "%s (%s, nivel %d%s)" % (s["nome"], s["palavras"], s["nivel"],
+                                                                     ", runa %d gold" % s["custo_gold"] if s.get("custo_gold") else ""))
+                                for s in spells], fixed[i] if i < len(fixed) else None, blank="—")))
+    body.append("</p>")
+    weapons = item_choices(cat, "weapon", voc, None)
+    body.append('%s<p><label>arma fixada <input type="text" name="weapon" list="armas" value="%s"></label> '
+                '<label><input type="checkbox" name="clear_weapon"> deixar de fixar a arma</label> %s</p>'
+                % (_datalist("armas", weapons), h.esc(cat.item_name(ch["fixed_weapon"]) if ch.get("fixed_weapon") else ""),
+                   _seen_at_field()))
+    return _form("/editar/%s/rotacao" % ch["slug"], "".join(body), local, token)
 
 
 def item_choices(cat, slot, vocation=None, level=None):
@@ -331,6 +365,7 @@ def page_character(cat, vault, ch, local, token, msg=None, err=None):
              '<p><a href="/editar">&larr; personagens</a> · <a href="/personagens/%s.html">a pagina dele</a></p>' % h.esc(ch["slug"]),
              _msg(msg, err)]
     sections = [("Personagem", _character_form(cat, ch, local, token), True),
+                ("Rotacao e arma fixadas", _rotation_form(cat, ch, local, token), False),
                 ("Arvore", _tree_form(cat, ch, vault, local, token), False),
                 ("Equipamento", _equipment_forms(cat, ch, vault, local, token), False),
                 ("Charms", _charms_form(cat, ch, vault, local, token), False),
@@ -381,11 +416,40 @@ def apply_post(cat, vault, path, fields):
                     ranks[key[len("rank_"):]] = rank
         n = vault.set_tree_nodes(cid, ranks, source="manual", seen_at=seen_at)
         return slug, "arvore gravada (%d nos)" % n
+    if action == "arvore/codigo":
+        code = _one(fields, "codigo")
+        if not code:
+            raise FormError("falta o codigo (Exportar na arvore do jogo)")
+        if not ch.get("vocation"):
+            raise FormError("grava a vocacao primeiro: o codigo valida-se contra ela")
+        try:
+            clean, code_level, dropped = treecode.validate_import(cat, ch["vocation"], ch.get("level"), code)
+        except treecode.TreeCodeError as e:
+            raise FormError(str(e))
+        # a arvore inteira: o codigo e a arvore toda, o que nao esta nele e 0 (afirmacao)
+        ranks = {n["id"]: clean.get(n["id"], 0) for n in cat.tree_by_vocation[ch["vocation"]]["nos"]}
+        n = vault.set_tree_nodes(cid, ranks, source="manual", seen_at=seen_at)
+        spent = treecode.points_spent(cat, ch["vocation"], clean)
+        msg = "arvore gravada pelo codigo (%d nos, %d pontos gastos)" % (n, spent)
+        if code_level and ch.get("level") and code_level != ch["level"]:
+            msg += " — o codigo diz nivel %d e a BD tem %d: confirma o nivel" % (code_level, ch["level"])
+        if dropped:
+            msg += " — cairam por nao ligar ao tier 0 (como no cliente): %s" % ", ".join(dropped)
+        return slug, msg
     if action == "arvore/limpar":
         if not _checked(fields, "confirmar"):
             raise FormError("para limpar a arvore e preciso confirmar")
         vault.clear_tree(cid)
         return slug, "arvore esquecida"
+    if action == "rotacao":
+        names = [_one(fields, "spell_%d" % i) for i in range(4)]
+        names = [x for x in names if x]
+        vault.set_fixed_rotation(cid, names or None, source="manual", seen_at=seen_at)
+        if _checked(fields, "clear_weapon"):
+            vault.set_fixed_weapon(cid, None, source="manual", seen_at=seen_at)
+        elif _one(fields, "weapon"):
+            vault.set_fixed_weapon(cid, _one(fields, "weapon"), source="manual", seen_at=seen_at)
+        return slug, ("rotacao fixada: %s" % ", ".join(names)) if names else "rotacao deixou de estar fixada"
     if action == "equipamento":
         slot = _one(fields, "slot")
         if not slot:

@@ -160,6 +160,143 @@ def hand_calculation(cat, ref=REFERENCE):
             "mana_demand": mana_s, "magic_level": magic, "ai_quality": ai_quality}
 
 
+# --- 1b. contas a mao com uma runa e Battle Tactics (ordem 8, 16/09/2026) ------------------------
+# Sorcerer 471 na Livraria FIRE com a rotacao que o Andre fixou (Rage of the Skies + Avalanche —
+# a Avalanche e uma runa: 64 gold por lancamento, 5 de mana, cooldown 2 s), Battle Tactics 7 e o
+# equipamento do perfil de referencia (nao e a build recomendada: e um perfil FIXO que a conta a
+# mao cobre por inteiro). Sem cura e com pocoes: o que se valida e a rotacao (DPS, casts, mana/s),
+# o gold/h das runas e o das pocoes de mana EM REGIME (deficit x preco por mana); as pocoes de vida
+# dependem do ciclo de cura do simulador e nao se validam a mao (a pagina diz o total).
+REFERENCE_RUNE = {
+    "vocation": "sorcerer", "level": 471, "hunt": "livrariafire-cave",
+    "tree": {"s_arcane": 10, "s_crit": 4, "s_energy": 5, "s_devastate": 2, "s_ignite": 1, "s_wildfire": 10,
+             "s_conduit": 5, "s_focus_mastery": 1, "s_overchannel": 7, "s_necro": 1, "s_soulharvest": 1, "s_tactics": 7},
+    "equipment": REFERENCE["equipment"], "imbuements": REFERENCE["imbuements"],
+    "rotation": ["Rage of the Skies", "Avalanche"],
+    "heal": None,
+}
+HAND_CONSTANTS_RUNE = dict(HAND_CONSTANTS, **{
+    "rune_mana": (5, "cliente: `mana: 5` nas runas (bruto/feiticos.json)"),
+    "rune_cd_s": (2, "cliente: `cd: 2000` nas runas"),
+    "area_targets_radius_3plus": (9, "convencao ⚠ AREA_TARGETS: raio 3+ (com o raio de procura da IA somado) = 9, limitado ao pack"),
+    "ultimate_mana_potion": ((800, 488), "cliente: ultimate mana potion, 800 de mana por 488 gold (sorcerer/druid, nivel 130+)"),
+})
+
+
+def _profile_numbers(cat, ref, c):
+    """O que e comum as duas contas a mao: bonus da arvore, skill de magia, critico, IA."""
+    level = ref["level"]
+    node_by_id = cat.node_by_id
+    items = {slot: cat.item_by_key[name] for slot, name in ref["equipment"].items()}
+    imb_by_key = {i["key"]: i for i in (cat.meta("itens").get("imbuements") or {}).get("lista") or []}
+    spell_dmg = crit_chance = crit_dmg = mana_pct = hp_pct = 0.0
+    element_dmg = {}
+    tactics_ranks = 0
+    for nid, rank in ref["tree"].items():
+        node = node_by_id[nid]
+        if (node.get("especial") or {}).get("key") == "tactics":
+            tactics_ranks += rank * node["especial"]["value"]
+        for key, val in (node.get("efeito_por_rank") or {}).items():
+            if key == "spellDmgPct":
+                spell_dmg += val * rank
+            elif key == "critChance":
+                crit_chance += val * rank
+            elif key == "critDmg":
+                crit_dmg += val * rank
+            elif key == "manaPct":
+                mana_pct += val * rank
+            elif key == "hpPct":
+                hp_pct += val * rank
+            elif key == "elementDmgPct":
+                for el, x in val.items():
+                    element_dmg[el] = element_dmg.get(el, 0.0) + x * rank
+    magic = c["skill_base"] + c["skill_per_level"] * level
+    for item in items.values():
+        magic += (item.get("skills") or {}).get("magic", 0)
+        crit_chance += item.get("crit_chance") or 0
+        crit_dmg += item.get("crit_dano") or 0
+    for slot, imbs in ref["imbuements"].items():
+        for key, tier in imbs:
+            info = imb_by_key[key]
+            if info["kind"] == "crit":
+                crit_dmg += info["values"][tier - 1]
+                crit_chance += c["imbuement_crit_chance"]
+    crit = 1 + crit_chance * (c["crit_base"] + crit_dmg) / 10000.0
+    qp = min(10, 0.5 * (level // 100)) + min(10, tactics_ranks)
+    aim = min(1.0, c["tactics_aim_base"] + c["tactics_aim_per_qp"] * qp)
+    ai_quality = aim + (1 - aim) * c["tactics_imperfect"]
+    tree_points = sum(_node_cost(node_by_id[nid], r) for nid, r in ref["tree"].items())
+    return {"items": items, "spell_dmg": spell_dmg, "element_dmg": element_dmg, "magic": magic, "crit": crit,
+            "ai_quality": ai_quality, "qp": qp, "hp_pct": hp_pct, "mana_pct": mana_pct, "tree_points": tree_points}
+
+
+def hand_calculation_rune(cat, ref=REFERENCE_RUNE):
+    """A conta a mao do perfil com runa e Battle Tactics. So JSON e aritmetica."""
+    c = {k: v for k, (v, _) in HAND_CONSTANTS_RUNE.items()}
+    level = ref["level"]
+    voc = cat.vocation_by_name[ref["vocation"]]
+    spells = {s["nome"]: s for s in voc["feiticos"]}
+    p = _profile_numbers(cat, ref, c)
+    hunt = cat.hunt_by_id[ref["hunt"]]
+    pack = hunt["max_vivos"]
+    members = [cat.creature_by_key[m["chave"]] for m in hunt["monstros"]]
+    boss = cat.creature_by_key[hunt["boss_da_wave_10"]["chave"]]
+    mult = p["crit"] * p["ai_quality"]
+
+    def resist(creatures, element):
+        # a mesma leitura do catalogo que o simulador faz (bestiario > 2.a tabela); todos conhecidos aqui
+        return sum((cat.resistances(x)[0] or {}).get(element, 0) for x in creatures) / len(creatures)
+
+    def spell_hit(spell, creatures):
+        el = {"vis": "energy", "frigo": "ice", "flam": "fire", "tera": "earth", "mort": "death"}[
+            next(w for w in spell["palavras"].split() if w in ("vis", "frigo", "flam", "tera", "mort"))]
+        lo, hi = _js_range(spell["formula_dano"], level, p["magic"])
+        return ((lo + hi) / 2) * (1 + p["spell_dmg"] / 100) * (1 + p["element_dmg"].get(el, 0.0) / 100) \
+            * (1 - resist(creatures, el) / 100) * mult
+
+    # a grelha de 2 s (cooldown de grupo): a magia com mais dano por lancamento primeiro — Rage of
+    # the Skies (cooldown 10 s) cabe 6 vezes em 60 s; a runa (cooldown 2 s) apanha os outros 24 slots
+    rage, rune = spells[ref["rotation"][0]], spells[ref["rotation"][1]]
+    assert rune["custo_gold"] and rune["mana"] == c["rune_mana"] and rune["cooldown_ms"] == c["rune_cd_s"] * 1000
+    slots_total = 60 // c["gcd_s"]
+    casts_rage = 60 // (rage["cooldown_ms"] // 1000)
+    casts_rune = slots_total - casts_rage
+    targets = min(pack, c["area_targets_radius_3plus"])
+    wand = p["items"]["weapon"]
+
+    def dps(creatures, is_boss):
+        n = 1 if is_boss else targets
+        total = casts_rage * spell_hit(rage, creatures) * n + casts_rune * spell_hit(rune, creatures) * n
+        auto = (wand["wand_min"] + wand["wand_max"]) / 2 * (1 + p["element_dmg"].get(wand["elemento"], 0.0) / 100) \
+            * (1 - resist(creatures, wand["elemento"]) / 100) * mult / c["auto_interval_s"]
+        return total / 60.0 + auto, auto
+
+    dps_pack, auto = dps(members, False)
+    dps_boss, _ = dps([boss], True)
+    hp_normals = c["cycle_kills"] * sum(x["hp"] for x in members) / len(members)
+    hp_boss = c["boss_hp_mult"] * boss["hp"]
+    dps_cycle = (hp_normals + hp_boss) / (hp_normals / dps_pack + hp_boss / dps_boss)
+    mana_s = (casts_rage * rage["mana"] + casts_rune * rune["mana"]) / 60.0
+    runes_gold_h = casts_rune * rune["custo_gold"] * 60.0
+    # pocoes de mana em regime: cada ponto de mana gasto que nada repoe (sem leech de mana nem regen
+    # conhecida neste perfil) vem de uma pocao, ao preco por mana dela
+    pot_mana, pot_cost = c["ultimate_mana_potion"]
+    mana_potions_gold_h = mana_s * 3600.0 * pot_cost / pot_mana
+    return {"tree_points": p["tree_points"], "ai_quality": p["ai_quality"], "magic_level": p["magic"],
+            "dps_pack": dps_pack, "dps_boss": dps_boss, "dps_cycle": dps_cycle, "auto_dps": auto,
+            "mana_demand": mana_s, "casts_first": casts_rage, "casts_rune": casts_rune,
+            "runes_gold_per_hour": runes_gold_h, "mana_potions_gold_per_hour": mana_potions_gold_h,
+            "hp_max": (c["hp_base"] + c["hp_per_level"] * level) * (1 + p["hp_pct"] / 100),
+            "mana_max": (c["mana_base"] + c["mana_per_level"] * level) * (1 + p["mana_pct"] / 100)}
+
+
+LABELS_RUNE = [("tree_points", "custo da arvore (pontos)"), ("ai_quality", "factor da IA de combate (Battle Tactics 7)"),
+               ("magic_level", "magic level (guia + itens)"), ("hp_max", "HP maximo"), ("mana_max", "mana maxima"),
+               ("casts_first", "lancamentos de Rage of the Skies em 60 s"), ("casts_rune", "lancamentos de Avalanche (runa) em 60 s"),
+               ("dps_pack", "DPS contra o pack"), ("dps_boss", "DPS contra o boss (x3 HP)"), ("dps_cycle", "DPS do ciclo"),
+               ("auto_dps", "dano/s do ataque automatico (wand)"), ("mana_demand", "mana/s gasta pela rotacao"),
+               ("runes_gold_per_hour", "gold/h das runas"), ("mana_potions_gold_per_hour", "gold/h das pocoes de mana em regime")]
+
 LABELS = [("heal_per_cast", "cura por lancamento (exura vita)"), ("tree_points", "custo da arvore (pontos)"),
           ("ai_quality", "factor da IA de combate (Battle Tactics)"),
           ("hp_max", "HP maximo"), ("mana_max", "mana maxima"), ("magic_level", "magic level (guia + itens)"),
@@ -168,10 +305,10 @@ LABELS = [("heal_per_cast", "cura por lancamento (exura vita)"), ("tree_points",
           ("mana_demand", "mana/s gasta pela rotacao")]
 
 
-def compare(hand, engine, tolerance_pct=TOLERANCE_PCT):
+def compare(hand, engine, tolerance_pct=TOLERANCE_PCT, labels=None):
     """[(chave, rotulo, a mao, motor, diferenca %, ok)] — `engine` vem do simulador (build.py)."""
     rows = []
-    for key, label in LABELS:
+    for key, label in (labels or LABELS):
         a, b = hand.get(key), engine.get(key)
         if a is None or b is None:
             rows.append((key, label, a, b, None, False))

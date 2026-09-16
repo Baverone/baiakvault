@@ -13,6 +13,7 @@ from . import builds as B
 from . import formulas as F
 from . import html as h
 from . import sim
+from . import treecode
 from . import validation
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
@@ -184,7 +185,7 @@ def render_build(cat, vocation, goal, plans_by_level, generated_at, extra_by_lev
         parts.append(render_level_section(cat, plans_by_level[level], root, extra_by_level.get(level, "")))
     parts.append(render_sources(cat, vocation))
     parts.append('<p><a href="index.html">&larr; todas as builds</a></p>')
-    return h.page("%s — Builds — BaiakVault" % title(vocation, goal), "".join(parts) + _LEVEL_JS,
+    return h.page("%s — Builds — BaiakVault" % title(vocation, goal), "".join(parts) + _LEVEL_JS + CODE_JS,
                   root=root, here="builds", generated_at=generated_at)
 
 
@@ -345,14 +346,65 @@ def _skills_text(prof):
     return h.esc(", ".join(parts)) + '<small class="mudo">%s</small>' % note
 
 
+# O botao «Copiar» do codigo de build: navigator.clipboard com fallback de seleccao (o mesmo
+# que o cliente faz no «Exportar»). JavaScript vanilla, so aqui.
+CODE_JS = """<script>
+(function(){document.querySelectorAll('button.copiar').forEach(function(b){b.addEventListener('click',function(){
+var t=document.getElementById(b.getAttribute('data-alvo'));if(!t){return}var v=t.value||t.textContent;
+function ok(){b.textContent='Copiado!';setTimeout(function(){b.textContent='Copiar'},1300)}
+function fb(){try{t.focus();t.select();document.execCommand('copy');ok()}catch(e){}}
+if(navigator.clipboard){navigator.clipboard.writeText(v).then(ok,fb)}else{fb()}})})})();
+</script>"""
+
+ROLE_LABEL = {B.ROLE_DAMAGE: "dano", B.ROLE_LINK: "so ligacao", B.ROLE_TACTICS: "tactica", B.ROLE_LEFTOVER: "ponto que sobrou"}
+
+
+def code_block(code, ident, spent_now=None, spent_label=None):
+    """O codigo de build do cliente com «Copiar», a frase de onde o colar e o custo de
+    importar: `fD` = 1000 + 200 x pontos gastos AGORA (0 sem pontos). `spent_now` e
+    o que a BD diz que ele tem gastos («?» sem isso)."""
+    if spent_now is None:
+        cost = ("%s <small class=\"mudo\">(1000 + 200 x pontos gastos agora — nao sei quantos tens gastos%s)</small>"
+                % (h.UNKNOWN, ("; " + spent_label) if spent_label else ""))
+    else:
+        gold = treecode.import_cost(spent_now)
+        cost = ("<b>%s gold</b> <small class=\"mudo\">(cliente fD: %s; %s pontos gastos agora%s)</small>"
+                % (h.kk(gold), "1000 + 200 x pontos" if gold else "0 sem pontos gastos", _n(spent_now),
+                   ("; " + spent_label) if spent_label else ""))
+    return ('<div class="cartao codigo"><h4>Codigo da arvore (Exportar / Importar do cliente)</h4>'
+            '<p><input type="text" id="%s" value="%s" readonly size="%d" spellcheck="false"> '
+            '<button type="button" class="copiar" data-alvo="%s">Copiar</button></p>'
+            '<p class="mudo">Na arvore do personagem: <b>Colar codigo para importar…</b> → <b>Carregar</b>. '
+            "Importar substitui a arvore actual e custa %s. O formato e o do proprio cliente (`BT1-`, um digito "
+            "hexadecimal por no; lido no bundle a 16/09/2026 — se o «Exportar» do jogo deixar de dar `BT1-`, "
+            "o formato mudou).</p></div>"
+            % (h.esc(ident), h.esc(code), min(80, max(30, len(code) + 2)), h.esc(ident), cost))
+
+
+def _validation_line(cat, b):
+    chk = B.tree_check(cat, b["vocation"], b["level"], b["tree"])
+    bits = ["ligada a partir do tier 0" if chk["connected"] else "<b>NAO ligada ao tier 0</b>",
+            "ranks ≤ maximo" if chk["max_rank_ok"] else "<b>rank acima do maximo</b>",
+            "%s de %s pontos" % (_n(chk["spent"]), _n(chk["budget"]))]
+    return ('<p class="mudo"><small>Valida pelas regras do cliente (O3e/yD/Up): %s%s.</small></p>'
+            % ("; ".join(bits), "" if chk["ok"] else " — <b>⚠ invalida</b>"))
+
+
+def _fire_note(cat, tree):
+    names = [cat.node_by_id[nid]["nome"] for nid in tree if cat.node_by_id[nid]["nome"] in B.FIRE_NAMED_GENERIC]
+    if not names:
+        return ""
+    return ('<p class="mudo"><small>Nota sobre os nomes: %s tem nome de fogo mas o efeito e generico '
+            "(<code>spellDmgPct</code>: +dano de TODAS as magias, cliente) — nao sao nos de fogo.</small></p>"
+            % h.esc(", ".join(names)))
+
+
 def _tree_block(cat, b):
-    steps = b["steps"]
+    steps = b.get("order") or b["steps"]
     fill = b["fill_steps"]
+    roles = b.get("roles") or {}
     out = ["<h3>Arvore — %s/%s pontos</h3>" % (_n(b["points_spent"]), _n(b["points_budget"]))]
     rows = []
-    by_node = {}
-    for st in steps:
-        by_node.setdefault(st.node_id, []).append(st.rank)
     # ordem de compra, comprimida: um no seguido ate ao rank em que muda
     order = []
     for st in steps:
@@ -361,13 +413,35 @@ def _tree_block(cat, b):
         else:
             order.append((st.node_id, st.rank, st.rank, st.cumulative))
     for nid, r_to, r_from, cum in order:
+        role, gain = roles.get(nid, (None, None))
+        role_text = h.esc(ROLE_LABEL.get(role, "?"))
+        if gain is not None and role == B.ROLE_DAMAGE:
+            role_text += ' <small class="mudo">%s</small>' % ("+%.1f%%" % gain).replace(".", ",")
         rows.append([h.esc(_node_name(cat, nid)),
                      ("%d" % r_to) if r_from == r_to else "%d → %d" % (r_from, r_to),
-                     _n(cum)])
+                     _n(cum), role_text])
     out.append('<p class="mudo">Ordem de compra a subir de nivel (o numero e o nivel em que se chega la, '
-               "porque cada nivel da um ponto — cliente). Um no fechado abre-se com um rank nos vizinhos, "
-               "e esses ranks estao na ordem.</p>")
-    out.append(h.table(["no", "rank", "ate ao nivel"], rows, numeric=(2,)))
+               "porque cada nivel da um ponto — cliente), <b>clicavel a mao</b>: cada no, quando entra, ja tem um "
+               "vizinho comprado (regra yD do cliente). O papel de cada no: <b>dano</b> (o que rende na metrica, com o "
+               "ganho de o ter), <b>so ligacao</b> (rende ~0 mas segura o ramo), <b>tactica</b> (Battle Tactics), "
+               "<b>ponto que sobrou</b> (gasto no fim, sem rank de dano que o aceitasse — vai para HP/absorcao).</p>")
+    out.append(h.table(["no", "rank", "ate ao nivel", "papel"], rows, numeric=(2,)))
+    out.append(_validation_line(cat, b))
+    out.append(_fire_note(cat, b["tree"]))
+    if b.get("pruned"):
+        out.append('<p class="mudo">Podados no fim (rendiam ~0 na metrica e a arvore continua ligada sem eles; os pontos '
+                   "voltaram a gastar-se): %s.</p>" % h.esc("; ".join(
+                       "%s %d → %d" % (_node_name(cat, nid), a, c) for nid, a, c in b["pruned"])))
+    if b.get("path_scores") and len(b["path_scores"]) > 1:
+        used = b.get("path_goal")
+        out.append('<p class="mudo"><small>Caminho usado: o da build «%s» (metrica %s contra %s do outro caminho — o '
+                   "guloso depende do caminho, e o plano avalia os dois).</small></p>" % (
+                       h.esc(B.GOAL_LABEL.get(used, used)), _n(b["path_scores"].get(used), 1),
+                       ", ".join(_n(v, 1) for k, v in b["path_scores"].items() if k != used)))
+    out.append(code_block(treecode.encode(cat, b["vocation"], b["level"], b["tree"]),
+                          "codigo-%s-%d" % (slug(b["vocation"], b["goal"]), b["level"]),
+                          spent_label="com os %d pontos desta arvore gastos seriam %s gold"
+                          % (b["points_spent"], h.kk(treecode.import_cost(b["points_spent"])))))
     savings = [st for st in steps if getattr(st, "saving", None)]
     if savings:
         out.append('<p class="mudo">Onde o caminho poupa em vez de comprar pequenos (so quando rende pelo menos '
@@ -561,13 +635,52 @@ def _no_runes_note(b):
     return '<p class="mudo">%s.</p>' % h.esc("; ".join(bits))
 
 
+def _pct_diff(a, b):
+    if not b:
+        return h.UNKNOWN
+    return ("%+.0f%%" % ((a / b - 1) * 100)).replace(".", ",")
+
+
+def fixed_rotation_note(b):
+    """Com a rotacao fixada por ele: a que o optimizador escolheria ao lado, com a diferenca
+    de DPS e de gold/h em numero. Nunca se substitui a escolha dele; mostram-se as duas."""
+    if not b.get("fixed_rotation"):
+        return ""
+    bits = []
+    r, mr = b.get("hunt_sim"), b.get("model_sim")
+    rot, mrot = b.get("rotation") or [], b.get("model_rotation") or []
+    if r is not None and mr is not None:
+        fixed_names = [sl.spell["nome"] for sl in rot]
+        model_names = [sl.spell["nome"] for sl in mrot]
+        if fixed_names == model_names:
+            bits.append("hunt: o modelo escolheria a mesma (%s)" % h.esc(", ".join(fixed_names)))
+        else:
+            d = abs(mr.dps / r.dps - 1) * 100 if r.dps else 0.0
+            verdict = ("diferenca dentro do erro do modelo" if d < 5 else "diferenca que vale a pena testar no jogo")
+            if r.gold_per_hour or mr.gold_per_hour:
+                gold = "%s de gold/h (%s vs %s)" % (_pct_diff(mr.gold_per_hour, r.gold_per_hour) if r.gold_per_hour else h.UNKNOWN,
+                                                   h.kk(mr.gold_per_hour), h.kk(r.gold_per_hour))
+            else:
+                gold = "gold/h a 0 nas duas (sem runas nem pocoes de mana)"   # knight/monk: «? (0 vs 0)» era enganador
+            bits.append("hunt: o modelo prefere <b>%s</b> por %s de DPS (%s vs %s) e %s; escolheste %s — %s"
+                        % (h.esc(", ".join(model_names)), _pct_diff(mr.dps, r.dps), _n(mr.dps), _n(r.dps),
+                           gold, h.esc(", ".join(fixed_names)), verdict))
+    bits.append("boss: a do optimizador (%s) — fixaste a rotacao de hunt, nao a de boss"
+                % h.esc(", ".join(sl.spell["nome"] for sl in (b.get("boss_rotation") or []))))
+    weapon = b.get("fixed_weapon")
+    head = ("<b>Rotacao de hunt fixada por ti</b> (%s%s; decisao tua de 16/09/2026 14:30 — e um dado, nao uma sugestao: "
+            "a arvore recomendada foi calculada para ela)." % (h.esc(", ".join(b["fixed_rotation"])),
+                                                              (" com a arma %s" % h.esc(weapon)) if weapon else ""))
+    return '<div class="cartao"><p>%s</p><p class="mudo">%s.</p></div>' % (head, "; ".join(bits))
+
+
 def _helper_block(cat, b, root, print_link=True):
     hc = b["helper"]
     prof = b["profile"]
     m = b["metrics"]
     out = ["<h3>Rotacao para o Helper</h3>",
            '<p class="mudo">Com os nomes dos campos do jogo (etiquetas do cliente). O que vem do canal esta '
-           "marcado [canal]; o resto e o simulador.</p>"]
+           "marcado [canal]; o resto e o simulador.</p>", fixed_rotation_note(b)]
     rot_rows = _rotation_rows(hc["hunt_rotation"], hc.get("hunt_costs") or [], hc.get("hunt_supplies"))
     boss_rows = _rotation_rows(hc["boss_rotation"], hc.get("boss_costs") or [], hc.get("boss_supplies"), boss=True)
     rune_note = _no_runes_note(b)
@@ -721,10 +834,16 @@ ol{margin:2px 0 2px 18px;padding:0}small{color:#666}code{font-size:12px}
 """
 
 
-def render_print(cat, b, generated_at):
+def render_print(cat, b, generated_at, name=None):
+    """O cartao do Helper (390 px, autonomo). Com `name` e o cartao de um personagem
+    dele: a rotacao e a que ele fixou, quando a fixou (`b["fixed_rotation"]`)."""
     hc = b["helper"]
     prof = b["profile"]
     hunt = cat.hunt_by_id[b["hunt"]]["nome"]
+    head = title(prof.vocation, b["goal"]) if not name else "%s (%s)" % (name, title(prof.vocation, b["goal"]))
+    fixed_line = ("<small>rotacao de hunt fixada por ti (%s)%s</small>" % (
+        h.esc(", ".join(b["fixed_rotation"])), (" · arma %s" % h.esc(b["fixed_weapon"])) if b.get("fixed_weapon") else "")
+    ) if b.get("fixed_rotation") else ""
     rune_gold = {c["words"]: c["gold_per_cast"] for c in (hc.get("hunt_costs") or []) + (hc.get("boss_costs") or []) if c["rune"]}
 
     def rune_tag(w):
@@ -735,8 +854,8 @@ def render_print(cat, b, generated_at):
     hs, bs = hc.get("hunt_supplies"), hc.get("boss_supplies")
     gold_line = ("<small>gold/h (pocoes + runas): hunt %s · boss %s</small>"
                  % (h.kk(hs["total"]) if hs else h.UNKNOWN, h.kk(bs["total"]) if bs else h.UNKNOWN))
-    body = ['<div class="card"><h1>Helper — %s, nivel %d</h1><small>ref. %s · BaiakVault %s</small>'
-            % (h.esc(title(prof.vocation, b["goal"])), b["level"], h.esc(hunt), h.esc(generated_at)),
+    body = ['<div class="card"><h1>Helper — %s, nivel %d</h1><small>ref. %s · BaiakVault %s</small>%s'
+            % (h.esc(head), b["level"], h.esc(hunt), h.esc(generated_at), fixed_line),
             "<h2>Cura automática</h2>",
             h.kv([("Cura própria", "%s <code>%s</code>" % (h.esc(hc["heal_spell"]), h.esc(hc["heal_words"]))),
                   ("Cura em", "%d%% de vida" % hc["heal_at"]),
@@ -763,7 +882,7 @@ def render_print(cat, b, generated_at):
     body.append("<small>limiares de cura/pocao: simulador; escudo, aliado e swap: canal CharllonLobo. Sem prey, sem VIP.</small></div>")
     return ("<!doctype html><html lang=\"pt\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
             "content=\"width=device-width,initial-scale=1\"><title>%s</title><style>%s</style></head><body>%s</body></html>"
-            % (h.esc("Helper %s %d — BaiakVault" % (title(prof.vocation, b["goal"]), b["level"])), PRINT_CSS, "".join(body)))
+            % (h.esc("Helper %s %d — BaiakVault" % (head, b["level"])), PRINT_CSS, "".join(body)))
 
 
 # --- validacao (markdown -> html, o minimo) -------------------------------------------------------
@@ -845,8 +964,35 @@ def engine_numbers(cat, ref=validation.REFERENCE):
             "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand_attacks"], "ai_quality": prof.ai_quality}
 
 
+def engine_numbers_rune(cat, ref=validation.REFERENCE_RUNE):
+    """Os numeros de `validation.hand_calculation_rune` pelo simulador: a rotacao fixada
+    (Rage of the Skies + Avalanche) em 60 s sem cura e com pocoes — o gold/h das runas e
+    o das pocoes de mana em regime sao os do simulador; as pocoes de vida ficam de fora
+    da comparacao (dependem do ciclo de cura)."""
+    equipment = {}
+    for slot, name in ref["equipment"].items():
+        equipment[slot] = {"item": cat.item_by_key[name], "up": 0, "imbuements": list(ref["imbuements"].get(slot) or [])}
+    prof = sim.Profile(cat, ref["vocation"], ref["level"], ref["tree"], equipment)
+    target = sim.Target(cat, ref["hunt"])
+    by_name = {s["nome"]: s for s in prof.spells}
+    rotation = B.rotation_slots(prof, target, [by_name[n] for n in ref["rotation"]])
+    pack = sim.simulate(prof, target, rotation, boss=False, heal=None)
+    boss = sim.simulate(prof, target, rotation, boss=True, heal=None)
+    first, rune = by_name[ref["rotation"][0]], by_name[ref["rotation"][1]]
+    return {"tree_points": sum(F.tree_total_cost(cat.node_by_id[k], r) for k, r in ref["tree"].items()),
+            "ai_quality": prof.ai_quality, "magic_level": prof.skills["magic"], "hp_max": prof.hp_max, "mana_max": prof.mana_max,
+            "casts_first": pack.casts.get(first["palavras"], 0), "casts_rune": pack.casts.get(rune["palavras"], 0),
+            "dps_pack": pack.dps, "dps_boss": boss.dps, "dps_cycle": sim.cycle_dps(pack.dps, boss.dps, target),
+            "auto_dps": pack.auto_dps, "mana_demand": pack.mana_demand_attacks,
+            "runes_gold_per_hour": pack.runes_per_hour, "mana_potions_gold_per_hour": pack.mana_potions_per_hour}
+
+
 def validation_rows(cat):
     return validation.compare(validation.hand_calculation(cat), engine_numbers(cat))
+
+
+def validation_rows_rune(cat):
+    return validation.compare(validation.hand_calculation_rune(cat), engine_numbers_rune(cat), labels=validation.LABELS_RUNE)
 
 
 def _md_num(x, decimals=1):
@@ -855,7 +1001,7 @@ def _md_num(x, decimals=1):
     return h.fmt(x, decimals)
 
 
-def validation_markdown(cat, plans, rows=None):
+def validation_markdown(cat, plans, rows=None, rows_rune=None):
     """O `docs/builds/validacao.md` gerado: contas a mao vs simulador, a curva do guia
     por build e nivel, e as discordancias guia/cliente. Nada e escondido: uma
     linha fora da tolerancia sai marcada (e o teste chumba)."""
@@ -886,6 +1032,32 @@ def validation_markdown(cat, plans, rows=None):
     out.append("")
     out.append("**%s**" % ("Tudo dentro da tolerancia." if not bad else
                            "%d numero(s) fora da tolerancia — o simulador e a conta a mao discordam; ver acima." % len(bad)))
+    # 1b: com uma runa e Battle Tactics (ordem 8)
+    rr = validation.REFERENCE_RUNE
+    rows_rune = rows_rune if rows_rune is not None else validation_rows_rune(cat)
+    out += ["", "## 1b. Contas a mao com uma runa e Battle Tactics (ordem 8, 16/09/2026)", "",
+            "Perfil: **%s nivel %d em %s**, a rotacao que o Andre fixou (%s — a Avalanche e uma runa: %d gold por "
+            "lancamento, mana 5, cooldown 2 s), Battle Tactics 7, arvore de %d nos (%s), o equipamento e os imbuements "
+            "do perfil de cima. Sem cura e com pocoes: o que se confere e a rotacao na grelha de 2 s (a magia com mais "
+            "dano por lancamento primeiro: Rage of the Skies cabe 6 vezes em 60 s, a runa apanha os outros 24 slots), "
+            "o gold/h das runas e o das pocoes de mana **em regime** (deficit de mana x preco por mana da ultimate mana "
+            "potion, %d gold por %d). As pocoes de vida dependem do ciclo de cura do simulador e nao se validam a mao. "
+            "Constantes proprias desta conta: %s." % (
+                rr["vocation"], rr["level"], cat.hunt_by_id[rr["hunt"]]["nome"], " + ".join(rr["rotation"]),
+                next(s["custo_gold"] for s in cat.vocation_by_name[rr["vocation"]]["feiticos"] if s["nome"] == rr["rotation"][1]),
+                len(rr["tree"]), ", ".join("%s %d" % (cat.node_by_id[k]["nome"], r) for k, r in rr["tree"].items()),
+                validation.HAND_CONSTANTS_RUNE["ultimate_mana_potion"][0][1], validation.HAND_CONSTANTS_RUNE["ultimate_mana_potion"][0][0],
+                "; ".join("%s = %s (%s)" % (k, v, src) for k, (v, src) in validation.HAND_CONSTANTS_RUNE.items()
+                          if k not in validation.HAND_CONSTANTS)),
+            "", "| numero | a mao | simulador | diferenca | |", "|---|---|---|---|---|"]
+    for key, label, a, b, diff, ok in rows_rune:
+        out.append("| %s | %s | %s | %s | %s |" % (
+            label, _md_num(a), _md_num(b), ("%+.2f %%" % diff).replace(".", ",") if diff is not None else "?",
+            "ok" if ok else "**DIFERENTE ⚠**"))
+    bad_rune = [r for r in rows_rune if not r[5]]
+    out.append("")
+    out.append("**%s**" % ("Tudo dentro da tolerancia." if not bad_rune else
+                           "%d numero(s) fora da tolerancia — o simulador e a conta a mao discordam; ver acima." % len(bad_rune)))
     out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
             "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
             "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (

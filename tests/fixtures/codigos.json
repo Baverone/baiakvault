@@ -1,0 +1,197 @@
+{
+ "gerado_em": "2026-09-16 15:15 Lisboa",
+ "fonte": "supervisor (Claude), motor proprio a partir de arvore.json; formato V3e/U3e do bundle index-DnzxFejS",
+ "formato": "BT1-<K|P|S|D|M><nivel|F>-<um digito hex por no, nos ordenados por id (ordem de string), zeros finais removidos, maiusculas>",
+ "custo_importar": "fD(pontos_gastos_actuais) = 0 se 0, senao 1000 + 200 * pontos (o mesmo do Reset All)",
+ "builds": [
+  {
+   "voc": "knight",
+   "nivel": 527,
+   "pontos": 527,
+   "codigo": "BT1-K527-0000120170100000A009000101500131003360000A5",
+   "alloc": {
+    "k_fury": 10,
+    "k_haste": 9,
+    "k_warlord": 10,
+    "k_second_wind": 1,
+    "k_cleave": 7,
+    "k_tactics": 6,
+    "k_smash": 3,
+    "k_bloodlust": 1,
+    "k_precision": 1,
+    "k_overpower": 1,
+    "k_smite": 3,
+    "k_warlust": 5,
+    "k_rampage": 5,
+    "k_sharp": 3,
+    "k_slash1": 1,
+    "k_brutal": 2,
+    "k_combat_mastery": 1,
+    "k_carnage": 1
+   },
+   "rotacao_fixada_pelo_andre": [
+    "Fierce Berserk",
+    "Groundshaker"
+   ],
+   "arma": "Soulmaimer",
+   "removidos_na_revisao": [
+    "Vigor",
+    "Vampiric Blows"
+   ],
+   "so_ligacao": [
+    "Second Wind",
+    "Bloodlust"
+   ]
+  },
+  {
+   "voc": "druid",
+   "nivel": 488,
+   "pontos": 488,
+   "codigo": "BT1-D488-010030166120500101A000110A00200060007",
+   "alloc": {
+    "d_nature": 10,
+    "d_ice": 10,
+    "d_frostbite": 2,
+    "d_glacier": 5,
+    "d_winterheart": 7,
+    "d_permafrost": 2,
+    "d_elder": 6,
+    "d_lifekeeper": 1,
+    "d_evergreen": 6,
+    "d_crit": 3,
+    "d_earth": 1,
+    "d_fortune": 1,
+    "d_herbalist": 1,
+    "d_lucky": 1,
+    "d_tactics": 6,
+    "d_hailstorm": 1,
+    "d_bark": 1
+   },
+   "rotacao_fixada_pelo_andre": [
+    "Eternal Winter",
+    "Avalanche"
+   ],
+   "arma": null,
+   "removidos_na_revisao": [
+    "Nature's Bond"
+   ],
+   "so_ligacao": [
+    "Lifekeeper",
+    "Terra Attunement",
+    "Fortune",
+    "Herbalist",
+    "Lucky Charm"
+   ]
+  },
+  {
+   "voc": "sorcerer",
+   "nivel": 471,
+   "pontos": 471,
+   "codigo": "BT1-S471-A50005005410205001100600000007010113710A",
+   "alloc": {
+    "s_arcane": 10,
+    "s_wildfire": 10,
+    "s_energy": 5,
+    "s_conduit": 5,
+    "s_crit": 4,
+    "s_soulharvest": 1,
+    "s_reaper": 1,
+    "s_deathchill": 1,
+    "s_archmage": 5,
+    "s_tactics": 7,
+    "s_voidtouch": 1,
+    "s_cataclysm": 5,
+    "s_stormcall": 3,
+    "s_focus_mastery": 1,
+    "s_overchannel": 7,
+    "s_scorch": 1,
+    "s_inferno": 6,
+    "s_devastate": 2,
+    "s_haste": 1
+   },
+   "rotacao_fixada_pelo_andre": [
+    "Rage of the Skies",
+    "Avalanche"
+   ],
+   "arma": null,
+   "removidos_na_revisao": [
+    "Pyromancy",
+    "Ignite",
+    "Necromancy"
+   ],
+   "so_ligacao": [
+    "Soul Harvest",
+    "Reaper",
+    "Scorch"
+   ]
+  },
+  {
+   "voc": "monk",
+   "nivel": 306,
+   "pontos": 306,
+   "codigo": "BT1-M306-4000010409512000001100700040000000368",
+   "alloc": {
+    "m_fists": 9,
+    "m_flow": 5,
+    "m_palm": 7,
+    "m_tigerstyle": 8,
+    "m_swiftstrikes": 3,
+    "m_sacred": 4,
+    "m_dragonfist": 4,
+    "m_flurry": 1,
+    "m_innerpeace": 1,
+    "m_ascendant": 4,
+    "m_focus": 2,
+    "m_combat_mastery": 1,
+    "m_tactics": 6,
+    "m_iron": 1
+   },
+   "rotacao_fixada_pelo_andre": null,
+   "arma": null,
+   "removidos_na_revisao": [],
+   "so_ligacao": [
+    "Inner Peace"
+   ]
+  },
+  {
+   "voc": "paladin",
+   "nivel": 226,
+   "pontos": 226,
+   "codigo": "BT1-P226-03000201100001010471601200063010001451404",
+   "alloc": {
+    "p_might": 7,
+    "p_rapid": 6,
+    "p_piercing": 6,
+    "p_precision": 2,
+    "p_swift": 4,
+    "p_marksman": 4,
+    "p_deadly": 1,
+    "p_zealot": 4,
+    "p_volley": 4,
+    "p_hawkeye": 1,
+    "p_relentless": 3,
+    "p_aim": 3,
+    "p_pace": 1,
+    "p_spirit": 1,
+    "p_tactics": 5,
+    "p_blessed": 2,
+    "p_power": 1,
+    "p_crusader": 1,
+    "p_leech": 1,
+    "p_sanctify": 1,
+    "p_vitality": 1
+   },
+   "rotacao_fixada_pelo_andre": null,
+   "arma": null,
+   "removidos_na_revisao": [
+    "Holy Ward",
+    "Scavenger"
+   ],
+   "so_ligacao": [
+    "Hunter's Pace",
+    "Spirit Sip",
+    "Lifesteal Shot"
+   ]
+  }
+ ]
+}

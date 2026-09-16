@@ -24,6 +24,7 @@ from . import charms as charms_module
 from . import db as db_module
 from . import formulas as F
 from . import sim
+from . import treecode
 
 METRIC_LABEL = {"best": "DPS do ciclo sustentavel (aguenta + mana; druid: cura o knight)",
                 "damage": "DPS do ciclo (= XP/h; knight/monk: o que a mana sustenta) x nao morrer", "tank": "EHP x sustain x DPS^0,3",
@@ -69,6 +70,8 @@ def state_from_rows(character, tree_rows=(), equipment_rows=(), charm_rows=(), p
         "name": character.get("name"), "vocation": character.get("vocation"),
         "level": character.get("level"), "goal": character.get("goal"),
         "current_hunt": character.get("current_hunt"), "vip": character.get("vip"),
+        # o que ele fixou (ordem 8): rotacao (lista de nomes) e arma (chave do item)
+        "fixed_rotation": character.get("fixed_rotation"), "fixed_weapon": character.get("fixed_weapon"),
         "tree": {r["node_key"]: r["rank"] for r in tree_rows} if tree_rows else None,
         "equipment": {r["slot"]: {"item_key": r.get("item_key"), "upgrade_level": r.get("upgrade_level"),
                                   "imbuements": r.get("imbuements"), "attributes": r.get("attributes")}
@@ -250,18 +253,50 @@ def tree_suggestions(cat, state, goal, target, equipment, rotation, plan, curren
     diff_points = sum(max(0, F.tree_total_cost(cat.node_by_id[k], r) - F.tree_total_cost(cat.node_by_id[k], ranks.get(k, 0)))
                       for k, r in plan["tree"].items())
     if gain >= RESPEC_MIN_GAIN_PCT and diff_points > 0 and left <= budget * 0.1:
-        # com pontos por gastar o respec nao faz sentido: primeiro gastam-se
+        # com pontos por gastar o respec nao faz sentido: primeiro gastam-se. O custo e o de
+        # importar o codigo da recomendada (cliente fD, o mesmo do Reset All); o codigo esta na pagina
         out.append(_suggestion(
-            "respec", "Respec para a arvore recomendada (%s %s, nivel %d)" % (voc, goal, level),
-            "%s na metrica «%s» com o teu equipamento; %d pontos da recomendada nao estao na tua"
+            "respec", "Importar o codigo da arvore recomendada (%s %s, nivel %d)" % (voc, goal, level),
+            "%s na metrica «%s» com o teu equipamento; %d pontos da recomendada nao estao na tua — "
+            "na arvore do personagem: Colar codigo para importar… → Carregar"
             % (_fmt_pct(gain), metric, diff_points),
-            "%s gold de respec (cliente)" % _thousands(F.tree_respec_gold(spent)), SOURCE_SIM,
-            gain * RESPEC_SCORE_FACTOR, gain_pct=gain))
+            "%s gold (cliente fD: 1000 + 200 x %d pontos gastos agora)" % (_thousands(treecode.import_cost(spent)), spent),
+            SOURCE_SIM, gain * RESPEC_SCORE_FACTOR, gain_pct=gain))
     return out
 
 
 def _thousands(n):
     return "{:,}".format(int(round(n))).replace(",", ".")
+
+
+def tree_diff(cat, vocation, level, his_tree, plan_tree):
+    """A diferenca entre a arvore dele (importada pelo codigo, ou registada) e a
+    recomendada: nos a subir e a tirar, em pontos, e o gold que importar a
+    recomendada custa AGORA (cliente `fD`: 1000 + 200 x pontos gastos, 0 sem
+    pontos). `None` sem arvore dele. O codigo da recomendada vai sempre."""
+    code = treecode.encode(cat, vocation, level, plan_tree)
+    plan_spent = _tree_spent(cat, plan_tree)
+    if his_tree is None:
+        return {"known": False, "code": code, "plan_spent": plan_spent, "gold": None, "same": False,
+                "add": [], "remove": [], "points_add": 0, "points_remove": 0, "his_spent": None}
+    add, remove = [], []
+    points_add = points_remove = 0
+    for nid in sorted(set(his_tree) | set(plan_tree)):
+        a, b = his_tree.get(nid, 0) or 0, plan_tree.get(nid, 0) or 0
+        node = cat.node_by_id.get(nid)
+        if not node or a == b:
+            continue
+        delta = F.tree_total_cost(node, b) - F.tree_total_cost(node, a)
+        if b > a:
+            add.append((nid, node["nome"], a, b, delta))
+            points_add += delta
+        else:
+            remove.append((nid, node["nome"], a, b, -delta))
+            points_remove += -delta
+    his_spent = _tree_spent(cat, his_tree)
+    return {"known": True, "code": code, "plan_spent": plan_spent, "his_spent": his_spent,
+            "gold": treecode.import_cost(his_spent), "same": not add and not remove,
+            "add": add, "remove": remove, "points_add": points_add, "points_remove": points_remove}
 
 
 def _item_stats(item):
@@ -298,6 +333,8 @@ def equipment_suggestions(cat, state, goal, target, equipment, rotation, current
     for slot in slots:
         if slot == "shield" and weapon and weapon.get("duas_maos"):
             continue
+        if slot == "weapon" and state.get("fixed_weapon"):
+            continue   # a arma e decisao dele (ordem 8): nao se sugere trocar
         if slot not in known:
             missing_slots.append(SLOT_LABEL.get(slot, slot))
             continue
@@ -449,19 +486,22 @@ def advise(cat, state, planner, max_items=MAX_SUGGESTIONS):
     hunt_defaulted = hunt is None
     if hunt_defaulted:
         hunt = B.reference_hunt(cat, level)
-    plan = planner.plan(voc, goal, level, hunt_id=hunt)
+    fixed_rotation, fixed_weapon = state.get("fixed_rotation"), state.get("fixed_weapon")
+    plan = planner.plan(voc, goal, level, hunt_id=hunt, fixed_rotation=fixed_rotation, fixed_weapon=fixed_weapon)
     target = planner.target_for(voc, goal, level, hunt)   # no druid «best» traz a pressao sobre o knight
     index = imbuement_index(cat)
     equipment, notes = profile_equipment(cat, state.get("equipment"), index)
     tree = state.get("tree") or {}
     prof = sim.Profile(cat, voc, level, tree, equipment)
-    rotation, _ = B.choose_rotation(prof, target, goal=goal)
+    # a rotacao dele: a que fixou (se o nivel a der), senao a que o optimizador escolhe com o que ele tem
+    rotation, _ = planner.rotation(prof, target, False, goal, fixed=planner.fixed_key(fixed_rotation, fixed_weapon))
     current_metrics = B.evaluate(prof, target, rotation)
     current_score = B.score_of(current_metrics, goal)
     metric = METRIC_LABEL[goal]
 
     suggestions = []
     suggestions += tree_suggestions(cat, state, goal, target, equipment, rotation, plan, current_score, metric)
+    diff = tree_diff(cat, voc, level, state.get("tree"), plan["tree"])
     suggestions += equipment_suggestions(cat, state, goal, target, equipment, rotation, current_score, metric, index)
     suggestions += charm_suggestions(cat, state, goal)
     suggestions += bestiary_suggestions(cat, state)
@@ -474,6 +514,7 @@ def advise(cat, state, planner, max_items=MAX_SUGGESTIONS):
     return {"goal": goal, "goal_defaulted": goal_defaulted, "hunt": hunt, "hunt_defaulted": hunt_defaulted,
             "plan": plan, "current": current_metrics, "current_score": current_score,
             "plan_score": plan["score"], "metric": metric, "notes": notes, "suggestions": final,
-            "assumed_skill": prof.assumed_skill,
+            "assumed_skill": prof.assumed_skill, "tree_diff": diff, "rotation": rotation,
+            "fixed_rotation": fixed_rotation, "fixed_weapon": fixed_weapon,
             # para o motor dos charms: as estatisticas dele (critico, roubo, HP) e se ha equipamento registado
             "profile": prof, "equipment_known": bool(equipment)}
