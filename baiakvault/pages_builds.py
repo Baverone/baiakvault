@@ -483,7 +483,7 @@ def _excluded_text(hc):
     return '<p class="mudo"><small>%s.</small></p>' % h.esc("; ".join(bits))
 
 
-def _helper_block(cat, b, root):
+def _helper_block(cat, b, root, print_link=True):
     hc = b["helper"]
     prof = b["profile"]
     m = b["metrics"]
@@ -540,8 +540,61 @@ def _helper_block(cat, b, root):
         ("numeros", "DPS %s, maior golpe do boss %s, mana %s" % (_n(m["dps_boss"]), _n(m["boss_max_hit"]),
                                                                  ("esgota aos %d s" % m["boss_mana_empty_at"]) if m["boss_mana_empty_at"] is not None else "aguenta os 60 s")),
     ]) + rune_note + "</div>")
-    out.append('<p><a href="%sprint/helper-%s-%d.html">cartao para copiar (390 px)</a></p>'
-               % (root, slug(prof.vocation, b["goal"]), b["level"]))
+    if print_link:
+        out.append('<p><a href="%sprint/helper-%s-%d.html">cartao para copiar (390 px)</a></p>'
+                   % (root, slug(prof.vocation, b["goal"]), b["level"]))
+    return "".join(out)
+
+
+# As quatro pranchas do canal (video h8KqkibxfOc): opiniao, citada. Uma prancha por
+# rank de Battle Tactics; a prancha so decide ONDE (cliente).
+CANAL_BOARDS = (("encerramento", "fechar o pack: todos colados ao alvo para as areas apanharem tudo"),
+                ("UE", "a party junta no centro para o Ultimate Explosion/areas grandes apanharem o pack inteiro"),
+                ("waves", "em linha atras do tank para os waves/beams cobrirem a frente"),
+                ("main", "a posicao de sempre: tank a frente, mages e paladin a 3 tiles"))
+BOARDS_VIDEO = "h8KqkibxfOc"
+
+
+def render_tactics_block(cat, hunt, plans):
+    """O bloco «Tacticas» de uma hunt: pranchas = ranks de Battle Tactics de cada
+    personagem, o que uma prancha decide (so posicao — cliente) e as quatro do canal."""
+    rows = []
+    for c, b in plans:
+        ranks = b["profile"].specials.get("tactics", 0)
+        t = b["profile"].tactics
+        rows.append([h.esc(c["name"]), "%d" % ranks, "nivel %d · %s (raio %d)" % (t["tier"], _pct(t["aim_chance"] * 100, 1), t["cast_search_radius"]),
+                     "sim" if t["infinite_kite"] else "nao"])
+    out = ["<h3>Tacticas (pranchas)</h3>",
+           '<p class="mudo">Cliente: «Uma prancha por ponto de Battle Tactics … Nunca decide magia, cura nem '
+           "pocao: so ONDE»; «cada rank vale +100 niveis de IA e afia a CHANCE de jogar perfeito — mira, "
+           "posicionamento e reacao (nivel 3 de tatica destrava o kite infinito sem tank)». As pranchas que "
+           "tem sao os ranks de Battle Tactics na arvore registada (build recomendada quando a dele nao esta).</p>"]
+    if rows:
+        out.append(h.table(["personagem", "pranchas (ranks)", "tactica", "kite infinito"], rows))
+    pack = int(hunt.get("max_vivos") or 1)
+    suggested = "UE + main" if pack >= 4 else "main"
+    out.append('<p>As quatro pranchas do canal [%s]: %s. Para esta hunt (%d vivos): <b>%s</b>. '
+               '<b>Exportar as pranchas actuais antes de importar</b> as do canal — a importacao substitui.'
+               '<br><small class="mudo">opiniao do canal CharllonLobo, nao medida</small></p>'
+               % (BOARDS_VIDEO, "; ".join("<b>%s</b> — %s" % (h.esc(n), h.esc(d)) for n, d in CANAL_BOARDS), pack, suggested))
+    return "".join(out)
+
+
+def render_hunt_helper(cat, hunt, plans, root):
+    """Na pagina da hunt: o Helper (rotacao hunt/boss, cura, pocoes) de cada
+    personagem dele que a tem como actual, com as etiquetas do jogo, e as Tacticas."""
+    out = ["<h2>Helper e Tacticas nesta hunt</h2>"]
+    if not plans:
+        out.append('<p class="mudo">O bloco do Helper por vocacao aparece aqui quando um personagem tiver esta '
+                   "hunt como actual (a rotacao e por nivel e equipamento, calcula-se por personagem). "
+                   'As builds genericas estao em <a href="%sbuilds/index.html">Builds</a>.</p>' % root)
+    for c, b in plans:
+        out.append('<h3>%s — %s nivel %d (build recomendada %s)</h3>'
+                   % (h.esc(c["name"]), h.esc(VOCATION_LABEL.get(b["vocation"], b["vocation"])), b["level"],
+                      h.esc(B.GOAL_LABEL.get(b["goal"], b["goal"]))))
+        out.append(_helper_block(cat, b, root, print_link=False))   # o cartao so existe nos niveis representativos
+        out.append('<p class="mudo"><small>%s</small></p>' % _tactics_text(b["profile"]))
+    out.append(render_tactics_block(cat, hunt, plans))
     return "".join(out)
 
 

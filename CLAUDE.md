@@ -270,6 +270,55 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   renomeado deixava a pagina antiga em `docs/` e ia para o Pages. Nunca toca
   em ficheiros fora dessas pastas/padroes.
 
+- **16/09/2026 (ordem 6, supervisao — fechada na ordem 7)** — A ordem 6 morreu por
+  timeout com o codigo a meio (sem commit, `build.py` sem compilar); a ordem 7
+  fechou-a ao minimo. (1) **Leech so no ataque normal e nos strikes** (`sim`: nunca
+  areas nem curas; fonte: texto dos charms Vampiric Embrace/Void's Call,
+  `formulas.LEECH_SCOPE`). (2) **Poupar para um notable** so quando o pacote rende
+  >= 1,1x o que os mesmos pontos rendem nos outros nos, medidos no simulador ao
+  nivel em que se chega la (`builds.SAVE_*`; a regra «<= 15 % do nivel ou <= 60
+  niveis» proibiria para sempre notables acima de 60 pontos). (3) **Build «best»**
+  por vocacao, omissao de cada uma (esquema **v4**): DPS do ciclo x (fraccao
+  cumprida de cada condicao)^2 — aguentar o pack inteiro e o boss > 10 min (60 s
+  simulados com curas/pocoes, tendencia extrapolada), mana sustentavel
+  (knight/monk sem pocoes; os outros sem esgotar), druid a cobrir a pressao do
+  pack sobre o knight «best» da mesma party. O caminho da arvore pode ser por hunt
+  (`Planner.path(..., hunt_id)`), so acima do nivel minimo dela. (4) Os 5
+  personagens dele na `vault.db` com os niveis que deu (Knight 527, Druid 488,
+  Sorcerer 471, Monk 306, Paladin 226), Livraria FIRE, `best`, nomes provisorios =
+  vocacao; arvore/equipamento/charms vazios ate haver capturas. 13 builds x 8
+  niveis = 104 (tecto do teste: 60 s).
+- **16/09/2026 (ordem 7, regra do Andre 13:00)** — **Beams so no boss**: «usar
+  beams para hunt nao serve; beam so serve para boss». Energy Beam, Great Energy
+  Beam e Great Death Beam (`builds.BEAM_SPELLS`) ficam fora da rotacao de hunt; no
+  boss continuam candidatos. A pagina diz «beams: so no boss (decisao do Andre,
+  16/09/2026)».
+- **16/09/2026 (ordem 7)** — **Elemento a que a hunt e imune fica fora da rotacao
+  de hunt**: multiplicador medio de elemento no pack (1 - resistencia media, com
+  pierce) < 0,5 (`builds.HUNT_ELEMENT_MIN_MULT`) exclui o feitico (na Livraria
+  FIRE, Hell's Core e Great Fire Wave). Se a regra nao deixasse nenhum, fica so a
+  dos beams. O simulador ja pesava as resistencias por feitico (`hit_vs`); isto e
+  a trava para a optimizacao «a qualquer mana». A pagina e o cartao dizem o que
+  saiu e porque (`helper["hunt_excluded"]`).
+- **16/09/2026 (ordem 7)** — **Battle Tactics entra no motor**: `formulas.battle_tactics`
+  e o `u4e(level, ranks)` do cliente a letra (tier, qp, `aimChance` = chance de
+  decisao perfeita, `castSearchRadius`, `repositionMinMs`, kite infinito a tier 3).
+  **Convencao ⚠** (`TACTICS_IMPERFECT_FACTOR` = 0,6): uma decisao imperfeita rende
+  60 % do dano de uma perfeita — factor `aim + (1-aim) x 0,6` em todo o dano que
+  sai (`Profile.ai_quality`, em `hit_vs`) e o simetrico `1 + (1-aim) x 0,4` no
+  dano/s que entra (`Profile.ai_taken`, em `pressure`; o maior golpe nao muda).
+  `castSearchRadius` soma-se ao raio das areas para contar alvos
+  (`TACTICS_RADIUS_TO_TARGETS`, convencao). A conta a mao da validacao aplica o
+  mesmo factor de forma independente (os numeros de referencia de 16/09 de manha
+  x 0,8). A pagina mostra «Tactica: nivel N · X % (raio Y)» com e sem o no;
+  `validacao.md` §4 separa cliente de convencao.
+- **16/09/2026 (ordem 7)** — Pagina da hunt: bloco «Helper e Tacticas» com o Helper
+  de cada personagem dele que a tem como actual (o plano vem do advisor, nao se
+  recalcula; sem cartao print porque so existem nos niveis representativos) e as
+  quatro pranchas do canal (h8KqkibxfOc: encerramento, UE, waves, main; 4+ vivos =
+  UE + main) com o aviso de exportar antes de importar. Hunts sem personagem
+  mostram so as Tacticas e dizem porque.
+
 ## Fontes
 
 - Catalogos: bundle publico do cliente, `https://baiakidle.com/jogar/assets/index-DnzxFejS.js` (09/09/2026). Extraccao: `ai-pc\knowledge\baiakidle\` (`_extrair_catalogos.py`, `dados\construir.py`, `dados\validar.py`). Duvidas e o que fica `null`: `ai-pc\knowledge\baiakidle\dados\duvidas.md`.

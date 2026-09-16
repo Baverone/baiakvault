@@ -151,7 +151,9 @@ def render_hunts_index(cat, generated_at):
                   generated_at=generated_at)
 
 
-def render_hunt(cat, hunt, generated_at, charm_section=""):
+def render_hunt(cat, hunt, generated_at, charm_section="", helper_plans=None):
+    """`helper_plans` = [(personagem, plano do Planner nesta hunt)] — os personagens
+    dele com esta hunt como actual (o plano ja vem do advisor, nao se recalcula)."""
     root = "../"
     parts = ["<h1>%s</h1>" % h.esc(hunt["nome"])]
     note = notes.for_hunt(hunt["id"])
@@ -218,6 +220,7 @@ def render_hunt(cat, hunt, generated_at, charm_section=""):
             parts.append('<p class="mudo">Loot do boss: nao esta no catalogo.</p>')
 
     parts.append(charm_section)
+    parts.append(pages_builds.render_hunt_helper(cat, hunt, helper_plans or [], "../"))
 
     parts.append("<h2>Drops que mais valem</h2>")
     best = hunt.get("drops_que_mais_valem") or []
@@ -524,8 +527,10 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
             ceiling["_level"] = level
             per_character = [(c, recs[c["slug"]][hunt["id"]]) for c in characters if hunt["id"] in recs[c["slug"]]]
             section = pages_charms.render_hunt_section(cat, "../", per_character, ceiling)
+            helper_plans = [(c, advice_by_slug[c["slug"]]["plan"]) for c in characters
+                            if c.get("current_hunt") == hunt["id"] and advice_by_slug[c["slug"]].get("plan")]
             written.append(_write(out / "hunts" / (hunt["id"] + ".html"),
-                                  render_hunt(cat, hunt, generated_at, section)))
+                                  render_hunt(cat, hunt, generated_at, section, helper_plans)))
         written.append(_write(out / "charms" / "index.html", render_charms(cat, generated_at, characters, states, advice_by_slug)))
         md = CHARMS_MD if CHARMS_MD.is_file() else (out / "charms.md")
         if md.is_file():
