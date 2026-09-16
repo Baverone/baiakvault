@@ -432,7 +432,18 @@ def spell_targets(spell, pack, boss):
 
 def spell_damage(profile, spell, target, boss):
     """Dano medio de um lancamento contra a mistura da hunt (ou o boss), ja com
-    o numero de alvos de uma area e a cadeia (chain) quando a ha."""
+    o numero de alvos de uma area e a cadeia (chain) quando a ha. Com memoria
+    no perfil: a escolha da rotacao pede o mesmo numero dezenas de vezes."""
+    cache = profile.__dict__.setdefault("_dmg_cache", {})
+    key = (spell["palavras"], target.hunt_id, boss)
+    hit = cache.get(key)
+    if hit is not None:
+        return hit
+    cache[key] = value = _spell_damage(profile, spell, target, boss)
+    return value
+
+
+def _spell_damage(profile, spell, target, boss):
     base = profile.spell_base(spell)
     element = F.spell_element(spell["palavras"])
     resist = target.boss_resist if boss else target.resist
@@ -479,6 +490,7 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
     hp = hp_max = profile.hp_max
     mana = mana_max = profile.mana_max
     casts = {}
+    cast_log = []  # (segundo, palavras) — para os testes provarem cooldowns e GCD
     cooldown_until = {}
     gcd_attack = 0
     gcd_heal = 0
@@ -492,20 +504,44 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
     hp_min = hp
     empty_at = None
     death_at = None
-    slots = [(slot, spell_damage(profile, slot.spell, target, boss)) for slot in rotation
-             if slot.spell.get("formula_dano")]
+    # os slots ficam em tuplos e listas locais: o ciclo corre milhares de vezes
+    # por build e cada lookup de dicionario conta
+    slots = []
+    for slot in rotation:
+        sp = slot.spell
+        if not sp.get("formula_dano"):
+            continue
+        skip = sp["tipo"] == "area" and not boss and cat_pack < slot.min_mobs
+        slots.append((len(slots), sp["palavras"], sp["mana"], max(1, int(round(sp["cooldown_ms"] / 1000.0))),
+                      spell_damage(profile, sp, target, boss), sp.get("custo_gold") or 0, skip))
+    n_slots = len(slots)
+    cd_ready = [0] * n_slots
+    n_casts = [0] * n_slots
+    gcd_attack_s = int(round(F.ATTACK_GCD_MS / 1000.0))
+    gcd_heal_s = int(round(F.HEAL_GCD_MS / 1000.0))
     heal_spell = heal
     heal_amount = profile.heal_amount(heal_spell) if heal_spell else 0.0
+    heal_mana = heal_spell["mana"] if heal_spell else 0
+    heal_cd = max(1, int(round(heal_spell["cooldown_ms"] / 1000.0))) if heal_spell else 0
+    heal_ready = 0
+    heal_casts = 0
+    heal_below = hp_max * profile.heal_at_pct / 100.0
     life_leech = bon["lifeLeech"] / 100.0 * F.LEECH_EFFECTIVE_FACTOR
     mana_leech = bon["manaLeech"] / 100.0
     hp_regen = bon["hpRegenFlat"]
     mp_regen = bon["mpRegenFlat"]
-    hp_pot = profile.hp_potion
-    mana_pot = profile.mana_potion
+    hp_pot = profile.hp_potion if potions else None
+    mana_pot = profile.mana_potion if potions else None
+    pot_hp_below = hp_max * profile.potion_hp_pct / 100.0
+    pot_mana_below = mana_max * profile.potion_mana_pct / 100.0
+    hp_pot_heal = (hp_pot.get("heal") or 0) if hp_pot else 0
+    hp_pot_mana = (hp_pot.get("mana") or 0) if hp_pot else 0
+    hp_pot_cost = hp_pot["cost"] if hp_pot else 0
+    mana_pot_mana = (mana_pot.get("mana") or 0) if mana_pot else 0
+    mana_pot_cost = mana_pot["cost"] if mana_pot else 0
     for t in range(int(seconds)):
         # o que entra e o que regenera neste segundo
-        hp -= dps_in
-        hp += hp_regen
+        hp += hp_regen - dps_in
         mana += mp_regen
         # ataque automatico (taxa continua)
         dealt_now = auto_per_s
@@ -516,61 +552,73 @@ def simulate(profile, target, rotation, boss=False, seconds=60, heal=None, potio
                 dealt_now = 0.0
         # feiticos de ataque, por prioridade, um por cooldown de grupo
         if t >= gcd_attack:
-            for slot, dmg in slots:
-                sp = slot.spell
-                if sp["tipo"] == "area" and not boss and cat_pack < slot.min_mobs:
+            for i, words, cost, cd, dmg, gold_cost, skip in slots:
+                if skip or cd_ready[i] > t or mana < cost:
                     continue
-                if cooldown_until.get(sp["palavras"], 0) > t or mana < sp["mana"]:
-                    continue
-                mana -= sp["mana"]
-                mana_spent += sp["mana"]
-                cooldown_until[sp["palavras"]] = t + max(1, int(round(sp["cooldown_ms"] / 1000.0)))
-                gcd_attack = t + int(round(F.ATTACK_GCD_MS / 1000.0))
-                casts[sp["palavras"]] = casts.get(sp["palavras"], 0) + 1
+                mana -= cost
+                mana_spent += cost
+                cd_ready[i] = t + cd
+                gcd_attack = t + gcd_attack_s
+                n_casts[i] += 1
+                cast_log.append((t, words))
                 dealt_now += dmg
-                if sp.get("custo_gold"):
-                    gold += sp["custo_gold"]
+                gold += gold_cost
                 break
         dealt += dealt_now
         hp += dealt_now * life_leech
         mana += dealt_now * mana_leech
         # cura propria
-        if heal_spell and t >= gcd_heal and hp < hp_max * profile.heal_at_pct / 100.0 \
-                and cooldown_until.get(heal_spell["palavras"], 0) <= t and mana >= heal_spell["mana"]:
-            mana -= heal_spell["mana"]
-            mana_spent += heal_spell["mana"]
-            cooldown_until[heal_spell["palavras"]] = t + max(1, int(round(heal_spell["cooldown_ms"] / 1000.0)))
-            gcd_heal = t + int(round(F.HEAL_GCD_MS / 1000.0))
-            casts[heal_spell["palavras"]] = casts.get(heal_spell["palavras"], 0) + 1
-            gain = min(heal_amount, max(0.0, hp_max - hp))
-            healed += gain
-            hp += gain
-        # pocoes (exhaust partilhado de 1 s)
-        if potions and t >= potion_until:
-            if hp_pot and hp < hp_max * profile.potion_hp_pct / 100.0:
-                gain = min(hp_pot.get("heal") or 0, max(0.0, hp_max - hp))
-                hp += gain
+        if heal_spell and t >= gcd_heal and hp < heal_below and heal_ready <= t and mana >= heal_mana:
+            mana -= heal_mana
+            mana_spent += heal_mana
+            heal_ready = t + heal_cd
+            gcd_heal = t + gcd_heal_s
+            heal_casts += 1
+            cast_log.append((t, heal_spell["palavras"]))
+            gain = hp_max - hp
+            if gain > heal_amount:
+                gain = heal_amount
+            if gain > 0:
                 healed += gain
-                mana += hp_pot.get("mana") or 0
-                gold += hp_pot["cost"]
+                hp += gain
+        # pocoes (exhaust partilhado de 1 s)
+        if t >= potion_until:
+            if hp_pot and hp < pot_hp_below:
+                gain = hp_max - hp
+                if gain > hp_pot_heal:
+                    gain = hp_pot_heal
+                if gain > 0:
+                    hp += gain
+                    healed += gain
+                mana += hp_pot_mana
+                gold += hp_pot_cost
                 hp_potions += 1
                 potion_until = t + 1
-            elif mana_pot and mana < mana_max * profile.potion_mana_pct / 100.0:
-                mana = min(mana_max, mana + (mana_pot.get("mana") or 0))
-                gold += mana_pot["cost"]
+            elif mana_pot and mana < pot_mana_below:
+                mana += mana_pot_mana
+                gold += mana_pot_cost
                 mana_potions += 1
                 potion_until = t + 1
-        hp = min(hp, hp_max)
-        mana = min(mana, mana_max)
-        mana_min = min(mana_min, mana)
-        hp_min = min(hp_min, hp)
+        if hp > hp_max:
+            hp = hp_max
+        if mana > mana_max:
+            mana = mana_max
+        if mana < mana_min:
+            mana_min = mana
+        if hp < hp_min:
+            hp_min = hp
         if mana <= 0 and empty_at is None:
             empty_at = t
         if hp <= 0 and death_at is None:
             death_at = t
+    for i, words, cost, cd, dmg, gold_cost, skip in slots:
+        if n_casts[i]:
+            casts[words] = n_casts[i]
+    if heal_casts:
+        casts[heal_spell["palavras"]] = heal_casts
     income = mp_regen + (dealt / seconds) * mana_leech
     return SimResult(
-        seconds=seconds, boss=boss, dps=dealt / seconds, dealt=dealt, casts=casts,
+        seconds=seconds, boss=boss, dps=dealt / seconds, dealt=dealt, casts=casts, cast_log=cast_log,
         healed=healed, hps=healed / seconds, hp_min=hp_min, hp_end=hp, hp_max=hp_max, death_at=death_at,
         mana_end=mana, mana_min=mana_min, mana_max=mana_max, mana_spent=mana_spent,
         mana_demand=mana_spent / seconds, mana_income=income, mana_empty_at=empty_at,
