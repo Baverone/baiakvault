@@ -25,9 +25,9 @@ from . import pages_builds
 from . import pages_charms
 
 DEFAULT_OUT = Path(__file__).resolve().parent.parent / "docs"
-# A validacao cruzada e escrita a mao (com o que `scripts/validar_guia.py` mede) e vive no repo;
-# o build copia-a para `docs/builds/` e gera a versao HTML.
-VALIDATION_MD = DEFAULT_OUT / "builds" / "validacao.md"
+# A validacao cruzada (`docs/builds/validacao.md`) e gerada pelo build a partir de `validation.py`
+# (contas a mao vs simulador, curva do guia, discordancias guia/cliente) — ate 16/09/2026 era um
+# placeholder a apontar para um script que nunca existiu.
 # As regras dos charms (lidas no cliente, com fonte) tambem sao escritas a mao e vivem no repo.
 CHARMS_MD = DEFAULT_OUT / "charms.md"
 # Cartoes de print dos charms: a hunt actual de cada personagem mais estas vizinhas em nivel
@@ -554,13 +554,10 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
                 for lv in builds_module.LEVELS:
                     written.append(_write(out / "print" / ("helper-%s-%d.html" % (pages_builds.slug(voc, goal), lv)),
                                           pages_builds.render_print(cat, plans[(voc, goal, lv)], generated_at)))
-            md = VALIDATION_MD if VALIDATION_MD.is_file() else (out / "builds" / "validacao.md")
-            if md.is_file():
-                text = md.read_text(encoding="utf-8")
-                if md != out / "builds" / "validacao.md":
-                    written.append(_write(out / "builds" / "validacao.md", text))
-                written.append(_write(out / "builds" / "validacao.html",
-                                      pages_builds.render_validation(text, generated_at)))
+            text = pages_builds.validation_markdown(cat, plans)
+            written.append(_write(out / "builds" / "validacao.md", text))
+            written.append(_write(out / "builds" / "validacao.html",
+                                  pages_builds.render_validation(text, generated_at)))
         removed = _prune(out, written, with_builds)
     finally:
         conn.close()

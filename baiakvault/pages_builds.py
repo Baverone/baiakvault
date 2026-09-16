@@ -13,6 +13,7 @@ from . import builds as B
 from . import formulas as F
 from . import html as h
 from . import sim
+from . import validation
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
@@ -573,3 +574,88 @@ def _inline(text):
 def render_validation(md_text, generated_at):
     return h.page("Validacao — Builds — BaiakVault", markdown_to_html(md_text), root="../", here="builds",
                   generated_at=generated_at)
+
+
+# --- validacao cruzada: o simulador no perfil de referencia, e o markdown -------------------------
+def engine_numbers(cat, ref=validation.REFERENCE):
+    """Os mesmos numeros de `validation.hand_calculation`, mas pelo simulador."""
+    equipment = {}
+    for slot, name in ref["equipment"].items():
+        equipment[slot] = {"item": cat.item_by_key[name], "up": 0, "imbuements": list(ref["imbuements"].get(slot) or [])}
+    prof = sim.Profile(cat, ref["vocation"], ref["level"], ref["tree"], equipment)
+    target = sim.Target(cat, ref["hunt"])
+    by_name = {s["nome"]: s for s in prof.spells}
+    rotation = B.rotation_slots(prof, target, [by_name[n] for n in ref["rotation"]])
+    m = B.evaluate(prof, target, rotation, rotation, heal=by_name[ref["heal"]])
+    return {"heal_per_cast": prof.heal_amount(by_name[ref["heal"]]),
+            "tree_points": sum(F.tree_total_cost(cat.node_by_id[k], r) for k, r in ref["tree"].items()),
+            "hp_max": prof.hp_max, "mana_max": prof.mana_max, "magic_level": prof.skills["magic"],
+            "dps_pack": m["dps_pack"], "dps_boss": m["dps_boss"], "dps_cycle": m["dps_cycle"],
+            "auto_dps": m["auto_dps"], "mana_demand": m["mana_demand"]}
+
+
+def validation_rows(cat):
+    return validation.compare(validation.hand_calculation(cat), engine_numbers(cat))
+
+
+def _md_num(x, decimals=1):
+    if x is None:
+        return "?"
+    if isinstance(x, int):
+        return str(x)
+    return ("%.*f" % (decimals, x)).replace(".", ",")
+
+
+def validation_markdown(cat, plans, rows=None):
+    """O `docs/builds/validacao.md` gerado: contas a mao vs simulador, a curva do guia
+    por build e nivel, e as discordancias guia/cliente. Nada e escondido: uma
+    linha fora da tolerancia sai marcada (e o teste chumba)."""
+    ref = validation.REFERENCE
+    rows = rows if rows is not None else validation_rows(cat)
+    out = ["# Validacao cruzada das builds", "",
+           "Gerada pelo build a partir de `baiakvault/validation.py` (16/09/2026). Tres verificacoes: "
+           "as contas de um perfil fixo refeitas a mao so com os JSON do catalogo, sem o simulador; a curva "
+           "de DPS que o guia publica ao lado do DPS do ciclo do simulador; e as constantes em que o guia e o "
+           "cliente do jogo discordam.", "",
+           "## 1. Contas a mao vs simulador", "",
+           "Perfil: **%s nivel %d em %s**, arvore de %d nos (%s), equipamento %s, imbuements %s, rotacao %s, cura %s. "
+           "A conta a mao usa so `vocacoes.json` (formulas dos feiticos), `arvore.json` (custos e efeitos), "
+           "`itens.json`, `bestiario.json` e `hunts.json`, com estas constantes: %s." % (
+               ref["vocation"], ref["level"], cat.hunt_by_id[ref["hunt"]]["nome"], len(ref["tree"]),
+               ", ".join("%s %d" % (cat.node_by_id[k]["nome"], r) for k, r in ref["tree"].items()),
+               ", ".join(ref["equipment"].values()),
+               "; ".join("%s: %s" % (s, ", ".join("%s T%d" % kv for kv in v)) for s, v in ref["imbuements"].items()),
+               " + ".join(ref["rotation"]), ref["heal"],
+               "; ".join("%s = %s (%s)" % (k, v, src) for k, (v, src) in validation.HAND_CONSTANTS.items())),
+           "", "Tolerancia: %s %%." % _md_num(validation.TOLERANCE_PCT), "",
+           "| numero | a mao | simulador | diferenca | |", "|---|---|---|---|---|"]
+    for key, label, a, b, diff, ok in rows:
+        out.append("| %s | %s | %s | %s | %s |" % (
+            label, _md_num(a), _md_num(b), ("%+.2f %%" % diff).replace(".", ",") if diff is not None else "?",
+            "ok" if ok else "**DIFERENTE ⚠**"))
+    bad = [r for r in rows if not r[5]]
+    out.append("")
+    out.append("**%s**" % ("Tudo dentro da tolerancia." if not bad else
+                           "%d numero(s) fora da tolerancia — o simulador e a conta a mao discordam; ver acima." % len(bad)))
+    out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
+            "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
+            "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (
+                _md_num(validation.GUIDE_CURVE[0], 3), _md_num(validation.GUIDE_CURVE[1], 3), validation.GUIDE_CURVE[2]),
+            "", "| build | nivel | hunt | DPS ciclo (simulador) | curva do guia | razao |", "|---|---|---|---|---|---|"]
+    for voc, goal in B.BUILDS:
+        for level in B.LEVELS:
+            b = plans.get((voc, goal, level))
+            if not b:
+                continue
+            dps = b["metrics"]["dps_cycle"]
+            g = validation.guide_dps(level)
+            out.append("| %s | %d | %s | %s | %s | %s |" % (
+                title(voc, goal), level, cat.hunt_by_id[b["hunt"]]["nome"], _md_num(dps, 0), _md_num(g, 0),
+                ("x%.2f" % (dps / g)).replace(".", ",") if g else "?"))
+    out += ["", "## 3. Onde o guia e o cliente discordam", "",
+            "| o que | guia | cliente | o que se segue |", "|---|---|---|---|"]
+    for what, guide, client, follow in validation.DISAGREEMENTS:
+        out.append("| %s | %s | %s | %s |" % (what, guide, client, follow))
+    out += ["", "Fontes: guia = `guiabaiakidle.com` (planner, lido a 16/09/2026); cliente = bundle publico "
+            "`index-DnzxFejS.js` (09/09/2026). Nada disto foi medido na conta.", ""]
+    return "\n".join(out)
