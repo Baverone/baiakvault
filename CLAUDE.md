@@ -47,13 +47,17 @@ formulario local do proprio BaiakVault (ordem 2).
       builds.py            o optimizador: Planner.plan(vocacao, objectivo, nivel[, hunt]) -> a build
       pages_builds.py      paginas builds/, cartoes print/ e validacao
       advisor.py           o «proximo passo» de um personagem (puro: catalogo + estado + Planner)
+      charms.py            charms por hunt: charm -> criatura com pontuacao, justificacao e mudancas (puro)
+      pages_charms.py      guia dos 24 + «os teus charms», regras, seccoes das hunts/personagem/builds, cartoes print
       serve.py             docs/ + modo de edicao em /editar (unica porta de escrita)
       __main__.py          py -m baiakvault build | check | serve
     data/catalogo/         os JSON do jogo (copia do ai-pc) + bruto/charms.json
     data/vault.db          os dados DELE. Vai no git. So o Vault escreve
     data/serve.token       token de escrita do serve (nasce no 1.o arranque; fora do git)
     docs/                  o site gerado (Pages serve main:/docs). Com .nojekyll
+    docs/charms.md         as regras dos charms lidas no cliente, com fonte e ⚠ — o contrato do charms.py (a mao)
     scripts/actualizar_catalogo.py   recopia e valida o catalogo a partir do ai-pc
+    scripts/_ler_charms_bundle.py    le o bundle local a procura de «charm» (foi com isto que se escreveu o charms.md)
     tests/                 unittest, sem rede; fixtures: personagem.json (1) e personagens.json (1 por vocacao)
     capturas/              Win+Shift+S do Andre (fora do git)
 
@@ -83,7 +87,7 @@ antigo. **O BaiakVault usa o 8774.** Nao se trocam.
 - Comentarios explicam porque, nao o que. Decisoes com data aqui.
 - Sem «None»/«nan»/«undefined» em pagina nenhuma (ha um teste a garantir).
 
-## Esquema da vault.db (v2)
+## Esquema da vault.db (v3)
 
 Chaves sao as dos catalogos e validam-se ao escrever (chave desconhecida =
 `VaultError`, nao insercao). `source` e 'manual' ou 'captura'; NULL onde nao
@@ -96,7 +100,7 @@ escreveu.
 | `character_tree` | (character_id, node_key) | rank; node_key = arvore.id (ex. `k_fury`), tem de ser da vocacao do personagem, rank <= maximo |
 | `character_equipment` | (character_id, slot) | item_key = itens.nome em minusculas, item_name, upgrade_level, imbuements_json, attributes_json. Slots do catalogo + `backpack`/`ammo` |
 | `character_charms` | (character_id, charm_key) | tier 1..3, assigned_creature_key (bestiario.chave) |
-| `character_charm_points` | character_id | points_available, points_spent |
+| `character_charm_points` | character_id | points_available, points_spent; v3: slot_limit (o Y de «X/Y monstros com charm»), expansion 0/1, echoes — leituras do ecra dos Charms; um campo a None nao apaga (`clear_charm_points_field` apaga) |
 | `character_bestiary` | (character_id, creature_key) | kills |
 | `readings` | id | historico: at, level, xp, gold, stamina (min), hunt — so se acrescenta, para o XP/h futuro |
 
@@ -164,6 +168,49 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   bloco, tudo ou nada (`set_tree_nodes`, `replace_charms`); apagar exige o
   nome exacto. Cada escrita regenera o site sem as paginas das builds
   (`build(with_builds=False)`, ~1 s), com o `Planner` em memoria.
+
+- **16/09/2026 (ordem 3-charms)** — **As regras dos charms leram-se no
+  cliente** (funcoes `d3e`/`l3e`/`c3e`/`OVe`/`Zbe`/`e3e`/`Jbe` e textos) e
+  estao em `docs/charms.md` com fonte por regra; o guia nao tem pagina de
+  charms e o video do canal nao se leu (sem yt-dlp; nao se instalou). O que
+  ficou ⚠ («por confirmar»): se o dano elemental respeita a resistencia (o
+  motor assume que sim), charms por conta vs por personagem (quase de certeza
+  por conta; a BD continua por personagem), se procam em party, o
+  `mainLevel` do custo de mover, e a «charm rune Divine Strike» do canal (nao
+  existe no bundle; o mais proximo e Savage Blow T2 = +40 % crit).
+- **16/09/2026** — **Regras do motor** (`charms.py`, constantes no topo):
+  exposicao de uma criatura = HP abatido por ciclo (57 x peso x HP + boss x3
+  HP); elementais = exposicao x min(2 x nivel, 5 % HP) x (1 - resistencia) x
+  chance; Carnage = kills x min(15 % HP, 6 x nivel) x vizinhos (pack - 1, max
+  4); Overpower/Overflux pelo HP/mana do dono (estimados pelo simulador; sem
+  eles «?»); Dodge/Parry/Numb/Adrenaline/Cripple/Void Inversion na criatura
+  de que mais dano se apanha (exposicao x dano/s, boss x1,5); Low Blow/Savage
+  Blow/Fatal Hold/Vampiric/Void's Call na mais batida; Gut no loot em itens,
+  Scavenge nas moedas (gold/platinum/crystal coin); Bless na criatura que
+  aparece em mais hunts. Requisitos do equipamento (critico, roubo, escudo)
+  so contam quando **conhecidos e > 0**: sem equipamento registado sao «?» e
+  o charm fica de fora com o porque. Atribuicao gulosa **pelo arrependimento**
+  (quem mais perde sem a 1.a escolha decide primeiro; maiores antes de
+  menores) com as regras do jogo: um charm numa criatura, um maior + um menor
+  por criatura, limite de criaturas (registado > VIP 6 > minimo 2), maior so
+  com bestiario fechado (kills registados abaixo da meta = inelegivel;
+  nao registados = aviso ⚠). Mudancas: atribuir (gratis), mover (1 000 x
+  nivel, x0,75 com Expansion), fica. Sem pesos de spawn as criaturas contam
+  por igual e diz-se.
+- **16/09/2026** — **Resistencias**: 154 dos 240 monstros de hunt nao as tem
+  no `bestiario.json`; para esses o motor le a **2.a tabela de combate do
+  cliente** (`Wy`, guardada em `bosses.json` como `bosses_de_sala` — que
+  afinal tem os 386 monstros do jogo, nao so bosses) e marca ⚠ (as duas
+  tabelas divergem em 33 dos 86 monstros com ambas). Sem nenhuma: «?».
+  Minor charms pagam-se em **echoes**, nao em pontos: o advisor so sugere
+  maiores para subir.
+- **16/09/2026** — Cartoes `print/charms-<slug>-<hunt>.html` so para a hunt
+  actual + 5 vizinhas em nivel (`build.PRINT_NEIGHBOURS`). O «tecto» de uma
+  hunt (todos os 24 ao tier 3, sem limite) usa o nivel minimo da hunt e nao
+  tem HP/mana do dono (Overpower/Overflux ficam «?» ai). Conflitos entre
+  charms de unidades diferentes (dano vs dano apanhado vs gold) resolvem-se
+  so pelo arrependimento relativo — e um tecto, nao uma comparacao entre
+  charms.
 
 ## Fontes
 
