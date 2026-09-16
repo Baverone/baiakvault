@@ -318,6 +318,44 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   quatro pranchas do canal (h8KqkibxfOc: encerramento, UE, waves, main; 4+ vivos =
   UE + main) com o aviso de exportar antes de importar. Hunts sem personagem
   mostram so as Tacticas e dizem porque.
+- **16/09/2026 (ordem 7, decisao do Andre 13:30 — sobrepoe-se ao ponto 3 da ordem 6)**
+  — **«Quero dano, nao importa o custo, importa e o dano e a XP.»** A omissao das
+  builds, do Inicio e da BD (`db.GOALS_BY_VOCATION`, `builds.DEFAULT_GOAL`) passa a
+  **`damage`**; a `best` (equilibrada) e as outras ficam disponiveis. Metrica de
+  `damage`: DPS do ciclo (= XP/h) **sustentado** x (fraccao cumprida de «nao morrer
+  no pack inteiro» e «nao morrer no boss»)^2 — sobrevivencia so como restricao
+  minima, sem pesos de cura nem de tank. Mages e paladin: pocoes de mana e runas a
+  vontade, **sem tecto de gold** (o tecto existe como parametro,
+  `Planner(gold_cap=…)`/`choose_rotation(gold_cap=…)`, omissao `None`). Knight e
+  monk: a mana continua a ser o limite (o cliente nao lhes da pocoes de mana) e
+  entra no proprio DPS: `sim.simulate` devolve `dps_sustained` = ataque normal +
+  runas + feiticos de mana x min(1, mana ganha/mana gasta) — substitui a
+  penalizacao «DPS x (fraccao)^2» na escolha da rotacao (que, com runas a nao
+  gastar mana, deixava o monk so com Sudden Death no boss); a arvore da `best`
+  mantem a penalizacao quadratica da ordem 6. Os 5 personagens dele ficaram com
+  `goal` NULL (= omissao; nunca escolheram). Sem migracao de esquema.
+- **16/09/2026 (ordem 7, ponto 6 — teste do Andre 13:20)** — **Runas na rotacao**:
+  as runas de area (`adori mas *`) e a Sudden Death sao candidatas normais da
+  rotacao de hunt e de boss, com o `goldCost` do cliente por lancamento (Avalanche
+  64, Thunderstorm 52, Stone Shower 41, Great Fireball 64, Sudden Death 162; mana 5
+  e cd 2 s tambem do cliente). A pool da forca bruta = os 5 feiticos de mana com
+  mais dano por lancamento + **a melhor runa de area + a melhor de alvo unico**
+  contra o alvo (as runas de area tem todas a mesma formula e so mudam de
+  elemento: entra a do elemento da hunt, nao quatro iguais); as exclusoes da hunt
+  (beams, elemento imune) aplicam-se-lhes. **gold/h em regime** (`sim.simulate`):
+  runas ao gold por lancamento + pocoes de vida bebidas + **pocoes de mana pelo
+  deficit** (mana gasta − mana ganha, ao preco por mana da pocao; a regen base do
+  servidor desconhecida conta a 0 = tecto) — nao o que os 60 s a partir da pool
+  cheia beberam. A pagina da rotacao tem custo por lancamento, lancamentos/min,
+  gold/h por feitico e a linha «gold/h (pocoes + runas)», mais «sem runas: …» ao
+  lado (a mesma escolha so de mana). Convencoes ⚠ (`formulas`): «≥N» de uma runa de
+  area = 2 (`RUNE_AREA_MIN_MOBS`); as runas apanham o `spellDmgPct` e o elemento da
+  arvore (`RUNES_USE_SPELL_BONUSES`); ocupam o cooldown de grupo de ataque
+  (`RUNES_SHARE_ATTACK_GCD`). A cura do Helper continua sem runa (UH e alternativa).
+- **16/09/2026 (ordem 7)** — Limite conhecido: o guloso da arvore depende do
+  caminho — o knight `damage` a 527 na Livraria FIRE fica ~25 % abaixo do knight
+  `best` em DPS (o Avatar of Steel entra aos 477 num caminho e so aos 531 no outro).
+  Nao esta corrigido; esta no relatorio-7.
 
 ## Fontes
 

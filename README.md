@@ -21,8 +21,12 @@ O que ja la esta (v0.1):
   uma com o porque, o custo e a fonte, medidas no simulador com o que tens
   registado; ao lado, a build recomendada para a tua vocacao/objectivo/nivel.
   O que nao esta registado sai «?» e a lista diz o que falta preencher.
-- **Builds** — as 8 builds (vocacao + objectivo) por nivel: arvore por ordem
-  de compra, equipamento BiS, rotacao do Helper, cartao para copiar. E a
+- **Builds** — a build de **dano** de cada vocacao (a omissao: o maior DPS do
+  ciclo = XP/h, sem tecto de gold — pocoes e runas a vontade nos mages e no
+  paladin, a mana como limite no knight e no monk, sobreviver so como restricao
+  minima), a **melhor** (equilibrada) e as builds por objectivo, por nivel:
+  arvore por ordem de compra, equipamento BiS, rotacao do Helper com o custo
+  por lancamento e o **gold/h (pocoes + runas)**, cartao para copiar. E a
   **validacao cruzada** (`builds/validacao.html`): as contas de um perfil fixo
   refeitas a mao so com os JSON do jogo, ao lado do simulador (o teste chumba
   se divergirem mais de 1 %), a curva de DPS do guia ao lado de cada build, e
