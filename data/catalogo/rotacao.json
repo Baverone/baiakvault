@@ -1,0 +1,55 @@
+{
+ "_meta": {
+  "ficheiro": "rotacao.json",
+  "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+  "visto_em": "2026-09-09",
+  "o_que_e": "a troca automatica de hunts do jogo e o Loop com sequencia. E automacao oficial (regras do servidor, 2 - Jogo limpo: «o helper e as automacoes oficiais [...] rotacao [...] sao permitidos»).",
+  "conta": 5,
+  "maximo_de_hunts_na_sequencia": null,
+  "nota_maximo": "o cliente mostra «Hunt {n}» sem teto visivel; contar no ecra",
+  "hunts_disponiveis": "hunts.json"
+ },
+ "opcoes": [
+  {
+   "opcao": "loop",
+   "onde": "botao Loop na hunt",
+   "efeito": "repete a fase automaticamente ao concluir",
+   "citacao": "Repetir a fase automaticamente ao concluir",
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "opcao": "sequencia_de_hunts",
+   "onde": "botao direito no Loop",
+   "efeito": "lista ordenada de fases: concluir passa a proxima (a ultima volta a primeira); MORRER volta a primeira. Vazia = repete sempre a mesma.",
+   "citacao": "Deixe vazio para o loop repetir sempre a mesma fase. Com a sequencia preenchida: concluir vai para a proxima da lista (a ultima volta para a primeira) e MORRER volta para a primeira.",
+   "restricao_vip": "a sequencia de varias fases e beneficio VIP; sem VIP o loop roda SO a primeira da lista — as outras ficam guardadas",
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "opcao": "desligar_o_loop_apos_n_mortes",
+   "onde": "botao direito no Loop",
+   "efeito": "teto de mortes SEM concluir a fase; ao chegar la o loop desliga-se sozinho. Concluir a fase zera a contagem. Vazio = sem limite.",
+   "citacao": "Cada wipe cobra ouro, entao o teto abaixo desliga o loop sozinho depois de N mortes SEM concluir a fase.",
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "opcao": "presets_de_combate",
+   "onde": "Helper",
+   "efeito": "preset separado para hunt e para sala de boss; o do boss entra sozinho na wave 10. So se salvam e trocam dentro de uma hunt ou sala de boss.",
+   "citacao": "Chefe da fase: a party esta usando o preset de Boss.",
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "opcao": "stamina_minima",
+   "onde": "regra do jogo",
+   "efeito": "e preciso 1 hora de stamina para comecar ou continuar; sem ela a caca bloqueia",
+   "citacao": "Sem stamina - caca bloqueada. Treine ou use pocao ate ter 1h+",
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+# capturas de ecra do Andre: sao dele, nao vao para o git
+capturas/
+!capturas/README.md
+
+__pycache__/
+*.pyc
+*.log
+*.tmp
+.pytest_cache/

@@ -1,0 +1,3905 @@
+{
+ "_meta": {
+  "ficheiro": "arvore.json",
+  "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+  "visto_em": "2026-09-09",
+  "conta": 5,
+  "pontos": "1 ponto de build por nivel",
+  "fonte_pontos": "https://guiabaiakidle.com/en/wiki/server-data/",
+  "respec_custo_gold": null,
+  "nota_respec": "o guia da `1000 + 200 x pontos gastos` para o respec completo e `400 x pontos` para devolver um rank; nao esta no cliente, confirmar no ecra",
+  "custo_por_rank_como_funciona": "um no `small` custa `custo_por_rank` a MAIS por cada rank: o rank n custa custo_por_rank x n, e ir do zero ao maximo custa custo x r x (r+1)/2. Um no `notable` tem rank 1 e custa `custo_por_rank` de uma vez. (funcoes Ik/z3e do cliente)",
+  "absorbPct_expr": "onde o `efeito_por_rank` traz {\"$expr\": \"yo(1)\"} em `absorbPct`, o `yo` do cliente e `e => ({physical:e, energy:e, earth:e, fire:e, ice:e, holy:e, death:e})` — ou seja, +1% de absorcao em TODOS os elementos",
+  "derivado": [
+   "custo_do_zero_ao_maximo e custo_total_de_pontos, pela formula acima"
+  ]
+ },
+ "arvores": [
+  {
+   "vocacao": "knight",
+   "nos": [
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_fury",
+     "nome": "Fury",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "atkPct": 1.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_vigor",
+     "nome": "Vigor",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpPct": 1
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_plating",
+     "nome": "Plating",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "armorFlat": 1
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_haste",
+     "nome": "Battle Haste",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "attackSpeedPct": 1.5
+     },
+     "requer": [
+      "k_fury"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_sharp",
+     "nome": "Sharpened Steel",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critChance": 0.5
+     },
+     "requer": [
+      "k_fury",
+      "k_vigor"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_toughness",
+     "nome": "Toughness",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpPct": 1
+     },
+     "requer": [
+      "k_vigor",
+      "k_plating"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_bulwark",
+     "nome": "Bulwark",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "defFlat": 1
+     },
+     "requer": [
+      "k_plating"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_warlord",
+     "nome": "Warlord's Edge",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "atkPct": 1.5
+     },
+     "requer": [
+      "k_haste"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_brutal",
+     "nome": "Brutality",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critDmg": 2
+     },
+     "requer": [
+      "k_sharp"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_vampiric",
+     "nome": "Vampiric Blows",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "lifeLeech": 0.4
+     },
+     "requer": [
+      "k_vigor",
+      "k_sharp"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_fire_ward",
+     "nome": "Fire Ward",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "fire": 0.5
+      }
+     },
+     "requer": [
+      "k_bulwark",
+      "k_plating"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_death_ward",
+     "nome": "Death Ward",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "death": 0.5
+      }
+     },
+     "requer": [
+      "k_bulwark"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 50,
+     "id": "k_combat_mastery",
+     "nome": "Combat Mastery",
+     "tipo": "notable",
+     "tier": 3,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 50,
+     "efeito_por_rank": {
+      "atkPct": 8,
+      "armorFlat": 8
+     },
+     "requer": [
+      "k_warlord",
+      "k_brutal"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_second_wind",
+     "nome": "Second Wind",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpRegenPct": 0.15
+     },
+     "requer": [
+      "k_vampiric"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "k_resilience",
+     "nome": "Resilience",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.1)"
+      }
+     },
+     "requer": [
+      "k_fire_ward",
+      "k_death_ward"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_smash",
+     "nome": "Skull Smash",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "physical": 1
+      }
+     },
+     "requer": [
+      "k_combat_mastery",
+      "k_warlord"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_cleave",
+     "nome": "Cleave",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "atkPct": 2
+     },
+     "requer": [
+      "k_combat_mastery",
+      "k_second_wind"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "k_battle_healing",
+     "nome": "Battle Healing",
+     "tipo": "notable",
+     "tier": 4,
+     "coluna": 4,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "lifeLeech": 4,
+      "hpPct": 5
+     },
+     "requer": [
+      "k_second_wind",
+      "k_toughness"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_ice_ward",
+     "nome": "Ice Ward",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "ice": 0.6
+      }
+     },
+     "requer": [
+      "k_resilience"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "k_berserk",
+     "nome": "Berserk Mastery",
+     "tipo": "notable",
+     "tier": 5,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "atkPct": 6,
+      "critDmg": 10
+     },
+     "requer": [
+      "k_smash",
+      "k_cleave"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_bloodlust",
+     "nome": "Bloodlust",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "lifeLeech": 0.5
+     },
+     "requer": [
+      "k_battle_healing",
+      "k_second_wind"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_guardian",
+     "nome": "Guardian",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "defFlat": 1.5
+     },
+     "requer": [
+      "k_resilience",
+      "k_battle_healing"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "k_slash1",
+     "nome": "Cleaving Strikes I",
+     "tipo": "notable",
+     "tier": 5,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": null,
+     "requer": [
+      "k_smash"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_tactics",
+     "nome": "Battle Tactics",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": null,
+     "requer": [
+      "k_cleave"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_rampage",
+     "nome": "Rampage",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "attackSpeedPct": 2
+     },
+     "requer": [
+      "k_berserk"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_precision",
+     "nome": "Cold Precision",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "critChance": 0.6
+     },
+     "requer": [
+      "k_berserk",
+      "k_bloodlust"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_juggernaut",
+     "nome": "Juggernaut",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "hpPct": 1.2
+     },
+     "requer": [
+      "k_bloodlust",
+      "k_guardian"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_energy_ward",
+     "nome": "Energy Ward",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "energy": 0.6
+      }
+     },
+     "requer": [
+      "k_ice_ward",
+      "k_guardian"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_overpower",
+     "nome": "Overpower",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "critDmg": 2.5
+     },
+     "requer": [
+      "k_rampage",
+      "k_precision"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "k_second_skin",
+     "nome": "Second Skin",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "armorFlat": 1.5
+     },
+     "requer": [
+      "k_juggernaut",
+      "k_precision"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "k_battle_instinct",
+     "nome": "Battle Instinct",
+     "tipo": "notable",
+     "tier": 7,
+     "coluna": 5,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "k_guardian",
+      "k_juggernaut"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "k_slash2",
+     "nome": "Cleaving Strikes II",
+     "tipo": "notable",
+     "tier": 7,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "k_slash1"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "k_executioner",
+     "nome": "Executioner",
+     "tipo": "notable",
+     "tier": 8,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "k_overpower"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "k_smite",
+     "nome": "Smite",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "physical": 1.5
+      }
+     },
+     "requer": [
+      "k_overpower",
+      "k_second_skin"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "k_vitality",
+     "nome": "Deep Vitality",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "hpPct": 1.5
+     },
+     "requer": [
+      "k_second_skin",
+      "k_battle_instinct"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "k_fortress",
+     "nome": "Fortress",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.15)"
+      }
+     },
+     "requer": [
+      "k_energy_ward",
+      "k_battle_instinct"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "k_warlust",
+     "nome": "Warlust",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "atkPct": 2.5
+     },
+     "requer": [
+      "k_smite",
+      "k_executioner"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "k_gift_of_life",
+     "nome": "Gift of Life",
+     "tipo": "notable",
+     "tier": 9,
+     "coluna": 3,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": null,
+     "requer": [
+      "k_vitality"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "k_iron_will",
+     "nome": "Iron Will",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "defFlat": 2
+     },
+     "requer": [
+      "k_fortress",
+      "k_vitality"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "k_carnage",
+     "nome": "Carnage",
+     "tipo": "small",
+     "tier": 10,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "critDmg": 3
+     },
+     "requer": [
+      "k_warlust",
+      "k_gift_of_life"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "k_colossus",
+     "nome": "Colossus",
+     "tipo": "small",
+     "tier": 10,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "hpPct": 1.5,
+      "absorbPct": {
+       "$expr": "yo(.1)"
+      }
+     },
+     "requer": [
+      "k_gift_of_life",
+      "k_iron_will"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "k_slash3",
+     "nome": "Cleaving Strikes III",
+     "tipo": "notable",
+     "tier": 10,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": null,
+     "requer": [
+      "k_slash2"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 300,
+     "id": "k_avatar_steel",
+     "nome": "Avatar of Steel",
+     "tipo": "notable",
+     "tier": 11,
+     "coluna": 3,
+     "rank_maximo": 1,
+     "custo_por_rank": 300,
+     "efeito_por_rank": {
+      "atkPct": 10,
+      "hpPct": 8,
+      "absorbPct": {
+       "$expr": "yo(1)"
+      }
+     },
+     "requer": [
+      "k_carnage",
+      "k_colossus"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    }
+   ],
+   "custo_total_de_pontos": 4745,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "vocacao": "paladin",
+   "nos": [
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_might",
+     "nome": "Might",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "atkPct": 1.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_aim",
+     "nome": "Keen Aim",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critChance": 0.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_vitality",
+     "nome": "Vitality",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpPct": 1
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_faith",
+     "nome": "Faith",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "manaPct": 1.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_rapid",
+     "nome": "Rapid Fire",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "attackSpeedPct": 1.5
+     },
+     "requer": [
+      "p_might",
+      "p_aim"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_ward",
+     "nome": "Holy Ward",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "holy": 0.5
+      }
+     },
+     "requer": [
+      "p_vitality",
+      "p_faith"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_piercing",
+     "nome": "Piercing Bolts",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "physical": 1
+      }
+     },
+     "requer": [
+      "p_rapid"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_power",
+     "nome": "Power Shot",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critDmg": 2
+     },
+     "requer": [
+      "p_rapid"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_blessed",
+     "nome": "Blessed Ammunition",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "holy": 1
+      }
+     },
+     "requer": [
+      "p_ward"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_scavenger",
+     "nome": "Scavenger",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "lootPct": 1
+     },
+     "requer": [
+      "p_ward"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_precision",
+     "nome": "Precision",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critChance": 0.5
+     },
+     "requer": [
+      "p_piercing",
+      "p_power"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_leech",
+     "nome": "Lifesteal Shot",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "lifeLeech": 0.4
+     },
+     "requer": [
+      "p_power",
+      "p_blessed"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "p_pace",
+     "nome": "Hunter's Pace",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "expPct": 1
+     },
+     "requer": [
+      "p_scavenger",
+      "p_blessed"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 50,
+     "id": "p_positional",
+     "nome": "Positional Tactics",
+     "tipo": "notable",
+     "tier": 4,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 50,
+     "efeito_por_rank": {
+      "attackSpeedPct": 6,
+      "critChance": 3
+     },
+     "requer": [
+      "p_precision"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_swift",
+     "nome": "Swift Quiver",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "attackSpeedPct": 2
+     },
+     "requer": [
+      "p_precision"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 50,
+     "id": "p_caldera",
+     "nome": "Divine Caldera",
+     "tipo": "notable",
+     "tier": 4,
+     "coluna": 4,
+     "rank_maximo": 1,
+     "custo_por_rank": 50,
+     "efeito_por_rank": {
+      "spellDmgPct": 6,
+      "elementDmgPct": {
+       "holy": 4
+      }
+     },
+     "requer": [
+      "p_leech",
+      "p_pace"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_spirit",
+     "nome": "Spirit Sip",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "manaLeech": 0.3
+     },
+     "requer": [
+      "p_pace"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_marksman",
+     "nome": "Marksman",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "atkPct": 2
+     },
+     "requer": [
+      "p_positional",
+      "p_swift"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_sanctify",
+     "nome": "Sanctify",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "holy": 1.2
+      }
+     },
+     "requer": [
+      "p_caldera",
+      "p_leech"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_aegis",
+     "nome": "Aegis",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.1)"
+      }
+     },
+     "requer": [
+      "p_spirit",
+      "p_caldera"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "p_precision1",
+     "nome": "Double Shot I",
+     "tipo": "notable",
+     "tier": 5,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": null,
+     "requer": [
+      "p_positional"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_tactics",
+     "nome": "Battle Tactics",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": null,
+     "requer": [
+      "p_spirit"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "p_sharpshooter",
+     "nome": "Sharpshooter",
+     "tipo": "notable",
+     "tier": 6,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "critDmg": 15,
+      "critChance": 3
+     },
+     "requer": [
+      "p_marksman"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_deadly",
+     "nome": "Deadly Aim",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "critDmg": 2.5
+     },
+     "requer": [
+      "p_marksman"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_grace",
+     "nome": "Divine Grace",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "hpPct": 1.2
+     },
+     "requer": [
+      "p_sanctify",
+      "p_aegis"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_holy_ground",
+     "nome": "Holy Ground",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "death": 0.6,
+       "holy": 0.6
+      }
+     },
+     "requer": [
+      "p_aegis"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_volley",
+     "nome": "Volley",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "attackSpeedPct": 2
+     },
+     "requer": [
+      "p_deadly",
+      "p_sharpshooter"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_zealot",
+     "nome": "Zealot",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "atkPct": 2
+     },
+     "requer": [
+      "p_grace",
+      "p_deadly"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "p_reprisal",
+     "nome": "Reprisal",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "defFlat": 1.5
+     },
+     "requer": [
+      "p_holy_ground",
+      "p_grace"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "p_precision2",
+     "nome": "Double Shot II",
+     "tipo": "notable",
+     "tier": 7,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "p_precision1"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "p_ballistic",
+     "nome": "Ballistic Mastery",
+     "tipo": "notable",
+     "tier": 8,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "p_volley"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "p_hawkeye",
+     "nome": "Hawkeye",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "critChance": 0.8
+     },
+     "requer": [
+      "p_volley"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "p_crusader",
+     "nome": "Crusader",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "holy": 1.5
+      }
+     },
+     "requer": [
+      "p_zealot",
+      "p_reprisal"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "p_bastion",
+     "nome": "Bastion",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.15)"
+      }
+     },
+     "requer": [
+      "p_reprisal"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "p_exec_throw",
+     "nome": "Culling Shot",
+     "tipo": "notable",
+     "tier": 9,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": null,
+     "requer": [
+      "p_hawkeye",
+      "p_ballistic"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "p_relentless",
+     "nome": "Relentless",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "atkPct": 2.5
+     },
+     "requer": [
+      "p_hawkeye",
+      "p_crusader"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "p_sanctuary_p",
+     "nome": "Sacred Bulwark",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "hpPct": 1.5
+     },
+     "requer": [
+      "p_bastion",
+      "p_crusader"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "p_grenade",
+     "nome": "Divine Grenade",
+     "tipo": "notable",
+     "tier": 10,
+     "coluna": 2,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "holy": 8
+      },
+      "spellDmgPct": 6
+     },
+     "requer": [
+      "p_relentless",
+      "p_exec_throw"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "p_lightbringer",
+     "nome": "Lightbringer",
+     "tipo": "small",
+     "tier": 10,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "critDmg": 3
+     },
+     "requer": [
+      "p_sanctuary_p",
+      "p_relentless"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "p_precision3",
+     "nome": "Double Shot III",
+     "tipo": "notable",
+     "tier": 10,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": null,
+     "requer": [
+      "p_precision2"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 300,
+     "id": "p_avatar_light",
+     "nome": "Avatar of Light",
+     "tipo": "notable",
+     "tier": 11,
+     "coluna": 3,
+     "rank_maximo": 1,
+     "custo_por_rank": 300,
+     "efeito_por_rank": {
+      "atkPct": 10,
+      "elementDmgPct": {
+       "holy": 6
+      },
+      "absorbPct": {
+       "$expr": "yo(1)"
+      }
+     },
+     "requer": [
+      "p_grenade",
+      "p_lightbringer"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    }
+   ],
+   "custo_total_de_pontos": 4525,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "vocacao": "sorcerer",
+   "nos": [
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_arcane",
+     "nome": "Arcane Power",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "spellDmgPct": 2
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_crit",
+     "nome": "Arcane Focus",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critChance": 0.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_mana",
+     "nome": "Deep Well",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "manaPct": 1.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_fire",
+     "nome": "Pyromancy",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "fire": 1
+      }
+     },
+     "requer": [
+      "s_arcane"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_energy",
+     "nome": "Voltaics",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "energy": 1
+      }
+     },
+     "requer": [
+      "s_arcane",
+      "s_crit"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_scholar",
+     "nome": "Scholar",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "expPct": 1
+     },
+     "requer": [
+      "s_crit",
+      "s_mana"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_mregen",
+     "nome": "Mind Spring",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "mpRegenPct": 0.15
+     },
+     "requer": [
+      "s_mana"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_ignite",
+     "nome": "Ignite",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "fire": 1
+      }
+     },
+     "requer": [
+      "s_fire",
+      "s_energy"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_devastate",
+     "nome": "Devastation",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critDmg": 2
+     },
+     "requer": [
+      "s_energy",
+      "s_crit"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_drain",
+     "nome": "Essence Drain",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "manaLeech": 0.3
+     },
+     "requer": [
+      "s_scholar",
+      "s_mregen"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_wildfire",
+     "nome": "Wildfire",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "spellDmgPct": 2
+     },
+     "requer": [
+      "s_ignite"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_conduit",
+     "nome": "Conduit",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "energy": 1
+      }
+     },
+     "requer": [
+      "s_ignite",
+      "s_devastate"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_haste",
+     "nome": "Quickened Casting",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "attackSpeedPct": 1.5
+     },
+     "requer": [
+      "s_devastate",
+      "s_drain"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "s_ward",
+     "nome": "Energy Ward",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "energy": 0.5
+      }
+     },
+     "requer": [
+      "s_drain",
+      "s_mregen"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 50,
+     "id": "s_focus_mastery",
+     "nome": "Focus Mastery",
+     "tipo": "notable",
+     "tier": 4,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 50,
+     "efeito_por_rank": {
+      "spellDmgPct": 10
+     },
+     "requer": [
+      "s_wildfire",
+      "s_conduit"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_necro",
+     "nome": "Necromancy",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "death": 1.2
+      }
+     },
+     "requer": [
+      "s_conduit",
+      "s_haste"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_barrier",
+     "nome": "Mana Barrier",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "hpPct": 1
+     },
+     "requer": [
+      "s_ward",
+      "s_haste"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "s_hellcore",
+     "nome": "Hell's Core",
+     "tipo": "notable",
+     "tier": 5,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "fire": 8
+      },
+      "spellDmgPct": 4
+     },
+     "requer": [
+      "s_focus_mastery",
+      "s_wildfire"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_overchannel",
+     "nome": "Overchannel",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "spellDmgPct": 2.5
+     },
+     "requer": [
+      "s_focus_mastery"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_soulharvest",
+     "nome": "Soul Harvest",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "lifeLeech": 0.4
+     },
+     "requer": [
+      "s_necro"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_deepwell",
+     "nome": "Bottomless Well",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "manaPct": 2
+     },
+     "requer": [
+      "s_barrier",
+      "s_ward"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_scorch",
+     "nome": "Scorch",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "fire": 1.2
+      }
+     },
+     "requer": [
+      "s_hellcore",
+      "s_overchannel"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "s_lord_destruction",
+     "nome": "Lord of Destruction",
+     "tipo": "notable",
+     "tier": 6,
+     "coluna": 3,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "critChance": 5,
+      "critDmg": 25
+     },
+     "requer": [
+      "s_overchannel",
+      "s_soulharvest"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_reaper",
+     "nome": "Reaper",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "death": 1.2
+      }
+     },
+     "requer": [
+      "s_soulharvest",
+      "s_deepwell"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "s_chain1",
+     "nome": "Chain Arc I",
+     "tipo": "notable",
+     "tier": 6,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "s_hellcore"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_tactics",
+     "nome": "Battle Tactics",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": null,
+     "requer": [
+      "s_soulharvest"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_inferno",
+     "nome": "Inferno",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "spellDmgPct": 2.5
+     },
+     "requer": [
+      "s_scorch"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_stormcall",
+     "nome": "Stormcall",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "energy": 1.2
+      }
+     },
+     "requer": [
+      "s_lord_destruction",
+      "s_scorch"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_deathchill",
+     "nome": "Death Chill",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "critDmg": 2.5
+     },
+     "requer": [
+      "s_reaper",
+      "s_lord_destruction"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "s_fire_ward",
+     "nome": "Fire Ward",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "fire": 0.6
+      }
+     },
+     "requer": [
+      "s_deepwell"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "s_rage_skies",
+     "nome": "Rage of the Skies",
+     "tipo": "notable",
+     "tier": 8,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "energy": 8
+      },
+      "spellDmgPct": 5
+     },
+     "requer": [
+      "s_inferno",
+      "s_stormcall"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "s_archmage",
+     "nome": "Archmage",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "spellDmgPct": 3
+     },
+     "requer": [
+      "s_stormcall",
+      "s_deathchill"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "s_lich",
+     "nome": "Lichform",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "death": 1.5
+      }
+     },
+     "requer": [
+      "s_deathchill",
+      "s_fire_ward"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "s_beam",
+     "nome": "Beam Mastery",
+     "tipo": "notable",
+     "tier": 9,
+     "coluna": 2,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": {
+      "spellDmgPct": 12
+     },
+     "requer": [
+      "s_rage_skies",
+      "s_archmage"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "s_voidtouch",
+     "nome": "Void Touch",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "critChance": 0.8
+     },
+     "requer": [
+      "s_archmage",
+      "s_lich"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "s_nether_ward",
+     "nome": "Nether Ward",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.15)"
+      }
+     },
+     "requer": [
+      "s_lich"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "s_chain2",
+     "nome": "Chain Arc II",
+     "tipo": "notable",
+     "tier": 9,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "s_chain1"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "s_momentum",
+     "nome": "Momentum",
+     "tipo": "notable",
+     "tier": 10,
+     "coluna": 3,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": null,
+     "requer": [
+      "s_beam",
+      "s_voidtouch"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "s_cataclysm",
+     "nome": "Cataclysm",
+     "tipo": "small",
+     "tier": 10,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "spellDmgPct": 3
+     },
+     "requer": [
+      "s_voidtouch",
+      "s_nether_ward"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 300,
+     "id": "s_avatar_storm",
+     "nome": "Avatar of Storm",
+     "tipo": "notable",
+     "tier": 11,
+     "coluna": 4,
+     "rank_maximo": 1,
+     "custo_por_rank": 300,
+     "efeito_por_rank": {
+      "spellDmgPct": 12,
+      "manaPct": 8,
+      "absorbPct": {
+       "$expr": "yo(1)"
+      }
+     },
+     "requer": [
+      "s_momentum",
+      "s_cataclysm"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    }
+   ],
+   "custo_total_de_pontos": 4315,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "vocacao": "druid",
+   "nos": [
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_nature",
+     "nome": "Nature's Wrath",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "spellDmgPct": 2
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_spring",
+     "nome": "Spring",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "manaPct": 1.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_ice",
+     "nome": "Frost Attunement",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "ice": 1
+      }
+     },
+     "requer": [
+      "d_nature"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_earth",
+     "nome": "Terra Attunement",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "earth": 1
+      }
+     },
+     "requer": [
+      "d_nature",
+      "d_spring"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_bark",
+     "nome": "Barkskin",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpPct": 1
+     },
+     "requer": [
+      "d_spring"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_frostbite",
+     "nome": "Frostbite",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critDmg": 2
+     },
+     "requer": [
+      "d_ice"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_mending",
+     "nome": "Mending",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "spellHealPct": 1
+     },
+     "requer": [
+      "d_ice",
+      "d_earth"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_fortune",
+     "nome": "Fortune",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "lootPct": 1
+     },
+     "requer": [
+      "d_earth",
+      "d_bark"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_leech",
+     "nome": "Sap Life",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "lifeLeech": 0.4
+     },
+     "requer": [
+      "d_bark"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_crit",
+     "nome": "Wild Focus",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critChance": 0.5
+     },
+     "requer": [
+      "d_frostbite",
+      "d_mending"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_regen",
+     "nome": "Regrowth",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpRegenPct": 0.15
+     },
+     "requer": [
+      "d_mending",
+      "d_fortune"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "d_herbalist",
+     "nome": "Herbalist",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "expPct": 1
+     },
+     "requer": [
+      "d_fortune",
+      "d_leech"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_glacier",
+     "nome": "Glacier",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "ice": 1.2
+      }
+     },
+     "requer": [
+      "d_crit",
+      "d_frostbite"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 50,
+     "id": "d_grove",
+     "nome": "Blessing of the Grove",
+     "tipo": "notable",
+     "tier": 4,
+     "coluna": 2,
+     "rank_maximo": 1,
+     "custo_por_rank": 50,
+     "efeito_por_rank": {
+      "hpPct": 6,
+      "spellHealPct": 6
+     },
+     "requer": [
+      "d_regen",
+      "d_crit"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_thorns",
+     "nome": "Thorns",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "earth": 1.2
+      }
+     },
+     "requer": [
+      "d_regen",
+      "d_herbalist"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_lucky",
+     "nome": "Lucky Charm",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "lootPct": 1.2
+     },
+     "requer": [
+      "d_herbalist",
+      "d_leech"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_winterheart",
+     "nome": "Winter Heart",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "spellDmgPct": 2.5
+     },
+     "requer": [
+      "d_glacier",
+      "d_grove"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_lifebloom",
+     "nome": "Lifebloom",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "spellHealPct": 1.2
+     },
+     "requer": [
+      "d_grove",
+      "d_thorns"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_windfall",
+     "nome": "Windfall",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "expPct": 1.2
+     },
+     "requer": [
+      "d_lucky",
+      "d_thorns"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "d_chain1",
+     "nome": "Wild Chain I",
+     "tipo": "notable",
+     "tier": 5,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "d_glacier"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_tactics",
+     "nome": "Battle Tactics",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": null,
+     "requer": [
+      "d_lucky"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "d_hailstorm",
+     "nome": "Hail Storm",
+     "tipo": "notable",
+     "tier": 6,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "ice": 8
+      },
+      "spellDmgPct": 4
+     },
+     "requer": [
+      "d_winterheart"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_naturebond",
+     "nome": "Nature's Bond",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "manaPct": 2
+     },
+     "requer": [
+      "d_winterheart",
+      "d_lifebloom"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "d_healing_link",
+     "nome": "Healing Link",
+     "tipo": "notable",
+     "tier": 6,
+     "coluna": 4,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "spellHealPct": 10,
+      "manaPct": 4
+     },
+     "requer": [
+      "d_lifebloom",
+      "d_windfall"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_ice_ward",
+     "nome": "Ice Ward",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "ice": 0.6,
+       "earth": 0.6
+      }
+     },
+     "requer": [
+      "d_windfall"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_permafrost",
+     "nome": "Permafrost",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "critChance": 0.6
+     },
+     "requer": [
+      "d_hailstorm",
+      "d_naturebond"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_overgrowth",
+     "nome": "Overgrowth",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "earth": 1.2
+      }
+     },
+     "requer": [
+      "d_naturebond",
+      "d_healing_link"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "d_stoneskin",
+     "nome": "Stone Skin",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.1)"
+      }
+     },
+     "requer": [
+      "d_ice_ward",
+      "d_healing_link"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "d_chain2",
+     "nome": "Wild Chain II",
+     "tipo": "notable",
+     "tier": 7,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "d_chain1"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "d_wrath_nature",
+     "nome": "Wrath of Nature",
+     "tipo": "notable",
+     "tier": 8,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "earth": 8
+      },
+      "spellDmgPct": 5
+     },
+     "requer": [
+      "d_permafrost"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "d_elder",
+     "nome": "Elder Wisdom",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "spellDmgPct": 3
+     },
+     "requer": [
+      "d_permafrost",
+      "d_overgrowth"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "d_guardian_grove",
+     "nome": "Grove Guardian",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "hpPct": 1.5
+     },
+     "requer": [
+      "d_overgrowth",
+      "d_stoneskin"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "d_deeproots",
+     "nome": "Deep Roots",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.15)"
+      }
+     },
+     "requer": [
+      "d_stoneskin"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "d_twin_bursts",
+     "nome": "Twin Bursts",
+     "tipo": "notable",
+     "tier": 9,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "ice": 6,
+       "earth": 6
+      }
+     },
+     "requer": [
+      "d_elder",
+      "d_wrath_nature"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "d_lifekeeper",
+     "nome": "Lifekeeper",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "spellHealPct": 1.5
+     },
+     "requer": [
+      "d_elder",
+      "d_guardian_grove"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "d_worldtree",
+     "nome": "World Tree",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "hpRegenPct": 0.25
+     },
+     "requer": [
+      "d_guardian_grove",
+      "d_deeproots"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "d_gift",
+     "nome": "Gift of Life",
+     "tipo": "notable",
+     "tier": 10,
+     "coluna": 2,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": null,
+     "requer": [
+      "d_lifekeeper",
+      "d_twin_bursts"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "d_evergreen",
+     "nome": "Evergreen",
+     "tipo": "small",
+     "tier": 10,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "spellDmgPct": 3
+     },
+     "requer": [
+      "d_worldtree",
+      "d_lifekeeper"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 300,
+     "id": "d_avatar_nature",
+     "nome": "Avatar of Nature",
+     "tipo": "notable",
+     "tier": 11,
+     "coluna": 3,
+     "rank_maximo": 1,
+     "custo_por_rank": 300,
+     "efeito_por_rank": {
+      "spellDmgPct": 10,
+      "spellHealPct": 8,
+      "absorbPct": {
+       "$expr": "yo(1)"
+      }
+     },
+     "requer": [
+      "d_gift",
+      "d_evergreen"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    }
+   ],
+   "custo_total_de_pontos": 4370,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "vocacao": "monk",
+   "nos": [
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_fists",
+     "nome": "Iron Fists",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "atkPct": 1.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_iron",
+     "nome": "Iron Body",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpPct": 1
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_focus",
+     "nome": "Inner Focus",
+     "tipo": "small",
+     "tier": 0,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critChance": 0.5
+     },
+     "requer": null,
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_flow",
+     "nome": "Flow",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "attackSpeedPct": 1.5
+     },
+     "requer": [
+      "m_fists",
+      "m_iron"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_stone",
+     "nome": "Stone Skin",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "armorFlat": 1
+     },
+     "requer": [
+      "m_iron"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_chi",
+     "nome": "Chi Drain",
+     "tipo": "small",
+     "tier": 1,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "lifeLeech": 0.4
+     },
+     "requer": [
+      "m_focus",
+      "m_iron"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_palm",
+     "nome": "Open Palm",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "physical": 1
+      }
+     },
+     "requer": [
+      "m_flow"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_balancefoot",
+     "nome": "Balanced Stance",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "defFlat": 1
+     },
+     "requer": [
+      "m_flow",
+      "m_stone"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_pressure",
+     "nome": "Pressure Points",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "critDmg": 2
+     },
+     "requer": [
+      "m_stone",
+      "m_chi"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_serenity",
+     "nome": "Serenity",
+     "tipo": "small",
+     "tier": 2,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "manaPct": 1.5
+     },
+     "requer": [
+      "m_chi"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_tigerstyle",
+     "nome": "Tiger Style",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "atkPct": 1.5
+     },
+     "requer": [
+      "m_palm",
+      "m_balancefoot"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_crane",
+     "nome": "Crane Style",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpPct": 1
+     },
+     "requer": [
+      "m_balancefoot",
+      "m_pressure"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 55,
+     "id": "m_meditation",
+     "nome": "Meditation",
+     "tipo": "small",
+     "tier": 3,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 1,
+     "efeito_por_rank": {
+      "hpRegenPct": 0.15
+     },
+     "requer": [
+      "m_pressure",
+      "m_serenity"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 50,
+     "id": "m_combat_mastery",
+     "nome": "Iron Discipline",
+     "tipo": "notable",
+     "tier": 4,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 50,
+     "efeito_por_rank": {
+      "atkPct": 8,
+      "armorFlat": 8
+     },
+     "requer": [
+      "m_tigerstyle"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_swiftstrikes",
+     "nome": "Swift Strikes",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "attackSpeedPct": 2
+     },
+     "requer": [
+      "m_tigerstyle",
+      "m_crane"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_guard",
+     "nome": "Guard",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "defFlat": 1.5
+     },
+     "requer": [
+      "m_crane",
+      "m_meditation"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_stillmind",
+     "nome": "Still Mind",
+     "tipo": "small",
+     "tier": 4,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "mpRegenPct": 0.15
+     },
+     "requer": [
+      "m_meditation"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_sacred",
+     "nome": "Sacred Fist",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 1,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "physical": 1.2
+      }
+     },
+     "requer": [
+      "m_combat_mastery",
+      "m_swiftstrikes"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_ironlungs",
+     "nome": "Iron Lungs",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "hpPct": 1.2
+     },
+     "requer": [
+      "m_swiftstrikes",
+      "m_guard"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "m_guiding",
+     "nome": "Guiding Presence",
+     "tipo": "notable",
+     "tier": 5,
+     "coluna": 5,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "expPct": 5,
+      "lootPct": 5
+     },
+     "requer": [
+      "m_guard",
+      "m_stillmind"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_tactics",
+     "nome": "Battle Tactics",
+     "tipo": "small",
+     "tier": 5,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": null,
+     "requer": [
+      "m_combat_mastery"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_dragonfist",
+     "nome": "Dragon Fist",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "elementDmgPct": {
+       "physical": 1.2
+      }
+     },
+     "requer": [
+      "m_sacred"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_flurry",
+     "nome": "Flurry",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "critChance": 0.6
+     },
+     "requer": [
+      "m_sacred",
+      "m_ironlungs"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_ward",
+     "nome": "Tranquility Ward",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.1)"
+      }
+     },
+     "requer": [
+      "m_ironlungs",
+      "m_guiding"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_soulflow",
+     "nome": "Soul Flow",
+     "tipo": "small",
+     "tier": 6,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "manaLeech": 0.3
+     },
+     "requer": [
+      "m_guiding",
+      "m_stillmind"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "m_grandslam",
+     "nome": "Grand Slam",
+     "tipo": "notable",
+     "tier": 7,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": {
+      "atkPct": 6,
+      "critDmg": 12
+     },
+     "requer": [
+      "m_dragonfist",
+      "m_flurry"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_innerpeace",
+     "nome": "Inner Peace",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "hpRegenPct": 0.2
+     },
+     "requer": [
+      "m_flurry",
+      "m_ward"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 110,
+     "id": "m_spiritguard",
+     "nome": "Spirit Guard",
+     "tipo": "small",
+     "tier": 7,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 2,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "holy": 0.6,
+       "death": 0.6
+      }
+     },
+     "requer": [
+      "m_ward",
+      "m_soulflow"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 100,
+     "id": "m_precision1",
+     "nome": "Twin Palms I",
+     "tipo": "notable",
+     "tier": 7,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 100,
+     "efeito_por_rank": null,
+     "requer": [
+      "m_dragonfist"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "m_hundredfists",
+     "nome": "Hundred Fists",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 0,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "attackSpeedPct": 2.5
+     },
+     "requer": [
+      "m_grandslam"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "m_ascendant",
+     "nome": "Ascendant",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 2,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "atkPct": 2.5
+     },
+     "requer": [
+      "m_grandslam",
+      "m_innerpeace"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 150,
+     "id": "m_sanctuary",
+     "nome": "Sanctuary",
+     "tipo": "notable",
+     "tier": 8,
+     "coluna": 4,
+     "rank_maximo": 1,
+     "custo_por_rank": 150,
+     "efeito_por_rank": null,
+     "requer": [
+      "m_innerpeace",
+      "m_spiritguard"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "m_zenith",
+     "nome": "Zenith",
+     "tipo": "small",
+     "tier": 8,
+     "coluna": 6,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "absorbPct": {
+       "$expr": "yo(.15)"
+      }
+     },
+     "requer": [
+      "m_spiritguard"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "m_spiritual",
+     "nome": "Spiritual Outburst",
+     "tipo": "notable",
+     "tier": 9,
+     "coluna": 1,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": {
+      "atkPct": 6,
+      "elementDmgPct": {
+       "physical": 6
+      }
+     },
+     "requer": [
+      "m_hundredfists",
+      "m_ascendant"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "m_harmony",
+     "nome": "Harmony",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 3,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "critDmg": 3
+     },
+     "requer": [
+      "m_ascendant",
+      "m_sanctuary"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "m_transcend",
+     "nome": "Transcendence",
+     "tipo": "small",
+     "tier": 9,
+     "coluna": 5,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "hpPct": 1.5
+     },
+     "requer": [
+      "m_sanctuary",
+      "m_zenith"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "m_ascetic",
+     "nome": "Ascetic",
+     "tipo": "notable",
+     "tier": 10,
+     "coluna": 2,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": {
+      "atkPct": 8,
+      "hpPct": 8
+     },
+     "requer": [
+      "m_spiritual",
+      "m_harmony"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 165,
+     "id": "m_enlightened",
+     "nome": "Enlightened",
+     "tipo": "small",
+     "tier": 10,
+     "coluna": 4,
+     "rank_maximo": 10,
+     "custo_por_rank": 3,
+     "efeito_por_rank": {
+      "critChance": 0.8
+     },
+     "requer": [
+      "m_harmony",
+      "m_transcend"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 200,
+     "id": "m_precision2",
+     "nome": "Twin Palms II",
+     "tipo": "notable",
+     "tier": 10,
+     "coluna": 0,
+     "rank_maximo": 1,
+     "custo_por_rank": 200,
+     "efeito_por_rank": null,
+     "requer": [
+      "m_precision1"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    },
+    {
+     "custo_do_zero_ao_maximo": 300,
+     "id": "m_avatar_balance",
+     "nome": "Avatar of Balance",
+     "tipo": "notable",
+     "tier": 11,
+     "coluna": 3,
+     "rank_maximo": 1,
+     "custo_por_rank": 300,
+     "efeito_por_rank": {
+      "atkPct": 10,
+      "hpPct": 8,
+      "absorbPct": {
+       "$expr": "yo(1)"
+      }
+     },
+     "requer": [
+      "m_ascetic",
+      "m_enlightened"
+     ],
+     "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+     "visto_em": "2026-09-09"
+    }
+   ],
+   "custo_total_de_pontos": 4425,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  }
+ ]
+}

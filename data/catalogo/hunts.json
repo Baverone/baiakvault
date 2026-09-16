@@ -1,0 +1,9134 @@
+{
+ "_meta": {
+  "ficheiro": "hunts.json",
+  "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+  "visto_em": "2026-09-09",
+  "conta": 79,
+  "estrutura_da_hunt": {
+   "waves": 10,
+   "wave_10_e_boss": true,
+   "boss_multiplicadores": {
+    "hp": 3,
+    "dano": 1.5,
+    "xp": 2.5
+   },
+   "fonte": "https://guiabaiakidle.com/en/wiki/server-data/",
+   "nota": "os multiplicadores da wave 10 nao estao no cliente: vem do guia, que le a configuracao do servidor"
+  },
+  "derivado": [
+   "nivel_estimado_pelo_jogo = round(A * ecr^p), A=0.12296 p=1.1494 — a formula do proprio cliente (funcoes K0e/Z0e/J0e do bundle)",
+   "ecr por criatura = hp_efectivo^0.4 * dps^0.6, com dps = (dano medio + habilidades)/2s e hp_efectivo = hp*(1+min(0.8, cura/dps))",
+   "ecr da hunt = 0.6*media(ecr, ponderada pelos pesos) + 0.4*max(ecr)",
+   "exp_por_kill e gold_por_kill = medias ponderadas pelos pesos da hunt",
+   "gold esperado de um drop = chance/100000 * (1+max)/2 * preco do NPC",
+   "indice_xp = (XP ponderada / HP efectivo total da hunt), normalizado a 100 pela melhor do jogo. E XP POR PONTO DE VIDA A ABATER — eficiencia, nao XP/h: uma hunt de bichos gordos rende pouco no indice e muito por kill.",
+   "indice_loot = o mesmo para o gold esperado do loot",
+   "tende_para compara a taxa da hunt com a MEDIA das 79, em xp e em loot"
+  ],
+  "por_medir": [
+   "xp_hora",
+   "gold_hora"
+  ],
+  "nota_xp_hora": "XP/h e gold/h absolutos nao existem no cliente nem em nenhuma fonte publica: so medindo na conta. Os indices dizem quais as candidatas; a medicao diz o numero."
+ },
+ "hunts": [
+  {
+   "id": "troll-cave",
+   "nome": "Troll Cave",
+   "nivel_minimo": 1,
+   "nivel_estimado_pelo_jogo": 1,
+   "monstros": [
+    {
+     "chave": "troll",
+     "nome": "Troll",
+     "exp": 20,
+     "hp": 50,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    },
+    {
+     "chave": "swamp_troll",
+     "nome": "Swamp Troll",
+     "exp": 25,
+     "hp": 55,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 22.5,
+   "gold_por_kill": 8.3,
+   "indice_xp": 31.6,
+   "indice_loot": 27.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 10.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "fish",
+     "gold_esperado_por_kill": 3.0
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 1.5
+    },
+    {
+     "item": "rope",
+     "gold_esperado_por_kill": 1.2
+    },
+    {
+     "item": "hand axe",
+     "gold_esperado_por_kill": 0.7
+    },
+    {
+     "item": "medicine pouch",
+     "gold_esperado_por_kill": 0.6
+    },
+    {
+     "item": "swamp grass",
+     "gold_esperado_por_kill": 0.6
+    },
+    {
+     "item": "leather armor",
+     "gold_esperado_por_kill": 0.6
+    },
+    {
+     "item": "leather helmet",
+     "gold_esperado_por_kill": 0.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "fish",
+     "qty": 125
+    },
+    {
+     "item": "mouldy cheese",
+     "qty": 50
+    },
+    {
+     "item": "medicine pouch",
+     "qty": 25
+    },
+    {
+     "item": "wood",
+     "qty": 25
+    },
+    {
+     "item": "troll green",
+     "qty": 25
+    },
+    {
+     "item": "heavy old tome",
+     "qty": 10
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "elf-lair",
+   "nome": "Elf",
+   "nivel_minimo": 8,
+   "nivel_estimado_pelo_jogo": 8,
+   "monstros": [
+    {
+     "chave": "elf",
+     "nome": "Elf",
+     "exp": 42,
+     "hp": 100,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    },
+    {
+     "chave": "elf_scout",
+     "nome": "Elf Scout",
+     "exp": 75,
+     "hp": 160,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    },
+    {
+     "chave": "elf_arcanist",
+     "nome": "Elf Arcanist",
+     "exp": 175,
+     "hp": 220,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "elf_scout",
+    "nome": "Elf Scout",
+    "exp": 75
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 97.3,
+   "gold_por_kill": 37.2,
+   "indice_xp": 40.6,
+   "indice_loot": 35.8,
+   "tende_para": "loot",
+   "dificuldade_ecr": 39.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "wand of cosmic energy",
+     "gold_esperado_por_kill": 11.6
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 8.9
+    },
+    {
+     "item": "inkwell",
+     "gold_esperado_por_kill": 7.2
+    },
+    {
+     "item": "elven astral observer",
+     "gold_esperado_por_kill": 6.9
+    },
+    {
+     "item": "longsword",
+     "gold_esperado_por_kill": 5.5
+    },
+    {
+     "item": "bow",
+     "gold_esperado_por_kill": 5.2
+    },
+    {
+     "item": "elven scouting glass",
+     "gold_esperado_por_kill": 4.9
+    },
+    {
+     "item": "elvish talisman",
+     "gold_esperado_por_kill": 4.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "melon",
+     "qty": 300
+    },
+    {
+     "item": "grapes",
+     "qty": 225
+    },
+    {
+     "item": "bread",
+     "qty": 150
+    },
+    {
+     "item": "elvish talisman",
+     "qty": 150
+    },
+    {
+     "item": "elven scouting glass",
+     "qty": 150
+    },
+    {
+     "item": "sling herb",
+     "qty": 75
+    },
+    {
+     "item": "holy orchid",
+     "qty": 25
+    },
+    {
+     "item": "candlestick",
+     "qty": 25
+    },
+    {
+     "item": "life crystal",
+     "qty": 15
+    },
+    {
+     "item": "grave flower",
+     "qty": 15
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "amazon-camp",
+   "nome": "Amazon",
+   "nivel_minimo": 9,
+   "nivel_estimado_pelo_jogo": 9,
+   "monstros": [
+    {
+     "chave": "amazon",
+     "nome": "Amazon",
+     "exp": 60,
+     "hp": 110,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    },
+    {
+     "chave": "valkyrie",
+     "nome": "Valkyrie",
+     "exp": 85,
+     "hp": 190,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 72.5,
+   "gold_por_kill": 51.3,
+   "indice_xp": 35.6,
+   "indice_loot": 58.2,
+   "tende_para": "loot",
+   "dificuldade_ecr": 42.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "protective charm",
+     "gold_esperado_por_kill": 16.0
+    },
+    {
+     "item": "protection amulet",
+     "gold_esperado_por_kill": 7.7
+    },
+    {
+     "item": "chain armor",
+     "gold_esperado_por_kill": 7.0
+    },
+    {
+     "item": "girlish hair decoration",
+     "gold_esperado_por_kill": 5.9
+    },
+    {
+     "item": "hunting spear",
+     "gold_esperado_por_kill": 5.2
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 4.2
+    },
+    {
+     "item": "sabre",
+     "gold_esperado_por_kill": 3.5
+    },
+    {
+     "item": "crystal necklace",
+     "gold_esperado_por_kill": 2.6
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "skull",
+     "qty": 150
+    },
+    {
+     "item": "brown bread",
+     "qty": 100
+    },
+    {
+     "item": "girlish hair decoration",
+     "qty": 75
+    },
+    {
+     "item": "protective charm",
+     "qty": 50
+    },
+    {
+     "item": "torch",
+     "qty": 25
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "minotaur",
+   "nome": "Minotaur",
+   "nivel_minimo": 10,
+   "nivel_estimado_pelo_jogo": 10,
+   "monstros": [
+    {
+     "chave": "minotaur_archer",
+     "nome": "Minotaur Archer",
+     "exp": 65,
+     "hp": 100,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    },
+    {
+     "chave": "minotaur",
+     "nome": "Minotaur",
+     "exp": 50,
+     "hp": 100,
+     "peso": null,
+     "meta_kills_bestiario": 250
+    },
+    {
+     "chave": "minotaur_guard",
+     "nome": "Minotaur Guard",
+     "exp": 160,
+     "hp": 185,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    },
+    {
+     "chave": "minotaur_mage",
+     "nome": "Minotaur Mage",
+     "exp": 150,
+     "hp": 155,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 106.2,
+   "gold_por_kill": 55.6,
+   "indice_xp": 58.0,
+   "indice_loot": 70.1,
+   "tende_para": "loot",
+   "dificuldade_ecr": 44.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "purple robe",
+     "gold_esperado_por_kill": 48.2
+    },
+    {
+     "item": "bolt",
+     "gold_esperado_por_kill": 28.5
+    },
+    {
+     "item": "piece of archer armor",
+     "gold_esperado_por_kill": 24.8
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 15.4
+    },
+    {
+     "item": "piece of warrior armor",
+     "gold_esperado_por_kill": 15.1
+    },
+    {
+     "item": "plate shield",
+     "gold_esperado_por_kill": 9.0
+    },
+    {
+     "item": "brass armor",
+     "gold_esperado_por_kill": 6.6
+    },
+    {
+     "item": "wand of cosmic energy",
+     "gold_esperado_por_kill": 6.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "broken crossbow",
+     "qty": 125
+    },
+    {
+     "item": "piercing bolt",
+     "qty": 75
+    },
+    {
+     "item": "minotaur horn",
+     "qty": 75
+    },
+    {
+     "item": "piece of archer armor",
+     "qty": 75
+    },
+    {
+     "item": "piece of warrior armor",
+     "qty": 75
+    },
+    {
+     "item": "minotaur leather",
+     "qty": 50
+    },
+    {
+     "item": "fishing rod",
+     "qty": 5
+    },
+    {
+     "item": "minotaur trophy",
+     "qty": 1
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "kongra",
+   "nome": "Kongra",
+   "nivel_minimo": 10,
+   "nivel_estimado_pelo_jogo": 10,
+   "monstros": [
+    {
+     "chave": "kongra",
+     "nome": "Kongra",
+     "exp": 115,
+     "hp": 340,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    },
+    {
+     "chave": "merlkin",
+     "nome": "Merlkin",
+     "exp": 145,
+     "hp": 235,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    },
+    {
+     "chave": "sibang",
+     "nome": "Sibang",
+     "exp": 105,
+     "hp": 225,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 121.7,
+   "gold_por_kill": 34.5,
+   "indice_xp": 31.2,
+   "indice_loot": 20.4,
+   "tende_para": "xp",
+   "dificuldade_ecr": 50.5,
+   "drops_que_mais_valem": [
+    {
+     "item": "kongra's shoulderpad",
+     "gold_esperado_por_kill": 19.6
+    },
+    {
+     "item": "wand of decay",
+     "gold_esperado_por_kill": 10.5
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 10.1
+    },
+    {
+     "item": "protection amulet",
+     "gold_esperado_por_kill": 6.9
+    },
+    {
+     "item": "banana staff",
+     "gold_esperado_por_kill": 5.0
+    },
+    {
+     "item": "banana sash",
+     "gold_esperado_por_kill": 5.0
+    },
+    {
+     "item": "plate armor",
+     "gold_esperado_por_kill": 3.8
+    },
+    {
+     "item": "banana",
+     "gold_esperado_por_kill": 1.9
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "orange",
+     "qty": 75
+    },
+    {
+     "item": "banana sash",
+     "qty": 50
+    },
+    {
+     "item": "kongra's shoulderpad",
+     "qty": 25
+    },
+    {
+     "item": "coconut",
+     "qty": 15
+    },
+    {
+     "item": "melon",
+     "qty": 15
+    },
+    {
+     "item": "ape fur",
+     "qty": 25
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "cyclopolis",
+   "nome": "Cyclopolis",
+   "nivel_minimo": 15,
+   "nivel_estimado_pelo_jogo": 15,
+   "monstros": [
+    {
+     "chave": "cyclops",
+     "nome": "Cyclops",
+     "exp": 150,
+     "hp": 260,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2800,
+   "disponivel": "on",
+   "exp_por_kill": 150.0,
+   "gold_por_kill": 31.9,
+   "indice_xp": 42.5,
+   "indice_loot": 20.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 65.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 19.7
+    },
+    {
+     "item": "halberd",
+     "gold_esperado_por_kill": 4.0
+    },
+    {
+     "item": "cyclops toe",
+     "gold_esperado_por_kill": 2.7
+    },
+    {
+     "item": "battle shield",
+     "gold_esperado_por_kill": 1.3
+    },
+    {
+     "item": "plate shield",
+     "gold_esperado_por_kill": 1.1
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "cyclops toe",
+     "qty": 150
+    },
+    {
+     "item": "heavy old tome",
+     "qty": 75
+    },
+    {
+     "item": "cyclops trophy",
+     "qty": 8
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "corym-cave",
+   "nome": "Corym Skirmisher",
+   "nivel_minimo": 30,
+   "nivel_estimado_pelo_jogo": 30,
+   "monstros": [
+    {
+     "chave": "corym_vanguard",
+     "nome": "Corym Vanguard",
+     "exp": 490,
+     "hp": 700,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    },
+    {
+     "chave": "corym_charlatan",
+     "nome": "Corym Charlatan",
+     "exp": 150,
+     "hp": 250,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    },
+    {
+     "chave": "corym_skirmisher",
+     "nome": "Corym Skirmisher",
+     "exp": 260,
+     "hp": 450,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 300.0,
+   "gold_por_kill": 75.0,
+   "indice_xp": 46.2,
+   "indice_loot": 26.6,
+   "tende_para": "xp",
+   "dificuldade_ecr": 111.6,
+   "drops_que_mais_valem": [
+    {
+     "item": "ratana",
+     "gold_esperado_por_kill": 13.5
+    },
+    {
+     "item": "spike shield",
+     "gold_esperado_por_kill": 11.9
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 11.5
+    },
+    {
+     "item": "spiky club",
+     "gold_esperado_por_kill": 9.7
+    },
+    {
+     "item": "life preserver",
+     "gold_esperado_por_kill": 8.8
+    },
+    {
+     "item": "cheese cutter",
+     "gold_esperado_por_kill": 4.2
+    },
+    {
+     "item": "earflap",
+     "gold_esperado_por_kill": 3.6
+    },
+    {
+     "item": "bola",
+     "gold_esperado_por_kill": 2.7
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "rat cheese",
+     "qty": 75
+    },
+    {
+     "item": "cheese cutter",
+     "qty": 50
+    },
+    {
+     "item": "soft cheese",
+     "qty": 50
+    },
+    {
+     "item": "earflap",
+     "qty": 25
+    },
+    {
+     "item": "bola",
+     "qty": 25
+    },
+    {
+     "item": "cheesy figurine",
+     "qty": 25
+    },
+    {
+     "item": "rat god doll",
+     "qty": 1
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "refiner-cave",
+   "nome": "Stone Refiner",
+   "nivel_minimo": 30,
+   "nivel_estimado_pelo_jogo": 30,
+   "monstros": [
+    {
+     "chave": "stonerefiner",
+     "nome": "Stonerefiner",
+     "exp": 500,
+     "hp": 800,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 500.0,
+   "gold_por_kill": 256.1,
+   "indice_xp": 46.1,
+   "indice_loot": 54.4,
+   "tende_para": "loot",
+   "dificuldade_ecr": 112.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 127.3
+    },
+    {
+     "item": "rare earth",
+     "gold_esperado_por_kill": 47.7
+    },
+    {
+     "item": "stonerefiner's skull",
+     "gold_esperado_por_kill": 20.1
+    },
+    {
+     "item": "poisonous slime",
+     "gold_esperado_por_kill": 20.0
+    },
+    {
+     "item": "half-digested stones",
+     "gold_esperado_por_kill": 18.3
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "rare earth",
+     "qty": 1500
+    },
+    {
+     "item": "coal",
+     "qty": 1500
+    },
+    {
+     "item": "glob of acid slime",
+     "qty": 1500
+    },
+    {
+     "item": "stonerefiner's skull",
+     "qty": 1500
+    },
+    {
+     "item": "poisonous slime",
+     "qty": 1500
+    },
+    {
+     "item": "half-digested stones",
+     "qty": 1500
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "giant-spider",
+   "nome": "Giant Spider",
+   "nivel_minimo": 50,
+   "nivel_estimado_pelo_jogo": 50,
+   "monstros": [
+    {
+     "chave": "giant_spider",
+     "nome": "Giant Spider",
+     "exp": 900,
+     "hp": 1300,
+     "peso": 55,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "tarantula",
+     "nome": "Tarantula",
+     "exp": 120,
+     "hp": 225,
+     "peso": 30,
+     "meta_kills_bestiario": 500
+    },
+    {
+     "chave": "spider",
+     "nome": "Spider",
+     "exp": 12,
+     "hp": 20,
+     "peso": 15,
+     "meta_kills_bestiario": 250
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 532.8,
+   "gold_por_kill": 151.9,
+   "indice_xp": 50.0,
+   "indice_loot": 32.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 185.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 42.0
+    },
+    {
+     "item": "plate armor",
+     "gold_esperado_por_kill": 39.9
+    },
+    {
+     "item": "knight armor",
+     "gold_esperado_por_kill": 25.0
+    },
+    {
+     "item": "tarantula egg",
+     "gold_esperado_por_kill": 8.0
+    },
+    {
+     "item": "monk robe",
+     "gold_esperado_por_kill": 3.0
+    },
+    {
+     "item": "steel helmet",
+     "gold_esperado_por_kill": 2.9
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 2.0
+    },
+    {
+     "item": "brass legs",
+     "gold_esperado_por_kill": 1.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "poison arrow",
+     "qty": 475
+    },
+    {
+     "item": "tarantula egg",
+     "qty": 350
+    },
+    {
+     "item": "spider fangs",
+     "qty": 250
+    },
+    {
+     "item": "spider silk",
+     "qty": 125
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "crawler-cave",
+   "nome": "Crawler",
+   "nivel_minimo": 50,
+   "nivel_estimado_pelo_jogo": 50,
+   "monstros": [
+    {
+     "chave": "insectoid_worker",
+     "nome": "Insectoid Worker",
+     "exp": 650,
+     "hp": 950,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "crawler",
+     "nome": "Crawler",
+     "exp": 1000,
+     "hp": 1450,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "swarmer",
+     "nome": "Swarmer",
+     "exp": 350,
+     "hp": 460,
+     "peso": null,
+     "meta_kills_bestiario": 500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "crawler",
+    "nome": "Crawler",
+    "exp": 1000
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 666.7,
+   "gold_por_kill": 163.2,
+   "indice_xp": 51.6,
+   "indice_loot": 29.1,
+   "tende_para": "xp",
+   "dificuldade_ecr": 190.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "crawler head plating",
+     "gold_esperado_por_kill": 38.7
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 38.0
+    },
+    {
+     "item": "epee",
+     "gold_esperado_por_kill": 36.0
+    },
+    {
+     "item": "small topaz",
+     "gold_esperado_por_kill": 30.1
+    },
+    {
+     "item": "springsprout rod",
+     "gold_esperado_por_kill": 25.6
+    },
+    {
+     "item": "war hammer",
+     "gold_esperado_por_kill": 24.8
+    },
+    {
+     "item": "swarmer antenna",
+     "gold_esperado_por_kill": 19.9
+    },
+    {
+     "item": "dung ball",
+     "gold_esperado_por_kill": 19.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "crawler head plating",
+     "qty": 700
+    },
+    {
+     "item": "compound eye",
+     "qty": 700
+    },
+    {
+     "item": "swarmer antenna",
+     "qty": 700
+    },
+    {
+     "item": "dung ball",
+     "qty": 700
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "glooth-cave",
+   "nome": "Glooth Bandit",
+   "nivel_minimo": 60,
+   "nivel_estimado_pelo_jogo": 130,
+   "monstros": [
+    {
+     "chave": "glooth_brigand",
+     "nome": "Glooth Brigand",
+     "exp": 1900,
+     "hp": 2400,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "glooth_bandit",
+     "nome": "Glooth Bandit",
+     "exp": 2000,
+     "hp": 2600,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1950.0,
+   "gold_por_kill": 1035.2,
+   "indice_xp": 41.5,
+   "indice_loot": 50.8,
+   "tende_para": "loot",
+   "dificuldade_ecr": 419.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "rubber cap",
+     "gold_esperado_por_kill": 220.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 200.0
+    },
+    {
+     "item": "butcher's axe",
+     "gold_esperado_por_kill": 180.0
+    },
+    {
+     "item": "mercenary sword",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "war axe",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "terra mantle",
+     "gold_esperado_por_kill": 110.0
+    },
+    {
+     "item": "glooth cape",
+     "gold_esperado_por_kill": 90.0
+    },
+    {
+     "item": "dreaded cleaver",
+     "gold_esperado_por_kill": 75.3
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "tainted glooth capsule",
+     "qty": 225
+    },
+    {
+     "item": "glooth sandwich",
+     "qty": 225
+    },
+    {
+     "item": "glooth capsule",
+     "qty": 225
+    },
+    {
+     "item": "glooth steak",
+     "qty": 225
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "hero-cave",
+   "nome": "Hero",
+   "nivel_minimo": 60,
+   "nivel_estimado_pelo_jogo": 60,
+   "monstros": [
+    {
+     "chave": "hero",
+     "nome": "Hero",
+     "exp": 1200,
+     "hp": 1400,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "renegade_knight",
+     "nome": "Renegade Knight",
+     "exp": 1200,
+     "hp": 1450,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "vicious_squire",
+     "nome": "Vicious Squire",
+     "exp": 900,
+     "hp": 1000,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "hero",
+    "nome": "Hero",
+    "exp": 1200
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1100.0,
+   "gold_por_kill": 169.8,
+   "indice_xp": 45.3,
+   "indice_loot": 16.1,
+   "tende_para": "xp",
+   "dificuldade_ecr": 230.6,
+   "drops_que_mais_valem": [
+    {
+     "item": "great health potion",
+     "gold_esperado_por_kill": 35.2
+    },
+    {
+     "item": "crown armor",
+     "gold_esperado_por_kill": 25.2
+    },
+    {
+     "item": "crown shield",
+     "gold_esperado_por_kill": 16.8
+    },
+    {
+     "item": "bolt",
+     "gold_esperado_por_kill": 14.9
+    },
+    {
+     "item": "crown legs",
+     "gold_esperado_por_kill": 13.2
+    },
+    {
+     "item": "fire sword",
+     "gold_esperado_por_kill": 12.4
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 11.7
+    },
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 11.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "red rose",
+     "qty": 325
+    },
+    {
+     "item": "grapes",
+     "qty": 325
+    },
+    {
+     "item": "scroll of heroic deeds",
+     "qty": 250
+    },
+    {
+     "item": "red piece of cloth",
+     "qty": 75
+    },
+    {
+     "item": "lyre",
+     "qty": 75
+    },
+    {
+     "item": "piggy bank",
+     "qty": 3
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "cult-cave",
+   "nome": "Cult",
+   "nivel_minimo": 80,
+   "nivel_estimado_pelo_jogo": 80,
+   "monstros": [
+    {
+     "chave": "cult_believer",
+     "nome": "Cult Believer",
+     "exp": 850,
+     "hp": 975,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "cult_enforcer",
+     "nome": "Cult Enforcer",
+     "exp": 1000,
+     "hp": 1150,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "vile_grandmaster",
+     "nome": "Vile Grandmaster",
+     "exp": 1500,
+     "hp": 1700,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1116.7,
+   "gold_por_kill": 147.1,
+   "indice_xp": 51.2,
+   "indice_loot": 15.5,
+   "tende_para": "xp",
+   "dificuldade_ecr": 278.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 113.1
+    },
+    {
+     "item": "crown armor",
+     "gold_esperado_por_kill": 37.2
+    },
+    {
+     "item": "great health potion",
+     "gold_esperado_por_kill": 35.2
+    },
+    {
+     "item": "crown shield",
+     "gold_esperado_por_kill": 16.8
+    },
+    {
+     "item": "bolt",
+     "gold_esperado_por_kill": 14.9
+    },
+    {
+     "item": "crown legs",
+     "gold_esperado_por_kill": 13.2
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 11.7
+    },
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 11.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "small notebook",
+     "qty": 50
+    },
+    {
+     "item": "scroll of heroic deeds",
+     "qty": 50
+    },
+    {
+     "item": "scroll",
+     "qty": 50
+    },
+    {
+     "item": "red rose",
+     "qty": 50
+    },
+    {
+     "item": "red piece of cloth",
+     "qty": 15
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "dragon-lair",
+   "nome": "Dragon Lair",
+   "nivel_minimo": 80,
+   "nivel_estimado_pelo_jogo": 80,
+   "monstros": [
+    {
+     "chave": "dragon",
+     "nome": "Dragon",
+     "exp": 700,
+     "hp": 1000,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "dragon_lord",
+     "nome": "Dragon Lord",
+     "exp": 2100,
+     "hp": 1900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "dragon",
+    "nome": "Dragon",
+    "exp": 700
+   },
+   "max_vivos": 3,
+   "spawn_ms": 3600,
+   "disponivel": "on",
+   "exp_por_kill": 1400.0,
+   "gold_por_kill": 303.2,
+   "indice_xp": 66.7,
+   "indice_loot": 33.3,
+   "tende_para": "xp",
+   "dificuldade_ecr": 286.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 113.4
+    },
+    {
+     "item": "royal helmet",
+     "gold_esperado_por_kill": 78.0
+    },
+    {
+     "item": "dragon ham",
+     "gold_esperado_por_kill": 47.9
+    },
+    {
+     "item": "dragon scale mail",
+     "gold_esperado_por_kill": 36.0
+    },
+    {
+     "item": "dragon slayer",
+     "gold_esperado_por_kill": 33.0
+    },
+    {
+     "item": "broadsword",
+     "gold_esperado_por_kill": 13.5
+    },
+    {
+     "item": "steel shield",
+     "gold_esperado_por_kill": 12.5
+    },
+    {
+     "item": "crossbow",
+     "gold_esperado_por_kill": 10.9
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "green mushroom",
+     "qty": 350
+    },
+    {
+     "item": "dragon's tail",
+     "qty": 225
+    },
+    {
+     "item": "golden mug",
+     "qty": 125
+    },
+    {
+     "item": "red dragon scale",
+     "qty": 125
+    },
+    {
+     "item": "red dragon leather",
+     "qty": 125
+    },
+    {
+     "item": "life crystal",
+     "qty": 25
+    },
+    {
+     "item": "dragon lord trophy",
+     "qty": 10
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "hydra-cave",
+   "nome": "Hydra",
+   "nivel_minimo": 100,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "bog_raider",
+     "nome": "Bog Raider",
+     "exp": 800,
+     "hp": 1300,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "hydra",
+     "nome": "Hydra",
+     "exp": 2100,
+     "hp": 2350,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1450.0,
+   "gold_por_kill": 323.3,
+   "indice_xp": 44.6,
+   "indice_loot": 22.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 339.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 99.8
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 93.7
+    },
+    {
+     "item": "warrior helmet",
+     "gold_esperado_por_kill": 65.5
+    },
+    {
+     "item": "hydra head",
+     "gold_esperado_por_kill": 64.9
+    },
+    {
+     "item": "boots of haste",
+     "gold_esperado_por_kill": 57.0
+    },
+    {
+     "item": "springsprout rod",
+     "gold_esperado_por_kill": 36.7
+    },
+    {
+     "item": "paladin armor",
+     "gold_esperado_por_kill": 21.0
+    },
+    {
+     "item": "boggy dreads",
+     "gold_esperado_por_kill": 19.7
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "hydra head",
+     "qty": 700
+    },
+    {
+     "item": "boggy dreads",
+     "qty": 700
+    },
+    {
+     "item": "cucumber",
+     "qty": 700
+    },
+    {
+     "item": "life crystal",
+     "qty": 100
+    },
+    {
+     "item": "hydra egg",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "behemoth-cave",
+   "nome": "Behemoth",
+   "nivel_minimo": 100,
+   "nivel_estimado_pelo_jogo": 30,
+   "monstros": [
+    {
+     "chave": "glooth_anemone",
+     "nome": "Glooth Anemone",
+     "exp": 1755,
+     "hp": 2400,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "behemoth",
+     "nome": "Behemoth",
+     "exp": 2500,
+     "hp": 4000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "drillworm",
+     "nome": "Drillworm",
+     "exp": 1200,
+     "hp": 1500,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "devourer",
+     "nome": "Devourer",
+     "exp": 1755,
+     "hp": 1900,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "behemoth",
+    "nome": "Behemoth",
+    "exp": 2500
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1802.5,
+   "gold_por_kill": 407.9,
+   "indice_xp": 54.2,
+   "indice_loot": 28.3,
+   "tende_para": "xp",
+   "dificuldade_ecr": 127.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "giant sword",
+     "gold_esperado_por_kill": 171.0
+    },
+    {
+     "item": "steel boots",
+     "gold_esperado_por_kill": 114.0
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 83.0
+    },
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 43.2
+    },
+    {
+     "item": "battle stone",
+     "gold_esperado_por_kill": 40.6
+    },
+    {
+     "item": "green crystal splinter",
+     "gold_esperado_por_kill": 39.1
+    },
+    {
+     "item": "blue crystal splinter",
+     "gold_esperado_por_kill": 38.4
+    },
+    {
+     "item": "brown crystal splinter",
+     "gold_esperado_por_kill": 37.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "lump of earth",
+     "qty": 50
+    },
+    {
+     "item": "battle stone",
+     "qty": 50
+    },
+    {
+     "item": "coal",
+     "qty": 50
+    },
+    {
+     "item": "vein of ore",
+     "qty": 50
+    },
+    {
+     "item": "pulverized ore",
+     "qty": 50
+    },
+    {
+     "item": "bowl of glooth soup",
+     "qty": 15
+    },
+    {
+     "item": "slimy leaf tentacle",
+     "qty": 15
+    },
+    {
+     "item": "glob of glooth",
+     "qty": 15
+    },
+    {
+     "item": "perfect behemoth fang",
+     "qty": 15
+    },
+    {
+     "item": "talon",
+     "qty": 5
+    },
+    {
+     "item": "strange symbol",
+     "qty": 5
+    },
+    {
+     "item": "clay lump",
+     "qty": 5
+    },
+    {
+     "item": "big bone",
+     "qty": 5
+    },
+    {
+     "item": "behemoth trophy",
+     "qty": 5
+    },
+    {
+     "item": "amphora",
+     "qty": 5
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "crumbling-cave",
+   "nome": "Crumbling Caverns",
+   "nivel_minimo": 130,
+   "nivel_estimado_pelo_jogo": 25,
+   "monstros": [
+    {
+     "chave": "lion_hydra",
+     "nome": "Lion Hydra",
+     "exp": 2450,
+     "hp": 2760,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "shell_drake",
+     "nome": "Shell Drake",
+     "exp": 2370,
+     "hp": 2800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "hawk_hopper",
+     "nome": "Hawk Hopper",
+     "exp": 1770,
+     "hp": 2180,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "headwalker",
+     "nome": "Headwalker",
+     "exp": 2050,
+     "hp": 2460,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "headwalker",
+    "nome": "Headwalker",
+    "exp": 2050
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 2160.0,
+   "gold_por_kill": 475.4,
+   "indice_xp": 62.5,
+   "indice_loot": 31.7,
+   "tende_para": "xp",
+   "dificuldade_ecr": 110.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 202.5
+    },
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 128.0
+    },
+    {
+     "item": "medusa shield",
+     "gold_esperado_por_kill": 90.0
+    },
+    {
+     "item": "warrior's shield",
+     "gold_esperado_por_kill": 72.0
+    },
+    {
+     "item": "rainbow quartz",
+     "gold_esperado_por_kill": 50.0
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 45.3
+    },
+    {
+     "item": "titan axe",
+     "gold_esperado_por_kill": 40.0
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 40.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "sealing wax",
+     "qty": 100
+    },
+    {
+     "item": "paper plane",
+     "qty": 100
+    },
+    {
+     "item": "silver brooch",
+     "qty": 100
+    },
+    {
+     "item": "hydra head",
+     "qty": 100
+    },
+    {
+     "item": "cave turnip",
+     "qty": 100
+    },
+    {
+     "item": "book with an hourglass",
+     "qty": 100
+    },
+    {
+     "item": "blank imbuement scroll",
+     "qty": 100
+    },
+    {
+     "item": "etcher",
+     "qty": 25
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "grimreaper-cave",
+   "nome": "Grim Reaper",
+   "nivel_minimo": 130,
+   "nivel_estimado_pelo_jogo": 130,
+   "monstros": [
+    {
+     "chave": "banshee",
+     "nome": "Banshee",
+     "exp": 900,
+     "hp": 1000,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "grim_reaper",
+     "nome": "Grim Reaper",
+     "exp": 5500,
+     "hp": 3900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "spectre",
+     "nome": "Spectre",
+     "exp": 2100,
+     "hp": 1350,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "grim_reaper",
+    "nome": "Grim Reaper",
+    "exp": 5500
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 2833.3,
+   "gold_por_kill": 474.8,
+   "indice_xp": 85.4,
+   "indice_loot": 33.0,
+   "tende_para": "xp",
+   "dificuldade_ecr": 430.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "nightmare blade",
+     "gold_esperado_por_kill": 308.0
+    },
+    {
+     "item": "relic sword",
+     "gold_esperado_por_kill": 175.0
+    },
+    {
+     "item": "wand of cosmic energy",
+     "gold_esperado_por_kill": 98.0
+    },
+    {
+     "item": "blue robe",
+     "gold_esperado_por_kill": 70.0
+    },
+    {
+     "item": "demonic essence",
+     "gold_esperado_por_kill": 62.7
+    },
+    {
+     "item": "skullcracker armor",
+     "gold_esperado_por_kill": 48.6
+    },
+    {
+     "item": "underworld rod",
+     "gold_esperado_por_kill": 40.0
+    },
+    {
+     "item": "terra mantle",
+     "gold_esperado_por_kill": 37.4
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "lyre",
+     "qty": 25
+    },
+    {
+     "item": "soul orb",
+     "qty": 25
+    },
+    {
+     "item": "mystical hourglass",
+     "qty": 25
+    },
+    {
+     "item": "magic light wand",
+     "qty": 25
+    },
+    {
+     "item": "hair of a banshee",
+     "qty": 25
+    },
+    {
+     "item": "petrified scream",
+     "qty": 25
+    },
+    {
+     "item": "slightly rusted armor",
+     "qty": 25
+    },
+    {
+     "item": "silver brooch",
+     "qty": 10
+    },
+    {
+     "item": "life crystal",
+     "qty": 5
+    },
+    {
+     "item": "sweet smelling bait",
+     "qty": 5
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "wyrm-cave",
+   "nome": "Wyrm",
+   "nivel_minimo": 130,
+   "nivel_estimado_pelo_jogo": 80,
+   "monstros": [
+    {
+     "chave": "elder_wyrm",
+     "nome": "Elder Wyrm",
+     "exp": 2500,
+     "hp": 2700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "wyrm",
+     "nome": "Wyrm",
+     "exp": 1550,
+     "hp": 1825,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 2025.0,
+   "gold_por_kill": 784.4,
+   "indice_xp": 64.0,
+   "indice_loot": 57.2,
+   "tende_para": "loot",
+   "dificuldade_ecr": 292.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "composite hornbow",
+     "gold_esperado_por_kill": 237.5
+    },
+    {
+     "item": "legs of wisdom",
+     "gold_esperado_por_kill": 180.0
+    },
+    {
+     "item": "focus cape",
+     "gold_esperado_por_kill": 142.2
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 104.8
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 92.4
+    },
+    {
+     "item": "wyrm scale",
+     "gold_esperado_por_kill": 70.2
+    },
+    {
+     "item": "lightning legs",
+     "gold_esperado_por_kill": 66.0
+    },
+    {
+     "item": "wand of starstorm",
+     "gold_esperado_por_kill": 51.1
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "wyrm scale",
+     "qty": 3800
+    },
+    {
+     "item": "soul orb",
+     "qty": 800
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "candia-cave",
+   "nome": "Candia",
+   "nivel_minimo": 140,
+   "nivel_estimado_pelo_jogo": 35,
+   "monstros": [
+    {
+     "chave": "goggle_cake",
+     "nome": "Goggle Cake",
+     "exp": 2700,
+     "hp": 2700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "candy_floss_elemental",
+     "nome": "Candy Floss Elemental",
+     "exp": 3850,
+     "hp": 3700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "angry_sugar_fairy",
+     "nome": "Angry Sugar Fairy",
+     "exp": 3100,
+     "hp": 3000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "honey_elemental",
+     "nome": "Honey Elemental",
+     "exp": 2400,
+     "hp": 2560,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "nibblemaw",
+     "nome": "Nibblemaw",
+     "exp": 2700,
+     "hp": 2900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "candy_horror",
+     "nome": "Candy Horror",
+     "exp": 3000,
+     "hp": 3100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "nibblemaw",
+    "nome": "Nibblemaw",
+    "exp": 2700
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 2958.3,
+   "gold_por_kill": 695.6,
+   "indice_xp": 72.9,
+   "indice_loot": 39.5,
+   "tende_para": "xp",
+   "dificuldade_ecr": 136.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 287.0
+    },
+    {
+     "item": "assassin dagger",
+     "gold_esperado_por_kill": 200.0
+    },
+    {
+     "item": "magma legs",
+     "gold_esperado_por_kill": 83.2
+    },
+    {
+     "item": "dreaded cleaver",
+     "gold_esperado_por_kill": 75.3
+    },
+    {
+     "item": "frazzle tongue",
+     "gold_esperado_por_kill": 73.0
+    },
+    {
+     "item": "violet crystal shard",
+     "gold_esperado_por_kill": 60.6
+    },
+    {
+     "item": "yellow gem",
+     "gold_esperado_por_kill": 60.0
+    },
+    {
+     "item": "small enchanted emerald",
+     "gold_esperado_por_kill": 55.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "frazzle tongue",
+     "qty": 175
+    },
+    {
+     "item": "frazzle skin",
+     "qty": 175
+    },
+    {
+     "item": "fairy wings",
+     "qty": 175
+    },
+    {
+     "item": "energy bar",
+     "qty": 175
+    },
+    {
+     "item": "gummy rotworm",
+     "qty": 75
+    },
+    {
+     "item": "honeycomb",
+     "qty": 75
+    },
+    {
+     "item": "wafer paper flower",
+     "qty": 75
+    },
+    {
+     "item": "churro heart",
+     "qty": 75
+    },
+    {
+     "item": "strawberry",
+     "qty": 75
+    },
+    {
+     "item": "brigadeiro",
+     "qty": 75
+    },
+    {
+     "item": "beijinho",
+     "qty": 75
+    },
+    {
+     "item": "flour",
+     "qty": 25
+    },
+    {
+     "item": "cookie",
+     "qty": 25
+    },
+    {
+     "item": "dark chocolate coin",
+     "qty": 25
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "werehyaena-cave",
+   "nome": "Werehyaena",
+   "nivel_minimo": 140,
+   "nivel_estimado_pelo_jogo": 140,
+   "monstros": [
+    {
+     "chave": "werehyaena",
+     "nome": "Werehyaena",
+     "exp": 2200,
+     "hp": 2700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "werehyaena_shaman",
+     "nome": "Werehyaena Shaman",
+     "exp": 2200,
+     "hp": 2500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "werehyaena",
+    "nome": "Werehyaena",
+    "exp": 2200
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 2200.0,
+   "gold_por_kill": 839.7,
+   "indice_xp": 62.4,
+   "indice_loot": 54.9,
+   "tende_para": "loot",
+   "dificuldade_ecr": 464.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "hailstorm rod",
+     "gold_esperado_por_kill": 192.9
+    },
+    {
+     "item": "great health potion",
+     "gold_esperado_por_kill": 189.9
+    },
+    {
+     "item": "wand of starstorm",
+     "gold_esperado_por_kill": 177.1
+    },
+    {
+     "item": "wand of voodoo",
+     "gold_esperado_por_kill": 175.6
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 111.8
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 100.0
+    },
+    {
+     "item": "red crystal fragment",
+     "gold_esperado_por_kill": 76.3
+    },
+    {
+     "item": "yellow gem",
+     "gold_esperado_por_kill": 54.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "werehyaena nose",
+     "qty": 375
+    },
+    {
+     "item": "werehyaena talisman",
+     "qty": 50
+    },
+    {
+     "item": "moonlight crystals",
+     "qty": 50
+    },
+    {
+     "item": "werehyaena trophy",
+     "qty": 50
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "asura-lair",
+   "nome": "Asuras",
+   "nivel_minimo": 150,
+   "nivel_estimado_pelo_jogo": 140,
+   "monstros": [
+    {
+     "chave": "hellspawn",
+     "nome": "Hellspawn",
+     "exp": 2550,
+     "hp": 3500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "dawnfire_asura",
+     "nome": "Dawnfire Asura",
+     "exp": 4100,
+     "hp": 2900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "midnight_asura",
+     "nome": "Midnight Asura",
+     "exp": 4100,
+     "hp": 3100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "dawnfire_asura",
+    "nome": "Dawnfire Asura",
+    "exp": 4100
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 3583.3,
+   "gold_por_kill": 914.3,
+   "indice_xp": 78.6,
+   "indice_loot": 46.3,
+   "tende_para": "xp",
+   "dificuldade_ecr": 451.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 281.8
+    },
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 151.5
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 110.2
+    },
+    {
+     "item": "demonic essence",
+     "gold_esperado_por_kill": 99.5
+    },
+    {
+     "item": "hellspawn tail",
+     "gold_esperado_por_kill": 95.0
+    },
+    {
+     "item": "warrior helmet",
+     "gold_esperado_por_kill": 94.3
+    },
+    {
+     "item": "assassin dagger",
+     "gold_esperado_por_kill": 70.0
+    },
+    {
+     "item": "magma coat",
+     "gold_esperado_por_kill": 62.7
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "flask of demonic blood",
+     "qty": 250
+    },
+    {
+     "item": "hellspawn tail",
+     "qty": 250
+    },
+    {
+     "item": "soul orb",
+     "qty": 125
+    },
+    {
+     "item": "golden lotus brooch",
+     "qty": 125
+    },
+    {
+     "item": "peacock feather fan",
+     "qty": 125
+    },
+    {
+     "item": "demonic essence",
+     "qty": 125
+    },
+    {
+     "item": "red mushroom",
+     "qty": 125
+    },
+    {
+     "item": "silver brooch",
+     "qty": 50
+    },
+    {
+     "item": "red piece of cloth",
+     "qty": 50
+    },
+    {
+     "item": "mysterious fetish",
+     "qty": 50
+    },
+    {
+     "item": "black skull",
+     "qty": 20
+    },
+    {
+     "item": "dracoyle statue",
+     "qty": 20
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "wereliones-cave",
+   "nome": "Wereliones",
+   "nivel_minimo": 170,
+   "nivel_estimado_pelo_jogo": 30,
+   "monstros": [
+    {
+     "chave": "werelion",
+     "nome": "Werelion",
+     "exp": 2200,
+     "hp": 2800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "werelioness",
+     "nome": "Werelioness",
+     "exp": 2300,
+     "hp": 3000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "white_lion",
+     "nome": "White Lion",
+     "exp": 2300,
+     "hp": 2700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "werelioness",
+    "nome": "Werelioness",
+    "exp": 2300
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 2266.7,
+   "gold_por_kill": 759.6,
+   "indice_xp": 59.0,
+   "indice_loot": 45.6,
+   "tende_para": "loot",
+   "dificuldade_ecr": 120.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "great spirit potion",
+     "gold_esperado_por_kill": 285.0
+    },
+    {
+     "item": "terra boots",
+     "gold_esperado_por_kill": 125.0
+    },
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "green crystal shard",
+     "gold_esperado_por_kill": 112.5
+    },
+    {
+     "item": "titan axe",
+     "gold_esperado_por_kill": 60.0
+    },
+    {
+     "item": "magma legs",
+     "gold_esperado_por_kill": 55.0
+    },
+    {
+     "item": "noble axe",
+     "gold_esperado_por_kill": 50.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "soul orb",
+     "qty": 200
+    },
+    {
+     "item": "lion's mane",
+     "qty": 200
+    },
+    {
+     "item": "ankh",
+     "qty": 200
+    },
+    {
+     "item": "silver brooch",
+     "qty": 75
+    },
+    {
+     "item": "rainbow quartz",
+     "qty": 75
+    },
+    {
+     "item": "onyx chip",
+     "qty": 75
+    },
+    {
+     "item": "ivory carving",
+     "qty": 75
+    },
+    {
+     "item": "coral brooch",
+     "qty": 75
+    },
+    {
+     "item": "white silk flower",
+     "qty": 25
+    },
+    {
+     "item": "lion figurine",
+     "qty": 25
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "draken-lair",
+   "nome": "Draken",
+   "nivel_minimo": 180,
+   "nivel_estimado_pelo_jogo": 50,
+   "monstros": [
+    {
+     "chave": "draken_spellweaver",
+     "nome": "Draken Spellweaver",
+     "exp": 3100,
+     "hp": 5000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "draken_warmaster",
+     "nome": "Draken Warmaster",
+     "exp": 2400,
+     "hp": 4150,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "draken_warmaster",
+    "nome": "Draken Warmaster",
+    "exp": 2400
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 2750.0,
+   "gold_por_kill": 891.5,
+   "indice_xp": 44.3,
+   "indice_loot": 33.1,
+   "tende_para": "loot",
+   "dificuldade_ecr": 197.5,
+   "drops_que_mais_valem": [
+    {
+     "item": "tower shield",
+     "gold_esperado_por_kill": 184.8
+    },
+    {
+     "item": "zaoan legs",
+     "gold_esperado_por_kill": 182.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 142.9
+    },
+    {
+     "item": "zaoan shoes",
+     "gold_esperado_por_kill": 130.5
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 96.5
+    },
+    {
+     "item": "spellweaver's robe",
+     "gold_esperado_por_kill": 88.8
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "weaver's wandtip",
+     "qty": 25
+    },
+    {
+     "item": "bone shoulderplate",
+     "qty": 25
+    },
+    {
+     "item": "warmaster's wristguards",
+     "qty": 25
+    },
+    {
+     "item": "draken sulphur",
+     "qty": 25
+    },
+    {
+     "item": "luminous orb",
+     "qty": 25
+    },
+    {
+     "item": "ring of the sky",
+     "qty": 2
+    },
+    {
+     "item": "bamboo leaves",
+     "qty": 2
+    },
+    {
+     "item": "harness",
+     "qty": 2
+    },
+    {
+     "item": "draken trophy",
+     "qty": 2
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "cobra-cave",
+   "nome": "Cobras",
+   "nivel_minimo": 190,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "cobra_vizier",
+     "nome": "Cobra Vizier",
+     "exp": 7650,
+     "hp": 8500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "cobra_assassin",
+     "nome": "Cobra Assassin",
+     "exp": 6980,
+     "hp": 8200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "cobra_scout",
+     "nome": "Cobra Scout",
+     "exp": 7310,
+     "hp": 8500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 7313.3,
+   "gold_por_kill": 1475.8,
+   "indice_xp": 64.2,
+   "indice_loot": 29.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 351.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "terra rod",
+     "gold_esperado_por_kill": 860.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 370.0
+    },
+    {
+     "item": "opal",
+     "gold_esperado_por_kill": 357.0
+    },
+    {
+     "item": "terra hood",
+     "gold_esperado_por_kill": 342.8
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 287.5
+    },
+    {
+     "item": "terra boots",
+     "gold_esperado_por_kill": 242.0
+    },
+    {
+     "item": "gemmed figurine",
+     "gold_esperado_por_kill": 169.4
+    },
+    {
+     "item": "sacred tree amulet",
+     "gold_esperado_por_kill": 153.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "cobra crest",
+     "qty": 900
+    },
+    {
+     "item": "cheesy figurine",
+     "qty": 900
+    },
+    {
+     "item": "emerald bangle",
+     "qty": 900
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "falcon",
+   "nome": "Falcon",
+   "nivel_minimo": 210,
+   "nivel_estimado_pelo_jogo": 210,
+   "monstros": [
+    {
+     "chave": "falcon_paladin",
+     "nome": "Falcon Paladin",
+     "exp": 6900,
+     "hp": 8500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "falcon_knight",
+     "nome": "Falcon Knight",
+     "exp": 6300,
+     "hp": 9000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 6600.0,
+   "gold_por_kill": 1879.0,
+   "indice_xp": 55.6,
+   "indice_loot": 36.5,
+   "tende_para": "xp",
+   "dificuldade_ecr": 636.6,
+   "drops_que_mais_valem": [
+    {
+     "item": "mastermind shield",
+     "gold_esperado_por_kill": 310.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 270.0
+    },
+    {
+     "item": "heavy mace",
+     "gold_esperado_por_kill": 230.0
+    },
+    {
+     "item": "small diamond",
+     "gold_esperado_por_kill": 184.5
+    },
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 176.0
+    },
+    {
+     "item": "golden armor",
+     "gold_esperado_por_kill": 168.0
+    },
+    {
+     "item": "small amethyst",
+     "gold_esperado_por_kill": 160.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "soul orb",
+     "qty": 1300
+    },
+    {
+     "item": "flask of demonic blood",
+     "qty": 1300
+    },
+    {
+     "item": "falcon crest",
+     "qty": 250
+    },
+    {
+     "item": "damaged armor plates",
+     "qty": 250
+    },
+    {
+     "item": "closed trap",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "vexclaw-lair",
+   "nome": "Vexclaw",
+   "nivel_minimo": 210,
+   "nivel_estimado_pelo_jogo": 200,
+   "monstros": [
+    {
+     "chave": "vexclaw",
+     "nome": "Vexclaw",
+     "exp": 6248,
+     "hp": 8500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "grimeleech",
+     "nome": "Grimeleech",
+     "exp": 7216,
+     "hp": 9500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "dark_torturer",
+     "nome": "Dark Torturer",
+     "exp": 4650,
+     "hp": 7350,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "vexclaw",
+    "nome": "Vexclaw",
+    "exp": 6248
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 6038.0,
+   "gold_por_kill": 3863.1,
+   "indice_xp": 50.9,
+   "indice_loot": 75.1,
+   "tende_para": "loot",
+   "dificuldade_ecr": 611.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "steel boots",
+     "gold_esperado_por_kill": 1515.0
+    },
+    {
+     "item": "rift lance",
+     "gold_esperado_por_kill": 408.0
+    },
+    {
+     "item": "purple tome",
+     "gold_esperado_por_kill": 369.0
+    },
+    {
+     "item": "nightmare blade",
+     "gold_esperado_por_kill": 325.5
+    },
+    {
+     "item": "rift crossbow",
+     "gold_esperado_por_kill": 324.0
+    },
+    {
+     "item": "giant sword",
+     "gold_esperado_por_kill": 319.6
+    },
+    {
+     "item": "rift shield",
+     "gold_esperado_por_kill": 310.0
+    },
+    {
+     "item": "underworld rod",
+     "gold_esperado_por_kill": 303.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "flask of demonic blood",
+     "qty": 1800
+    },
+    {
+     "item": "soul orb",
+     "qty": 1800
+    },
+    {
+     "item": "vexclaw talon",
+     "qty": 1800
+    },
+    {
+     "item": "demonic essence",
+     "qty": 1800
+    },
+    {
+     "item": "some grimeleech wings",
+     "qty": 900
+    },
+    {
+     "item": "talon",
+     "qty": 900
+    },
+    {
+     "item": "saw",
+     "qty": 900
+    },
+    {
+     "item": "cat's paw",
+     "qty": 375
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "grimeleech-cave",
+   "nome": "Grimeleech",
+   "nivel_minimo": 220,
+   "nivel_estimado_pelo_jogo": 240,
+   "monstros": [
+    {
+     "chave": "plaguesmith",
+     "nome": "Plaguesmith",
+     "exp": 3800,
+     "hp": 8250,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "grimeleech",
+     "nome": "Grimeleech",
+     "exp": 7216,
+     "hp": 9500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "defiler",
+     "nome": "Defiler",
+     "exp": 3700,
+     "hp": 3650,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4905.3,
+   "gold_por_kill": 2284.1,
+   "indice_xp": 46.3,
+   "indice_loot": 49.8,
+   "tende_para": "loot",
+   "dificuldade_ecr": 732.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "steel boots",
+     "gold_esperado_por_kill": 336.9
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 332.5
+    },
+    {
+     "item": "nightmare blade",
+     "gold_esperado_por_kill": 325.5
+    },
+    {
+     "item": "rift crossbow",
+     "gold_esperado_por_kill": 324.0
+    },
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 312.5
+    },
+    {
+     "item": "rift shield",
+     "gold_esperado_por_kill": 310.0
+    },
+    {
+     "item": "underworld rod",
+     "gold_esperado_por_kill": 303.2
+    },
+    {
+     "item": "hammer of wrath",
+     "gold_esperado_por_kill": 285.6
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "dirty cape",
+     "qty": 900
+    },
+    {
+     "item": "mouldy cheese",
+     "qty": 900
+    },
+    {
+     "item": "flask of demonic blood",
+     "qty": 900
+    },
+    {
+     "item": "demonic essence",
+     "qty": 900
+    },
+    {
+     "item": "soul orb",
+     "qty": 900
+    },
+    {
+     "item": "piece of iron",
+     "qty": 900
+    },
+    {
+     "item": "some grimeleech wings",
+     "qty": 475
+    },
+    {
+     "item": "glob of acid slime",
+     "qty": 475
+    },
+    {
+     "item": "glob of tar",
+     "qty": 475
+    },
+    {
+     "item": "talon",
+     "qty": 475
+    },
+    {
+     "item": "silver brooch",
+     "qty": 175
+    },
+    {
+     "item": "piece of royal steel",
+     "qty": 175
+    },
+    {
+     "item": "piece of draconian steel",
+     "qty": 175
+    },
+    {
+     "item": "piece of hell steel",
+     "qty": 175
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "choking-cave",
+   "nome": "Choking Fear",
+   "nivel_minimo": 240,
+   "nivel_estimado_pelo_jogo": 220,
+   "monstros": [
+    {
+     "chave": "choking_fear",
+     "nome": "Choking Fear",
+     "exp": 4700,
+     "hp": 5800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "retching_horror",
+     "nome": "Retching Horror",
+     "exp": 4100,
+     "hp": 5300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4400.0,
+   "gold_por_kill": 1533.9,
+   "indice_xp": 57.5,
+   "indice_loot": 46.2,
+   "tende_para": "loot",
+   "dificuldade_ecr": 685.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 500.0
+    },
+    {
+     "item": "brown crystal splinter",
+     "gold_esperado_por_kill": 315.0
+    },
+    {
+     "item": "mercenary sword",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "crown shield",
+     "gold_esperado_por_kill": 136.0
+    },
+    {
+     "item": "ultimate health potion",
+     "gold_esperado_por_kill": 117.8
+    },
+    {
+     "item": "goosebump leather",
+     "gold_esperado_por_kill": 106.6
+    },
+    {
+     "item": "spellbook of mind control",
+     "gold_esperado_por_kill": 93.6
+    },
+    {
+     "item": "blue crystal splinter",
+     "gold_esperado_por_kill": 80.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "goosebump leather",
+     "qty": 2500
+    },
+    {
+     "item": "hemp rope",
+     "qty": 2500
+    },
+    {
+     "item": "dead weight",
+     "qty": 2500
+    },
+    {
+     "item": "pool of chitinous glue",
+     "qty": 2500
+    },
+    {
+     "item": "cluster of solace",
+     "qty": 1000
+    },
+    {
+     "item": "broken dream",
+     "qty": 1000
+    },
+    {
+     "item": "yellow piece of cloth",
+     "qty": 1000
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "crazed-cave",
+   "nome": "Crazed Elf's",
+   "nivel_minimo": 240,
+   "nivel_estimado_pelo_jogo": 220,
+   "monstros": [
+    {
+     "chave": "crazed_summer_rearguard",
+     "nome": "Crazed Summer Rearguard",
+     "exp": 4700,
+     "hp": 5300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "crazed_summer_vanguard",
+     "nome": "Crazed Summer Vanguard",
+     "exp": 5000,
+     "hp": 5500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "crazed_winter_rearguard",
+     "nome": "Crazed Winter Rearguard",
+     "exp": 4700,
+     "hp": 5200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "crazed_winter_vanguard",
+     "nome": "Crazed Winter Vanguard",
+     "exp": 5400,
+     "hp": 5800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4950.0,
+   "gold_por_kill": 1164.8,
+   "indice_xp": 67.0,
+   "indice_loot": 36.3,
+   "tende_para": "xp",
+   "dificuldade_ecr": 663.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 595.0
+    },
+    {
+     "item": "glacier robe",
+     "gold_esperado_por_kill": 275.0
+    },
+    {
+     "item": "ring of blue plasma",
+     "gold_esperado_por_kill": 200.0
+    },
+    {
+     "item": "crystal crossbow",
+     "gold_esperado_por_kill": 175.0
+    },
+    {
+     "item": "glacier mask",
+     "gold_esperado_por_kill": 150.0
+    },
+    {
+     "item": "northwind rod",
+     "gold_esperado_por_kill": 90.0
+    },
+    {
+     "item": "magma amulet",
+     "gold_esperado_por_kill": 82.5
+    },
+    {
+     "item": "hailstorm rod",
+     "gold_esperado_por_kill": 79.8
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "elven astral observer",
+     "qty": 2000
+    },
+    {
+     "item": "ice flower",
+     "qty": 1000
+    },
+    {
+     "item": "heaven blossom",
+     "qty": 1000
+    },
+    {
+     "item": "miraculum",
+     "qty": 1000
+    },
+    {
+     "item": "dream essence egg",
+     "qty": 1000
+    },
+    {
+     "item": "seeds",
+     "qty": 1000
+    },
+    {
+     "item": "elvish talisman",
+     "qty": 1000
+    },
+    {
+     "item": "tiger eye",
+     "qty": 1000
+    },
+    {
+     "item": "sun fruit",
+     "qty": 150
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "guzzlemaw-cave",
+   "nome": "Guzzlemaw",
+   "nivel_minimo": 250,
+   "nivel_estimado_pelo_jogo": 240,
+   "monstros": [
+    {
+     "chave": "guzzlemaw",
+     "nome": "Guzzlemaw",
+     "exp": 6050,
+     "hp": 6400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "frazzlemaw",
+     "nome": "Frazzlemaw",
+     "exp": 3740,
+     "hp": 4100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "silencer",
+     "nome": "Silencer",
+     "exp": 5100,
+     "hp": 5400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": null,
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4963.3,
+   "gold_por_kill": 1683.1,
+   "indice_xp": 58.9,
+   "indice_loot": 46.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 732.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 450.0
+    },
+    {
+     "item": "nightmare blade",
+     "gold_esperado_por_kill": 385.0
+    },
+    {
+     "item": "sai",
+     "gold_esperado_por_kill": 240.9
+    },
+    {
+     "item": "assassin dagger",
+     "gold_esperado_por_kill": 200.0
+    },
+    {
+     "item": "haunted blade",
+     "gold_esperado_por_kill": 160.0
+    },
+    {
+     "item": "boots of haste",
+     "gold_esperado_por_kill": 108.0
+    },
+    {
+     "item": "terra legs",
+     "gold_esperado_por_kill": 105.6
+    },
+    {
+     "item": "titan axe",
+     "gold_esperado_por_kill": 88.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "frazzle tongue",
+     "qty": 1700
+    },
+    {
+     "item": "silencer claws",
+     "qty": 1700
+    },
+    {
+     "item": "frazzle skin",
+     "qty": 1700
+    },
+    {
+     "item": "crystal rubbish",
+     "qty": 1700
+    },
+    {
+     "item": "fish tail",
+     "qty": 1700
+    },
+    {
+     "item": "banana skin",
+     "qty": 1700
+    },
+    {
+     "item": "piece of iron",
+     "qty": 1700
+    },
+    {
+     "item": "fishbone",
+     "qty": 1700
+    },
+    {
+     "item": "cluster of solace",
+     "qty": 1700
+    },
+    {
+     "item": "silencer resonating chamber",
+     "qty": 1700
+    },
+    {
+     "item": "hardened bone",
+     "qty": 1700
+    },
+    {
+     "item": "big bone",
+     "qty": 1700
+    },
+    {
+     "item": "fish fin",
+     "qty": 1700
+    },
+    {
+     "item": "iron ore",
+     "qty": 700
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "lionknight-cave",
+   "nome": "Lion Knight",
+   "nivel_minimo": 270,
+   "nivel_estimado_pelo_jogo": 300,
+   "monstros": [
+    {
+     "chave": "usurper_knight",
+     "nome": "Usurper Knight",
+     "exp": 6900,
+     "hp": 8200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "usurper_warlock",
+     "nome": "Usurper Warlock",
+     "exp": 7000,
+     "hp": 7500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "usurper_archer",
+     "nome": "Usurper Archer",
+     "exp": 6800,
+     "hp": 7300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "usurper_knight",
+    "nome": "Usurper Knight",
+    "exp": 6900
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 6900.0,
+   "gold_por_kill": 1664.2,
+   "indice_xp": 58.4,
+   "indice_loot": 32.5,
+   "tende_para": "xp",
+   "dificuldade_ecr": 879.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 588.9
+    },
+    {
+     "item": "ultimate health potion",
+     "gold_esperado_por_kill": 465.8
+    },
+    {
+     "item": "warrior helmet",
+     "gold_esperado_por_kill": 439.2
+    },
+    {
+     "item": "assassin dagger",
+     "gold_esperado_por_kill": 324.4
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 264.5
+    },
+    {
+     "item": "mino shield",
+     "gold_esperado_por_kill": 255.4
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 208.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "broken longbow",
+     "qty": 900
+    },
+    {
+     "item": "gold ingot",
+     "qty": 900
+    },
+    {
+     "item": "lion cloak patch",
+     "qty": 900
+    },
+    {
+     "item": "lion crest",
+     "qty": 900
+    },
+    {
+     "item": "silver brooch",
+     "qty": 900
+    },
+    {
+     "item": "gemmed figurine",
+     "qty": 375
+    },
+    {
+     "item": "coral brooch",
+     "qty": 375
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "megadragon-cave",
+   "nome": "Mega Dragon",
+   "nivel_minimo": 290,
+   "nivel_estimado_pelo_jogo": 90,
+   "monstros": [
+    {
+     "chave": "dragolisk",
+     "nome": "Dragolisk",
+     "exp": 5050,
+     "hp": 6180,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "mega_dragon",
+     "nome": "Mega Dragon",
+     "exp": 6790,
+     "hp": 7920,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "wardragon",
+     "nome": "Wardragon",
+     "exp": 5810,
+     "hp": 6960,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "mega_dragon",
+    "nome": "Mega Dragon",
+    "exp": 6790
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5883.3,
+   "gold_por_kill": 1523.6,
+   "indice_xp": 61.8,
+   "indice_loot": 36.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 307.0,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 1208.9
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 300.3
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 183.2
+    },
+    {
+     "item": "white gem",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 103.2
+    },
+    {
+     "item": "wardragon claw",
+     "gold_esperado_por_kill": 86.5
+    },
+    {
+     "item": "dragolisk poison gland",
+     "gold_esperado_por_kill": 75.0
+    },
+    {
+     "item": "dragolisk eye",
+     "gold_esperado_por_kill": 75.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "nimmersatt's seal",
+     "qty": 1400
+    },
+    {
+     "item": "dragolisk poison gland",
+     "qty": 1400
+    },
+    {
+     "item": "dragolisk eye",
+     "qty": 1400
+    },
+    {
+     "item": "wardragon claw",
+     "qty": 1400
+    },
+    {
+     "item": "dragon tongue",
+     "qty": 1400
+    },
+    {
+     "item": "wardragon tooth",
+     "qty": 1400
+    },
+    {
+     "item": "molten dragon essence",
+     "qty": 500
+    },
+    {
+     "item": "mega dragon heart",
+     "qty": 500
+    },
+    {
+     "item": "dragon's tail",
+     "qty": 500
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "weretiger-cave",
+   "nome": "Weretiger",
+   "nivel_minimo": 330,
+   "nivel_estimado_pelo_jogo": 60,
+   "monstros": [
+    {
+     "chave": "werepanther",
+     "nome": "Werepanther",
+     "exp": 3550,
+     "hp": 4200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "weretiger",
+     "nome": "Weretiger",
+     "exp": 3920,
+     "hp": 5000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "white_weretiger",
+     "nome": "White Weretiger",
+     "exp": 5200,
+     "hp": 6100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "white_weretiger",
+    "nome": "White Weretiger",
+    "exp": 5200
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 4223.3,
+   "gold_por_kill": 1566.1,
+   "indice_xp": 61.1,
+   "indice_loot": 52.2,
+   "tende_para": "loot",
+   "dificuldade_ecr": 229.0,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 1050.0
+    },
+    {
+     "item": "silver moon coin",
+     "gold_esperado_por_kill": 220.0
+    },
+    {
+     "item": "white gem",
+     "gold_esperado_por_kill": 198.0
+    },
+    {
+     "item": "knight armor",
+     "gold_esperado_por_kill": 150.0
+    },
+    {
+     "item": "fur armor",
+     "gold_esperado_por_kill": 131.0
+    },
+    {
+     "item": "moon pin",
+     "gold_esperado_por_kill": 118.8
+    },
+    {
+     "item": "blue robe",
+     "gold_esperado_por_kill": 116.0
+    },
+    {
+     "item": "werepanther trophy",
+     "gold_esperado_por_kill": 91.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "werepanther claw",
+     "qty": 1000
+    },
+    {
+     "item": "weretiger tooth",
+     "qty": 1000
+    },
+    {
+     "item": "moonlight crystals",
+     "qty": 1000
+    },
+    {
+     "item": "silver moon coin",
+     "qty": 400
+    },
+    {
+     "item": "gemmed figurine",
+     "qty": 400
+    },
+    {
+     "item": "werepanther trophy",
+     "qty": 150
+    },
+    {
+     "item": "weretiger trophy",
+     "qty": 150
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "werecrocodile-cave",
+   "nome": "Feral Werecrocodile",
+   "nivel_minimo": 340,
+   "nivel_estimado_pelo_jogo": 70,
+   "monstros": [
+    {
+     "chave": "feral_werecrocodile",
+     "nome": "Feral Werecrocodile",
+     "exp": 5430,
+     "hp": 6400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "werecrocodile",
+     "nome": "Werecrocodile",
+     "exp": 4140,
+     "hp": 5280,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "cunning_werepanther",
+     "nome": "Cunning Werepanther",
+     "exp": 3620,
+     "hp": 4300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "feral_werecrocodile",
+    "nome": "Feral Werecrocodile",
+    "exp": 5430
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 4396.7,
+   "gold_por_kill": 1636.0,
+   "indice_xp": 60.9,
+   "indice_loot": 52.2,
+   "tende_para": "loot",
+   "dificuldade_ecr": 239.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 600.0
+    },
+    {
+     "item": "terra mantle",
+     "gold_esperado_por_kill": 240.9
+    },
+    {
+     "item": "lightning headband",
+     "gold_esperado_por_kill": 216.0
+    },
+    {
+     "item": "golden sun coin",
+     "gold_esperado_por_kill": 194.7
+    },
+    {
+     "item": "fur armor",
+     "gold_esperado_por_kill": 131.0
+    },
+    {
+     "item": "sun brooch",
+     "gold_esperado_por_kill": 122.4
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 102.4
+    },
+    {
+     "item": "crocodile boots",
+     "gold_esperado_por_kill": 85.3
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "werepanther claw",
+     "qty": 600
+    },
+    {
+     "item": "werecrocodile tongue",
+     "qty": 600
+    },
+    {
+     "item": "moonlight crystals",
+     "qty": 250
+    },
+    {
+     "item": "golden sun coin",
+     "qty": 250
+    },
+    {
+     "item": "gemmed figurine",
+     "qty": 250
+    },
+    {
+     "item": "werepanther trophy",
+     "qty": 100
+    },
+    {
+     "item": "werecrocodile trophy",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "bulltaur-cave",
+   "nome": "Bulltaur",
+   "nivel_minimo": 350,
+   "nivel_estimado_pelo_jogo": 280,
+   "monstros": [
+    {
+     "chave": "bulltaur_alchemist",
+     "nome": "Bulltaur Alchemist",
+     "exp": 4500,
+     "hp": 5690,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "bulltaur_brute",
+     "nome": "Bulltaur Brute",
+     "exp": 4700,
+     "hp": 6560,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "bulltaur_forgepriest",
+     "nome": "Bulltaur Forgepriest",
+     "exp": 6400,
+     "hp": 6840,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "bulltaur_brute",
+    "nome": "Bulltaur Brute",
+    "exp": 4700
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5200.0,
+   "gold_por_kill": 1519.2,
+   "indice_xp": 60.3,
+   "indice_loot": 40.6,
+   "tende_para": "xp",
+   "dificuldade_ecr": 835.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 1205.4
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 135.9
+    },
+    {
+     "item": "alloy legs",
+     "gold_esperado_por_kill": 110.3
+    },
+    {
+     "item": "lightning robe",
+     "gold_esperado_por_kill": 108.8
+    },
+    {
+     "item": "spellbook of mind control",
+     "gold_esperado_por_kill": 96.5
+    },
+    {
+     "item": "mino shield",
+     "gold_esperado_por_kill": 88.5
+    },
+    {
+     "item": "wand of defiance",
+     "gold_esperado_por_kill": 80.3
+    },
+    {
+     "item": "gold ring",
+     "gold_esperado_por_kill": 80.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "bulltaur horn",
+     "qty": 1000
+    },
+    {
+     "item": "bulltaur armor scrap",
+     "qty": 1000
+    },
+    {
+     "item": "bulltaur hoof",
+     "qty": 1000
+    },
+    {
+     "item": "encrypted notes",
+     "qty": 1000
+    },
+    {
+     "item": "staff piece",
+     "qty": 1000
+    },
+    {
+     "item": "strange substance",
+     "qty": 1000
+    },
+    {
+     "item": "idol of the forge",
+     "qty": 425
+    },
+    {
+     "item": "soul orb",
+     "qty": 425
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "gazer-lair",
+   "nome": "Gazer",
+   "nivel_minimo": 350,
+   "nivel_estimado_pelo_jogo": 280,
+   "monstros": [
+    {
+     "chave": "gazer_spectre",
+     "nome": "Gazer Spectre",
+     "exp": 4200,
+     "hp": 4500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "ripper_spectre",
+     "nome": "Ripper Spectre",
+     "exp": 3500,
+     "hp": 3800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "burster_spectre",
+     "nome": "Burster Spectre",
+     "exp": 6000,
+     "hp": 6500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "ripper_spectre",
+    "nome": "Ripper Spectre",
+    "exp": 3500
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4566.7,
+   "gold_por_kill": 1594.0,
+   "indice_xp": 62.0,
+   "indice_loot": 49.9,
+   "tende_para": "loot",
+   "dificuldade_ecr": 822.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "hailstorm rod",
+     "gold_esperado_por_kill": 526.5
+    },
+    {
+     "item": "wand of voodoo",
+     "gold_esperado_por_kill": 486.2
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 400.0
+    },
+    {
+     "item": "great spirit potion",
+     "gold_esperado_por_kill": 380.0
+    },
+    {
+     "item": "glacier amulet",
+     "gold_esperado_por_kill": 253.3
+    },
+    {
+     "item": "hexagonal ruby",
+     "gold_esperado_por_kill": 240.0
+    },
+    {
+     "item": "assassin dagger",
+     "gold_esperado_por_kill": 194.0
+    },
+    {
+     "item": "emerald bangle",
+     "gold_esperado_por_kill": 117.9
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "blue ectoplasm",
+     "qty": 700
+    },
+    {
+     "item": "silver brooch",
+     "qty": 700
+    },
+    {
+     "item": "emerald bangle",
+     "qty": 700
+    },
+    {
+     "item": "life crystal",
+     "qty": 700
+    },
+    {
+     "item": "mind stone",
+     "qty": 275
+    },
+    {
+     "item": "coral brooch",
+     "qty": 275
+    },
+    {
+     "item": "golden idol of tukh",
+     "qty": 275
+    },
+    {
+     "item": "strange symbol",
+     "qty": 100
+    },
+    {
+     "item": "red ectoplasm",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "skeletin-cave",
+   "nome": "Skeleton Elite Warrior",
+   "nivel_minimo": 350,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "undead_elite_gladiator",
+     "nome": "Undead Elite Gladiator",
+     "exp": 5090,
+     "hp": 8000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "skeleton_elite_warrior",
+     "nome": "Skeleton Elite Warrior",
+     "exp": 4800,
+     "hp": 7800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "skeleton_elite_warrior",
+    "nome": "Skeleton Elite Warrior",
+    "exp": 4800
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 4945.0,
+   "gold_por_kill": 908.0,
+   "indice_xp": 46.2,
+   "indice_loot": 19.5,
+   "tende_para": "xp",
+   "dificuldade_ecr": 330.5,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 348.0
+    },
+    {
+     "item": "soul orb",
+     "gold_esperado_por_kill": 156.6
+    },
+    {
+     "item": "skull helmet",
+     "gold_esperado_por_kill": 140.0
+    },
+    {
+     "item": "ruthless axe",
+     "gold_esperado_por_kill": 67.5
+    },
+    {
+     "item": "knight axe",
+     "gold_esperado_por_kill": 65.0
+    },
+    {
+     "item": "relic sword",
+     "gold_esperado_por_kill": 37.5
+    },
+    {
+     "item": "flask of warrior's sweat",
+     "gold_esperado_por_kill": 25.0
+    },
+    {
+     "item": "crusader helmet",
+     "gold_esperado_por_kill": 9.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "unholy bone",
+     "qty": 250
+    },
+    {
+     "item": "pelvis bone",
+     "qty": 250
+    },
+    {
+     "item": "flask of warrior's sweat",
+     "qty": 100
+    },
+    {
+     "item": "broken gladiator shield",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "darkcarnisylvan-cave",
+   "nome": "Dark Carnisylvan",
+   "nivel_minimo": 430,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "dark_carnisylvan",
+     "nome": "Dark Carnisylvan",
+     "exp": 4400,
+     "hp": 7500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "hulking_carnisylvan",
+     "nome": "Hulking Carnisylvan",
+     "exp": 4700,
+     "hp": 8600,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "poisonous_carnisylvan",
+     "nome": "Poisonous Carnisylvan",
+     "exp": 4400,
+     "hp": 8000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "dark_carnisylvan",
+    "nome": "Dark Carnisylvan",
+    "exp": 4400
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 4500.0,
+   "gold_por_kill": 2220.1,
+   "indice_xp": 41.3,
+   "indice_loot": 47.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 343.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 630.0
+    },
+    {
+     "item": "guardian halberd",
+     "gold_esperado_por_kill": 546.7
+    },
+    {
+     "item": "collar of blue plasma",
+     "gold_esperado_por_kill": 298.2
+    },
+    {
+     "item": "underworld rod",
+     "gold_esperado_por_kill": 276.3
+    },
+    {
+     "item": "spellbook of warding",
+     "gold_esperado_por_kill": 271.2
+    },
+    {
+     "item": "epee",
+     "gold_esperado_por_kill": 207.2
+    },
+    {
+     "item": "terra hood",
+     "gold_esperado_por_kill": 180.0
+    },
+    {
+     "item": "wand of starstorm",
+     "gold_esperado_por_kill": 169.6
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "carnisylvan finger",
+     "qty": 1500
+    },
+    {
+     "item": "carnisylvan bark",
+     "qty": 1500
+    },
+    {
+     "item": "human teeth",
+     "qty": 600
+    },
+    {
+     "item": "gemmed figurine",
+     "qty": 225
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "inferniarch-lair",
+   "nome": "Inferniarch",
+   "nivel_minimo": 450,
+   "nivel_estimado_pelo_jogo": 120,
+   "monstros": [
+    {
+     "chave": "broodrider_inferniarch",
+     "nome": "Broodrider Inferniarch",
+     "exp": 7850,
+     "hp": 9600,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "gorger_inferniarch",
+     "nome": "Gorger Inferniarch",
+     "exp": 7680,
+     "hp": 9450,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "sineater_inferniarch",
+     "nome": "Sineater Inferniarch",
+     "exp": 7250,
+     "hp": 9150,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "gorger_inferniarch",
+    "nome": "Gorger Inferniarch",
+    "exp": 7680
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 7593.3,
+   "gold_por_kill": 960.2,
+   "indice_xp": 59.6,
+   "indice_loot": 17.4,
+   "tende_para": "xp",
+   "dificuldade_ecr": 394.6,
+   "drops_que_mais_valem": [
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 448.0
+    },
+    {
+     "item": "arbalest",
+     "gold_esperado_por_kill": 341.5
+    },
+    {
+     "item": "wand of defiance",
+     "gold_esperado_por_kill": 296.4
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 210.0
+    },
+    {
+     "item": "magma legs",
+     "gold_esperado_por_kill": 209.0
+    },
+    {
+     "item": "blue crystal splinter",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "wooden spellbook",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "ruby necklace",
+     "gold_esperado_por_kill": 116.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "gorger antlers",
+     "qty": 1300
+    },
+    {
+     "item": "broodrider saddle",
+     "qty": 1300
+    },
+    {
+     "item": "demonic core essence",
+     "qty": 1300
+    },
+    {
+     "item": "demonic matter",
+     "qty": 1300
+    },
+    {
+     "item": "sineater wing",
+     "qty": 500
+    },
+    {
+     "item": "mummified demon finger",
+     "qty": 500
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "girtablilu-cave",
+   "nome": "girtablilu warrior",
+   "nivel_minimo": 460,
+   "nivel_estimado_pelo_jogo": 420,
+   "monstros": [
+    {
+     "chave": "girtablilu_warrior",
+     "nome": "Girtablilu Warrior",
+     "exp": 5800,
+     "hp": 8500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "venerable_girtablilu",
+     "nome": "Venerable Girtablilu",
+     "exp": 5300,
+     "hp": 8500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "girtablilu_warrior",
+    "nome": "Girtablilu Warrior",
+    "exp": 5800
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5550.0,
+   "gold_por_kill": 3436.4,
+   "indice_xp": 46.9,
+   "indice_loot": 66.9,
+   "tende_para": "loot",
+   "dificuldade_ecr": 1178.6,
+   "drops_que_mais_valem": [
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 1194.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 700.0
+    },
+    {
+     "item": "magma coat",
+     "gold_esperado_por_kill": 239.8
+    },
+    {
+     "item": "green crystal shard",
+     "gold_esperado_por_kill": 192.6
+    },
+    {
+     "item": "epee",
+     "gold_esperado_por_kill": 169.6
+    },
+    {
+     "item": "ring of blue plasma",
+     "gold_esperado_por_kill": 154.4
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 98.2
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 96.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "scorpion charm",
+     "qty": 4300
+    },
+    {
+     "item": "old girtablilu carapace",
+     "qty": 1700
+    },
+    {
+     "item": "girtablilu warrior carapace",
+     "qty": 1700
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "lavafungos-cave",
+   "nome": "Lavafungos",
+   "nivel_minimo": 610,
+   "nivel_estimado_pelo_jogo": 580,
+   "monstros": [
+    {
+     "chave": "lavafungus",
+     "nome": "Lavafungus",
+     "exp": 6200,
+     "hp": 7200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "lavaworm",
+     "nome": "Lavaworm",
+     "exp": 6500,
+     "hp": 7500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "streaked_devourer",
+     "nome": "Streaked Devourer",
+     "exp": 6300,
+     "hp": 7000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "lavafungus",
+    "nome": "Lavafungus",
+    "exp": 6200
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 6333.3,
+   "gold_por_kill": 4021.0,
+   "indice_xp": 63.5,
+   "indice_loot": 93.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 1574.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 1692.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 1015.0
+    },
+    {
+     "item": "terra rod",
+     "gold_esperado_por_kill": 837.2
+    },
+    {
+     "item": "war axe",
+     "gold_esperado_por_kill": 554.4
+    },
+    {
+     "item": "violet crystal shard",
+     "gold_esperado_por_kill": 468.9
+    },
+    {
+     "item": "guardian halberd",
+     "gold_esperado_por_kill": 338.8
+    },
+    {
+     "item": "relic sword",
+     "gold_esperado_por_kill": 252.5
+    },
+    {
+     "item": "lavaworm spike roots",
+     "gold_esperado_por_kill": 243.7
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "lavaworm spike roots",
+     "qty": 2700
+    },
+    {
+     "item": "streaked devourer maw",
+     "qty": 1300
+    },
+    {
+     "item": "lavafungus ring",
+     "qty": 1300
+    },
+    {
+     "item": "streaked devourer eyes",
+     "qty": 1300
+    },
+    {
+     "item": "lavafungus head",
+     "qty": 500
+    },
+    {
+     "item": "lavaworm spikes",
+     "qty": 500
+    },
+    {
+     "item": "lavaworm jaws",
+     "qty": 500
+    },
+    {
+     "item": "streaked devourer legs",
+     "qty": 500
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "livrariaice-cave",
+   "nome": "Livraria ICE",
+   "nivel_minimo": 500,
+   "nivel_estimado_pelo_jogo": 330,
+   "monstros": [
+    {
+     "chave": "animated_feather",
+     "nome": "Animated Feather",
+     "exp": 9860,
+     "hp": 13000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "squid_warden",
+     "nome": "Squid Warden",
+     "exp": 15300,
+     "hp": 16500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "icecold_book",
+     "nome": "Icecold Book",
+     "exp": 12750,
+     "hp": 21000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "icecold_book",
+    "nome": "Icecold Book",
+    "exp": 12750
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 12636.7,
+   "gold_por_kill": 5203.3,
+   "indice_xp": 55.3,
+   "indice_loot": 52.6,
+   "tende_para": "loot",
+   "dificuldade_ecr": 970.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "silken bookmark",
+     "gold_esperado_por_kill": 1950.0
+    },
+    {
+     "item": "quill",
+     "gold_esperado_por_kill": 1650.0
+    },
+    {
+     "item": "ultimate health potion",
+     "gold_esperado_por_kill": 1395.0
+    },
+    {
+     "item": "small diamond",
+     "gold_esperado_por_kill": 1350.0
+    },
+    {
+     "item": "book page",
+     "gold_esperado_por_kill": 1280.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 319.0
+    },
+    {
+     "item": "inkwell",
+     "gold_esperado_por_kill": 144.0
+    },
+    {
+     "item": "piece of dead brain",
+     "gold_esperado_por_kill": 105.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "silken bookmark",
+     "qty": 1100
+    },
+    {
+     "item": "quill",
+     "qty": 1100
+    },
+    {
+     "item": "frosty heart",
+     "qty": 1100
+    },
+    {
+     "item": "slime heart",
+     "qty": 500
+    },
+    {
+     "item": "piece of dead brain",
+     "qty": 500
+    },
+    {
+     "item": "glowing rune",
+     "qty": 75
+    },
+    {
+     "item": "golden mug",
+     "qty": 75
+    },
+    {
+     "item": "shard",
+     "qty": 75
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "livrariafire-cave",
+   "nome": "Livraria FIRE",
+   "nivel_minimo": 500,
+   "nivel_estimado_pelo_jogo": 290,
+   "monstros": [
+    {
+     "chave": "ink_blob",
+     "nome": "Ink Blob",
+     "exp": 14450,
+     "hp": 9500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "burning_book",
+     "nome": "Burning Book",
+     "exp": 13200,
+     "hp": 18000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "guardian_of_tales",
+     "nome": "Guardian of Tales",
+     "exp": 10600,
+     "hp": 15000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "rage_squid",
+     "nome": "Rage Squid",
+     "exp": 16300,
+     "hp": 17000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "burning_book",
+    "nome": "Burning Book",
+    "exp": 13200
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 13637.5,
+   "gold_por_kill": 2657.9,
+   "indice_xp": 67.6,
+   "indice_loot": 30.4,
+   "tende_para": "xp",
+   "dificuldade_ecr": 853.0,
+   "drops_que_mais_valem": [
+    {
+     "item": "orb",
+     "gold_esperado_por_kill": 1485.0
+    },
+    {
+     "item": "shadow sceptre",
+     "gold_esperado_por_kill": 899.0
+    },
+    {
+     "item": "small emerald",
+     "gold_esperado_por_kill": 675.0
+    },
+    {
+     "item": "small ruby",
+     "gold_esperado_por_kill": 675.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 588.0
+    },
+    {
+     "item": "small amethyst",
+     "gold_esperado_por_kill": 540.0
+    },
+    {
+     "item": "magma coat",
+     "gold_esperado_por_kill": 220.0
+    },
+    {
+     "item": "book page",
+     "gold_esperado_por_kill": 192.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "orb",
+     "qty": 1400
+    },
+    {
+     "item": "glowing rune",
+     "qty": 700
+    },
+    {
+     "item": "burnt scroll",
+     "qty": 700
+    },
+    {
+     "item": "book page",
+     "qty": 700
+    },
+    {
+     "item": "talon",
+     "qty": 700
+    },
+    {
+     "item": "purple tome",
+     "qty": 700
+    },
+    {
+     "item": "piece of dead brain",
+     "qty": 275
+    },
+    {
+     "item": "demonic essence",
+     "qty": 275
+    },
+    {
+     "item": "soul orb",
+     "qty": 275
+    },
+    {
+     "item": "slime heart",
+     "qty": 275
+    },
+    {
+     "item": "flask of demonic blood",
+     "qty": 275
+    },
+    {
+     "item": "silken bookmark",
+     "qty": 275
+    },
+    {
+     "item": "poisonous slime",
+     "qty": 275
+    },
+    {
+     "item": "clay lump",
+     "qty": 275
+    },
+    {
+     "item": "piece of hellfire armor",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "livrariaearth-cave",
+   "nome": "Livraria EARTH",
+   "nivel_minimo": 500,
+   "nivel_estimado_pelo_jogo": 270,
+   "monstros": [
+    {
+     "chave": "biting_book",
+     "nome": "Biting Book",
+     "exp": 9350,
+     "hp": 6500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "cursed_book",
+     "nome": "Cursed Book",
+     "exp": 13345,
+     "hp": 20000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "ink_blob",
+     "nome": "Ink Blob",
+     "exp": 14450,
+     "hp": 9500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "cursed_book",
+    "nome": "Cursed Book",
+    "exp": 13345
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 12381.7,
+   "gold_por_kill": 679.2,
+   "indice_xp": 76.1,
+   "indice_loot": 9.6,
+   "tende_para": "xp",
+   "dificuldade_ecr": 800.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "silken bookmark",
+     "gold_esperado_por_kill": 260.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 250.0
+    },
+    {
+     "item": "terra legs",
+     "gold_esperado_por_kill": 178.8
+    },
+    {
+     "item": "terra mantle",
+     "gold_esperado_por_kill": 151.2
+    },
+    {
+     "item": "book page",
+     "gold_esperado_por_kill": 128.0
+    },
+    {
+     "item": "small diamond",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 118.8
+    },
+    {
+     "item": "sacred tree amulet",
+     "gold_esperado_por_kill": 90.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "poisonous slime",
+     "qty": 375
+    },
+    {
+     "item": "clay lump",
+     "qty": 375
+    },
+    {
+     "item": "silken bookmark",
+     "qty": 150
+    },
+    {
+     "item": "glowing rune",
+     "qty": 150
+    },
+    {
+     "item": "book page",
+     "qty": 150
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "livraria-cave",
+   "nome": "Livraria ENERGY",
+   "nivel_minimo": 500,
+   "nivel_estimado_pelo_jogo": 300,
+   "monstros": [
+    {
+     "chave": "brain_squid",
+     "nome": "Brain Squid",
+     "exp": 17672,
+     "hp": 18000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "energetic_book",
+     "nome": "Energetic Book",
+     "exp": 12034,
+     "hp": 18500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "knowledge_elemental",
+     "nome": "Knowledge Elemental",
+     "exp": 10603,
+     "hp": 10500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "energetic_book",
+    "nome": "Energetic Book",
+    "exp": 12034
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 13436.3,
+   "gold_por_kill": 1679.5,
+   "indice_xp": 63.2,
+   "indice_loot": 18.2,
+   "tende_para": "xp",
+   "dificuldade_ecr": 885.0,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 500.0
+    },
+    {
+     "item": "silken bookmark",
+     "gold_esperado_por_kill": 260.0
+    },
+    {
+     "item": "book page",
+     "gold_esperado_por_kill": 224.0
+    },
+    {
+     "item": "quill",
+     "gold_esperado_por_kill": 220.0
+    },
+    {
+     "item": "guardian shield",
+     "gold_esperado_por_kill": 200.0
+    },
+    {
+     "item": "ultimate health potion",
+     "gold_esperado_por_kill": 124.0
+    },
+    {
+     "item": "ultimate mana potion",
+     "gold_esperado_por_kill": 88.0
+    },
+    {
+     "item": "wand of defiance",
+     "gold_esperado_por_kill": 52.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "silken bookmark",
+     "qty": 1000
+    },
+    {
+     "item": "quill",
+     "qty": 1000
+    },
+    {
+     "item": "glowing rune",
+     "qty": 1000
+    },
+    {
+     "item": "book page",
+     "qty": 1000
+    },
+    {
+     "item": "slime heart",
+     "qty": 375
+    },
+    {
+     "item": "piece of dead brain",
+     "qty": 375
+    },
+    {
+     "item": "odd organ",
+     "qty": 375
+    },
+    {
+     "item": "instable proto matter",
+     "qty": 375
+    },
+    {
+     "item": "frozen lightning",
+     "qty": 375
+    },
+    {
+     "item": "energy ball",
+     "qty": 375
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "bashmu-cave",
+   "nome": "Bashmu",
+   "nivel_minimo": 350,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "bashmu",
+     "nome": "Bashmu",
+     "exp": 5000,
+     "hp": 8200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "juvenile_bashmu",
+     "nome": "Juvenile Bashmu",
+     "exp": 4500,
+     "hp": 7500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "bashmu",
+    "nome": "Bashmu",
+    "exp": 5000
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4750.0,
+   "gold_por_kill": 2345.2,
+   "indice_xp": 44.6,
+   "indice_loot": 50.8,
+   "tende_para": "loot",
+   "dificuldade_ecr": 332.6,
+   "drops_que_mais_valem": [
+    {
+     "item": "guardian halberd",
+     "gold_esperado_por_kill": 1007.6
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 700.0
+    },
+    {
+     "item": "lightning legs",
+     "gold_esperado_por_kill": 245.3
+    },
+    {
+     "item": "blue crystal shard",
+     "gold_esperado_por_kill": 184.8
+    },
+    {
+     "item": "spellweaver's robe",
+     "gold_esperado_por_kill": 133.2
+    },
+    {
+     "item": "sacred tree amulet",
+     "gold_esperado_por_kill": 128.4
+    },
+    {
+     "item": "green crystal shard",
+     "gold_esperado_por_kill": 104.1
+    },
+    {
+     "item": "amber staff",
+     "gold_esperado_por_kill": 101.6
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "bashmu tongue",
+     "qty": 1700
+    },
+    {
+     "item": "bashmu feather",
+     "qty": 1700
+    },
+    {
+     "item": "bashmu fang",
+     "qty": 700
+    },
+    {
+     "item": "rainbow quartz",
+     "qty": 700
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "raubritter-lair",
+   "nome": "Raubritter",
+   "nivel_minimo": 250,
+   "nivel_estimado_pelo_jogo": 140,
+   "monstros": [
+    {
+     "chave": "raubritter_chastener",
+     "nome": "Raubritter Chastener",
+     "exp": 9500,
+     "hp": 10000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "raubritter_marksman",
+     "nome": "Raubritter Marksman",
+     "exp": 9025,
+     "hp": 10500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "raubritter_skirmisher",
+     "nome": "Raubritter Skirmisher",
+     "exp": 8550,
+     "hp": 11000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "raubritter_skirmisher",
+    "nome": "Raubritter Skirmisher",
+    "exp": 8550
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 9025.0,
+   "gold_por_kill": 1215.1,
+   "indice_xp": 63.4,
+   "indice_loot": 19.7,
+   "tende_para": "xp",
+   "dificuldade_ecr": 445.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 550.0
+    },
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 322.5
+    },
+    {
+     "item": "gold ring",
+     "gold_esperado_por_kill": 152.8
+    },
+    {
+     "item": "wooden spellbook",
+     "gold_esperado_por_kill": 126.0
+    },
+    {
+     "item": "mercenary sword",
+     "gold_esperado_por_kill": 126.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 107.0
+    },
+    {
+     "item": "terra mantle",
+     "gold_esperado_por_kill": 93.5
+    },
+    {
+     "item": "magma monocle",
+     "gold_esperado_por_kill": 92.8
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "cuirass plate",
+     "qty": 50
+    },
+    {
+     "item": "stag parchment",
+     "qty": 25
+    },
+    {
+     "item": "silver poniard",
+     "qty": 25
+    },
+    {
+     "item": "bottle of raubritter lager",
+     "qty": 5
+    },
+    {
+     "item": "marinated sturgeon",
+     "qty": 5
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "orclops-cave",
+   "nome": "Orclops",
+   "nivel_minimo": 100,
+   "nivel_estimado_pelo_jogo": 15,
+   "monstros": [
+    {
+     "chave": "orclops_doomhauler",
+     "nome": "Orclops Doomhauler",
+     "exp": 1450,
+     "hp": 1700,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "orclops_ravager",
+     "nome": "Orclops Ravager",
+     "exp": 1100,
+     "hp": 1200,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "orclops_doomhauler",
+    "nome": "Orclops Doomhauler",
+    "exp": 1450
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1275.0,
+   "gold_por_kill": 643.2,
+   "indice_xp": 64.8,
+   "indice_loot": 75.4,
+   "tende_para": "loot",
+   "dificuldade_ecr": 64.5,
+   "drops_que_mais_valem": [
+    {
+     "item": "pair of iron fists",
+     "gold_esperado_por_kill": 200.0
+    },
+    {
+     "item": "brown crystal splinter",
+     "gold_esperado_por_kill": 122.3
+    },
+    {
+     "item": "orcish axe",
+     "gold_esperado_por_kill": 70.0
+    },
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 56.0
+    },
+    {
+     "item": "black pearl",
+     "gold_esperado_por_kill": 53.6
+    },
+    {
+     "item": "strong health potion",
+     "gold_esperado_por_kill": 50.3
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 50.3
+    },
+    {
+     "item": "dreaded cleaver",
+     "gold_esperado_por_kill": 45.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "mysterious fetish",
+     "qty": 1600
+    },
+    {
+     "item": "bone toothpick",
+     "qty": 1600
+    },
+    {
+     "item": "reinvigorating seeds",
+     "qty": 800
+    },
+    {
+     "item": "beetle carapace",
+     "qty": 325
+    },
+    {
+     "item": "war drum",
+     "qty": 125
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "naga-lair",
+   "nome": "Naga Lair",
+   "nivel_minimo": 300,
+   "nivel_estimado_pelo_jogo": 60,
+   "monstros": [
+    {
+     "chave": "naga_archer",
+     "nome": "Naga Archer",
+     "exp": 5150,
+     "hp": 4640,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "naga_warrior",
+     "nome": "Naga Warrior",
+     "exp": 5890,
+     "hp": 5530,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "makara",
+     "nome": "Makara",
+     "exp": 5720,
+     "hp": 5050,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "naga_warrior",
+    "nome": "Naga Warrior",
+    "exp": 5890
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5586.7,
+   "gold_por_kill": 1440.6,
+   "indice_xp": 81.2,
+   "indice_loot": 48.3,
+   "tende_para": "xp",
+   "dificuldade_ecr": 219.1,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 950.0
+    },
+    {
+     "item": "relic sword",
+     "gold_esperado_por_kill": 150.0
+    },
+    {
+     "item": "crystal crossbow",
+     "gold_esperado_por_kill": 147.0
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 107.5
+    },
+    {
+     "item": "naga archer scales",
+     "gold_esperado_por_kill": 102.3
+    },
+    {
+     "item": "sea horse figurine",
+     "gold_esperado_por_kill": 84.0
+    },
+    {
+     "item": "ornate crossbow",
+     "gold_esperado_por_kill": 75.6
+    },
+    {
+     "item": "naga warrior scales",
+     "gold_esperado_por_kill": 72.1
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "naga archer scales",
+     "qty": 300
+    },
+    {
+     "item": "naga earring",
+     "qty": 300
+    },
+    {
+     "item": "naga warrior scales",
+     "qty": 300
+    },
+    {
+     "item": "makara tongue",
+     "qty": 300
+    },
+    {
+     "item": "makara fin",
+     "qty": 300
+    },
+    {
+     "item": "naga armring",
+     "qty": 300
+    },
+    {
+     "item": "silver brooch",
+     "qty": 50
+    },
+    {
+     "item": "sea horse figurine",
+     "qty": 50
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "darktorturer-cave",
+   "nome": "Dark Torturer",
+   "nivel_minimo": 150,
+   "nivel_estimado_pelo_jogo": 80,
+   "monstros": [
+    {
+     "chave": "dark_torturer",
+     "nome": "Dark Torturer",
+     "exp": 4650,
+     "hp": 7350,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "lost_soul",
+     "nome": "Lost Soul",
+     "exp": 4000,
+     "hp": 5800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "betrayed_wraith",
+     "nome": "Betrayed Wraith",
+     "exp": 3500,
+     "hp": 4200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "dark_torturer",
+    "nome": "Dark Torturer",
+    "exp": 4650
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4050.0,
+   "gold_por_kill": 1905.1,
+   "indice_xp": 51.6,
+   "indice_loot": 56.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 266.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "steel boots",
+     "gold_esperado_por_kill": 1515.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 450.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "mercenary sword",
+     "gold_esperado_por_kill": 226.8
+    },
+    {
+     "item": "demonic essence",
+     "gold_esperado_por_kill": 194.3
+    },
+    {
+     "item": "unholy bone",
+     "gold_esperado_por_kill": 158.4
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 157.0
+    },
+    {
+     "item": "skull helmet",
+     "gold_esperado_por_kill": 156.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "flask of demonic blood",
+     "qty": 275
+    },
+    {
+     "item": "unholy bone",
+     "qty": 275
+    },
+    {
+     "item": "soul orb",
+     "qty": 275
+    },
+    {
+     "item": "saw",
+     "qty": 150
+    },
+    {
+     "item": "cat's paw",
+     "qty": 50
+    },
+    {
+     "item": "skeleton decoration",
+     "qty": 50
+    },
+    {
+     "item": "golden figurine",
+     "qty": 20
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "trueazura-cave",
+   "nome": "True Azura",
+   "nivel_minimo": 300,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "true_dawnfire_asura",
+     "nome": "True Dawnfire Asura",
+     "exp": 7475,
+     "hp": 8500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "true_frost_flower_asura",
+     "nome": "True Frost Flower Asura",
+     "exp": 7069,
+     "hp": 4000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "true_midnight_asura",
+     "nome": "True Midnight Asura",
+     "exp": 7313,
+     "hp": 9000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "true_dawnfire_asura",
+    "nome": "True Dawnfire Asura",
+    "exp": 7475
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 7285.7,
+   "gold_por_kill": 1936.6,
+   "indice_xp": 75.0,
+   "indice_loot": 45.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 328.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 576.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 522.5
+    },
+    {
+     "item": "demonic essence",
+     "gold_esperado_por_kill": 110.0
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 99.5
+    },
+    {
+     "item": "assassin dagger",
+     "gold_esperado_por_kill": 60.0
+    },
+    {
+     "item": "small enchanted sapphire",
+     "gold_esperado_por_kill": 48.2
+    },
+    {
+     "item": "small enchanted ruby",
+     "gold_esperado_por_kill": 47.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "flask of demonic blood",
+     "qty": 3500
+    },
+    {
+     "item": "soul orb",
+     "qty": 1800
+    },
+    {
+     "item": "golden lotus brooch",
+     "qty": 1800
+    },
+    {
+     "item": "peacock feather fan",
+     "qty": 1800
+    },
+    {
+     "item": "demonic essence",
+     "qty": 1800
+    },
+    {
+     "item": "silver brooch",
+     "qty": 700
+    },
+    {
+     "item": "red piece of cloth",
+     "qty": 700
+    },
+    {
+     "item": "blue piece of cloth",
+     "qty": 700
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "catacomb-cave",
+   "nome": "Catacomb",
+   "nivel_minimo": 250,
+   "nivel_estimado_pelo_jogo": 130,
+   "monstros": [
+    {
+     "chave": "demon",
+     "nome": "Demon",
+     "exp": 6000,
+     "hp": 8200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "grim_reaper",
+     "nome": "Grim Reaper",
+     "exp": 5500,
+     "hp": 3900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "destroyer",
+     "nome": "Destroyer",
+     "exp": 2500,
+     "hp": 3700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "hellspawn",
+     "nome": "Hellspawn",
+     "exp": 2550,
+     "hp": 3500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "demon",
+    "nome": "Demon",
+    "exp": 6000
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 4137.5,
+   "gold_por_kill": 1389.4,
+   "indice_xp": 61.2,
+   "indice_loot": 47.4,
+   "tende_para": "loot",
+   "dificuldade_ecr": 440.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 407.4
+    },
+    {
+     "item": "fire axe",
+     "gold_esperado_por_kill": 322.4
+    },
+    {
+     "item": "nightmare blade",
+     "gold_esperado_por_kill": 308.0
+    },
+    {
+     "item": "mastermind shield",
+     "gold_esperado_por_kill": 240.0
+    },
+    {
+     "item": "demon shield",
+     "gold_esperado_por_kill": 222.0
+    },
+    {
+     "item": "giant sword",
+     "gold_esperado_por_kill": 212.5
+    },
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 151.5
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 110.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "flask of demonic blood",
+     "qty": 150
+    },
+    {
+     "item": "hellspawn tail",
+     "qty": 150
+    },
+    {
+     "item": "demon horn",
+     "qty": 75
+    },
+    {
+     "item": "demonic essence",
+     "qty": 75
+    },
+    {
+     "item": "soul orb",
+     "qty": 75
+    },
+    {
+     "item": "mystical hourglass",
+     "qty": 75
+    },
+    {
+     "item": "metal spike",
+     "qty": 25
+    },
+    {
+     "item": "talon",
+     "qty": 25
+    },
+    {
+     "item": "orb",
+     "qty": 25
+    },
+    {
+     "item": "dracoyle statue",
+     "qty": 10
+    },
+    {
+     "item": "mind stone",
+     "qty": 10
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "undeadragon-lair",
+   "nome": "Undead Dragon",
+   "nivel_minimo": 200,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "undead_dragon",
+     "nome": "Undead Dragon",
+     "exp": 7500,
+     "hp": 8350,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "undead_dragon",
+    "nome": "Undead Dragon",
+    "exp": 7500
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 7500.0,
+   "gold_por_kill": 2630.3,
+   "indice_xp": 66.2,
+   "indice_loot": 53.6,
+   "tende_para": "loot",
+   "dificuldade_ecr": 347.6,
+   "drops_que_mais_valem": [
+    {
+     "item": "royal helmet",
+     "gold_esperado_por_kill": 516.0
+    },
+    {
+     "item": "knight armor",
+     "gold_esperado_por_kill": 275.0
+    },
+    {
+     "item": "divine plate",
+     "gold_esperado_por_kill": 236.5
+    },
+    {
+     "item": "golden armor",
+     "gold_esperado_por_kill": 172.0
+    },
+    {
+     "item": "unholy bone",
+     "gold_esperado_por_kill": 160.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "unholy bone",
+     "qty": 6300
+    },
+    {
+     "item": "hardened bone",
+     "qty": 3100
+    },
+    {
+     "item": "demonic essence",
+     "qty": 3100
+    },
+    {
+     "item": "life crystal",
+     "qty": 1300
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "freakishlostsoul-cave",
+   "nome": "Freakish Lost Soul",
+   "nivel_minimo": 300,
+   "nivel_estimado_pelo_jogo": 70,
+   "monstros": [
+    {
+     "chave": "freakish_lost_soul",
+     "nome": "Freakish Lost Soul",
+     "exp": 7020,
+     "hp": 7000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "mean_lost_soul",
+     "nome": "Mean Lost Soul",
+     "exp": 5580,
+     "hp": 5000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "flimsy_lost_soul",
+     "nome": "Flimsy Lost Soul",
+     "exp": 4500,
+     "hp": 4000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "mean_lost_soul",
+    "nome": "Mean Lost Soul",
+    "exp": 5580
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5700.0,
+   "gold_por_kill": 882.6,
+   "indice_xp": 78.8,
+   "indice_loot": 28.1,
+   "tende_para": "xp",
+   "dificuldade_ecr": 249.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "skull staff",
+     "gold_esperado_por_kill": 272.4
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 150.0
+    },
+    {
+     "item": "springsprout rod",
+     "gold_esperado_por_kill": 137.9
+    },
+    {
+     "item": "gemmed figurine",
+     "gold_esperado_por_kill": 133.0
+    },
+    {
+     "item": "ornate crossbow",
+     "gold_esperado_por_kill": 130.8
+    },
+    {
+     "item": "mercenary sword",
+     "gold_esperado_por_kill": 126.0
+    },
+    {
+     "item": "fire axe",
+     "gold_esperado_por_kill": 112.0
+    },
+    {
+     "item": "silver hand mirror",
+     "gold_esperado_por_kill": 109.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "lost soul",
+     "qty": 1300
+    },
+    {
+     "item": "death toll",
+     "qty": 600
+    },
+    {
+     "item": "emerald bangle",
+     "qty": 600
+    },
+    {
+     "item": "gemmed figurine",
+     "qty": 250
+    },
+    {
+     "item": "ensouled essence",
+     "qty": 250
+    },
+    {
+     "item": "cursed bone",
+     "qty": 250
+    },
+    {
+     "item": "ivory comb",
+     "qty": 250
+    },
+    {
+     "item": "silver hand mirror",
+     "qty": 250
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "prison-cave",
+   "nome": "Prison",
+   "nivel_minimo": 250,
+   "nivel_estimado_pelo_jogo": 180,
+   "monstros": [
+    {
+     "chave": "plaguesmith",
+     "nome": "Plaguesmith",
+     "exp": 3800,
+     "hp": 8250,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "demon_outcast",
+     "nome": "Demon Outcast",
+     "exp": 6200,
+     "hp": 6900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "dark_torturer",
+     "nome": "Dark Torturer",
+     "exp": 4650,
+     "hp": 7350,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "blightwalker",
+     "nome": "Blightwalker",
+     "exp": 6400,
+     "hp": 8100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "demon_outcast",
+    "nome": "Demon Outcast",
+    "exp": 6200
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5262.5,
+   "gold_por_kill": 2033.6,
+   "indice_xp": 49.7,
+   "indice_loot": 44.3,
+   "tende_para": "loot",
+   "dificuldade_ecr": 566.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "steel boots",
+     "gold_esperado_por_kill": 1515.0
+    },
+    {
+     "item": "giant sword",
+     "gold_esperado_por_kill": 340.0
+    },
+    {
+     "item": "knight legs",
+     "gold_esperado_por_kill": 312.5
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "hailstorm rod",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "hammer of wrath",
+     "gold_esperado_por_kill": 285.6
+    },
+    {
+     "item": "demonic essence",
+     "gold_esperado_por_kill": 280.0
+    },
+    {
+     "item": "terra legs",
+     "gold_esperado_por_kill": 275.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "dirty cape",
+     "qty": 250
+    },
+    {
+     "item": "flask of demonic blood",
+     "qty": 250
+    },
+    {
+     "item": "demonic essence",
+     "qty": 250
+    },
+    {
+     "item": "soul orb",
+     "qty": 250
+    },
+    {
+     "item": "piece of iron",
+     "qty": 250
+    },
+    {
+     "item": "bundle of cursed straw",
+     "qty": 125
+    },
+    {
+     "item": "saw",
+     "qty": 125
+    },
+    {
+     "item": "cluster of solace",
+     "qty": 50
+    },
+    {
+     "item": "seeds",
+     "qty": 50
+    },
+    {
+     "item": "cat's paw",
+     "qty": 50
+    },
+    {
+     "item": "silver brooch",
+     "qty": 50
+    },
+    {
+     "item": "piece of royal steel",
+     "qty": 50
+    },
+    {
+     "item": "piece of draconian steel",
+     "qty": 50
+    },
+    {
+     "item": "piece of hell steel",
+     "qty": 50
+    },
+    {
+     "item": "emerald bangle",
+     "qty": 20
+    },
+    {
+     "item": "amulet of loss",
+     "qty": 20
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "afflictedstrider-cave",
+   "nome": "Afflicted Strider",
+   "nivel_minimo": 610,
+   "nivel_estimado_pelo_jogo": 120,
+   "monstros": [
+    {
+     "chave": "afflicted_strider",
+     "nome": "Afflicted Strider",
+     "exp": 5700,
+     "hp": 10000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "eyeless_devourer",
+     "nome": "Eyeless Devourer",
+     "exp": 6000,
+     "hp": 10000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "blemished_spawn",
+     "nome": "Blemished Spawn",
+     "exp": 5300,
+     "hp": 9000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "afflicted_strider",
+    "nome": "Afflicted Strider",
+    "exp": 5700
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5666.7,
+   "gold_por_kill": 3412.8,
+   "indice_xp": 43.2,
+   "indice_loot": 60.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 408.0,
+   "drops_que_mais_valem": [
+    {
+     "item": "guardian halberd",
+     "gold_esperado_por_kill": 1035.1
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 910.0
+    },
+    {
+     "item": "terra rod",
+     "gold_esperado_por_kill": 530.6
+    },
+    {
+     "item": "jade hammer",
+     "gold_esperado_por_kill": 300.0
+    },
+    {
+     "item": "magma coat",
+     "gold_esperado_por_kill": 271.7
+    },
+    {
+     "item": "knight armor",
+     "gold_esperado_por_kill": 229.5
+    },
+    {
+     "item": "violet crystal shard",
+     "gold_esperado_por_kill": 221.4
+    },
+    {
+     "item": "crystal mace",
+     "gold_esperado_por_kill": 220.8
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "eyeless devourer maw",
+     "qty": 2600
+    },
+    {
+     "item": "afflicted strider worms",
+     "qty": 2600
+    },
+    {
+     "item": "blemished spawn abdomen",
+     "qty": 2600
+    },
+    {
+     "item": "eyeless devourer legs",
+     "qty": 2600
+    },
+    {
+     "item": "blemished spawn head",
+     "qty": 1100
+    },
+    {
+     "item": "afflicted strider head",
+     "qty": 1100
+    },
+    {
+     "item": "eyeless devourer tongue",
+     "qty": 1100
+    },
+    {
+     "item": "blemished spawn tail",
+     "qty": 1100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "varnisheddiremaw-cave",
+   "nome": "Varnished Diremaw",
+   "nivel_minimo": 610,
+   "nivel_estimado_pelo_jogo": 130,
+   "monstros": [
+    {
+     "chave": "cave_chimera",
+     "nome": "Cave Chimera",
+     "exp": 6800,
+     "hp": 8000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "varnished_diremaw",
+     "nome": "Varnished Diremaw",
+     "exp": 5900,
+     "hp": 9000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "tremendous_tyrant",
+     "nome": "Tremendous Tyrant",
+     "exp": 6100,
+     "hp": 11500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "varnished_diremaw",
+    "nome": "Varnished Diremaw",
+    "exp": 5900
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 6266.7,
+   "gold_por_kill": 4077.1,
+   "indice_xp": 48.6,
+   "indice_loot": 73.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 428.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 886.5
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 875.0
+    },
+    {
+     "item": "spellbook of warding",
+     "gold_esperado_por_kill": 654.4
+    },
+    {
+     "item": "terra rod",
+     "gold_esperado_por_kill": 601.8
+    },
+    {
+     "item": "glacier robe",
+     "gold_esperado_por_kill": 501.1
+    },
+    {
+     "item": "green crystal shard",
+     "gold_esperado_por_kill": 345.0
+    },
+    {
+     "item": "violet crystal shard",
+     "gold_esperado_por_kill": 291.9
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 291.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "emerald bangle",
+     "qty": 2300
+    },
+    {
+     "item": "varnished diremaw legs",
+     "qty": 2300
+    },
+    {
+     "item": "tremendous tyrant head",
+     "qty": 2300
+    },
+    {
+     "item": "tremendous tyrant shell",
+     "qty": 900
+    },
+    {
+     "item": "cave chimera leg",
+     "qty": 900
+    },
+    {
+     "item": "cave chimera head",
+     "qty": 900
+    },
+    {
+     "item": "varnished diremaw brainpan",
+     "qty": 900
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "cliffstrider-cave",
+   "nome": "Cliff Strider",
+   "nivel_minimo": 200,
+   "nivel_estimado_pelo_jogo": 100,
+   "monstros": [
+    {
+     "chave": "orewalker",
+     "nome": "Orewalker",
+     "exp": 5900,
+     "hp": 7200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "minion_of_versperoth",
+     "nome": "Minion of Versperoth",
+     "exp": 4000,
+     "hp": 9000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "lost_berserker",
+     "nome": "Lost Berserker",
+     "exp": 4800,
+     "hp": 5900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "ironblight",
+     "nome": "Ironblight",
+     "exp": 5400,
+     "hp": 6600,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "cliff_strider",
+     "nome": "Cliff Strider",
+     "exp": 7100,
+     "hp": 9400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "cliff_strider",
+    "nome": "Cliff Strider",
+    "exp": 7100
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5440.0,
+   "gold_por_kill": 1657.8,
+   "indice_xp": 52.6,
+   "indice_loot": 37.0,
+   "tende_para": "xp",
+   "dificuldade_ecr": 346.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 550.0
+    },
+    {
+     "item": "crystal crossbow",
+     "gold_esperado_por_kill": 290.5
+    },
+    {
+     "item": "wand of defiance",
+     "gold_esperado_por_kill": 130.0
+    },
+    {
+     "item": "cliff strider claw",
+     "gold_esperado_por_kill": 125.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 122.2
+    },
+    {
+     "item": "terra legs",
+     "gold_esperado_por_kill": 122.1
+    },
+    {
+     "item": "titan axe",
+     "gold_esperado_por_kill": 104.0
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 100.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "war crystal",
+     "qty": 1200
+    },
+    {
+     "item": "sulphurous stone",
+     "qty": 1200
+    },
+    {
+     "item": "pulverized ore",
+     "qty": 1200
+    },
+    {
+     "item": "crystalline spikes",
+     "qty": 600
+    },
+    {
+     "item": "vein of ore",
+     "qty": 600
+    },
+    {
+     "item": "soul orb",
+     "qty": 600
+    },
+    {
+     "item": "cliff strider claw",
+     "qty": 600
+    },
+    {
+     "item": "shiny stone",
+     "qty": 600
+    },
+    {
+     "item": "iron ore",
+     "qty": 600
+    },
+    {
+     "item": "piggy bank",
+     "qty": 250
+    },
+    {
+     "item": "magic sulphur",
+     "qty": 250
+    },
+    {
+     "item": "crystal of power",
+     "qty": 250
+    },
+    {
+     "item": "clay lump",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "hideous-fungus",
+   "nome": "Hideous Fungus",
+   "nivel_minimo": 200,
+   "nivel_estimado_pelo_jogo": 45,
+   "monstros": [
+    {
+     "chave": "armadile",
+     "nome": "Armadile",
+     "exp": 3200,
+     "hp": 3800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "hideous_fungus",
+     "nome": "Hideous Fungus",
+     "exp": 3700,
+     "hp": 4600,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "humongous_fungus",
+     "nome": "Humongous Fungus",
+     "exp": 2900,
+     "hp": 3400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "stone_devourer",
+     "nome": "Stone Devourer",
+     "exp": 2900,
+     "hp": 4200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "hideous_fungus",
+    "nome": "Hideous Fungus",
+    "exp": 3700
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 3175.0,
+   "gold_por_kill": 1251.9,
+   "indice_xp": 58.5,
+   "indice_loot": 53.2,
+   "tende_para": "loot",
+   "dificuldade_ecr": 176.5,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 368.0
+    },
+    {
+     "item": "jade conical hat",
+     "gold_esperado_por_kill": 279.0
+    },
+    {
+     "item": "terra legs",
+     "gold_esperado_por_kill": 127.6
+    },
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 119.2
+    },
+    {
+     "item": "bonebreaker",
+     "gold_esperado_por_kill": 115.0
+    },
+    {
+     "item": "war axe",
+     "gold_esperado_por_kill": 110.4
+    },
+    {
+     "item": "stone nose",
+     "gold_esperado_por_kill": 110.2
+    },
+    {
+     "item": "sapphire hammer",
+     "gold_esperado_por_kill": 104.3
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "stone nose",
+     "qty": 900
+    },
+    {
+     "item": "mushroom pie",
+     "qty": 900
+    },
+    {
+     "item": "brown piece of cloth",
+     "qty": 900
+    },
+    {
+     "item": "hideous chunk",
+     "qty": 900
+    },
+    {
+     "item": "battle stone",
+     "qty": 900
+    },
+    {
+     "item": "humongous chunk",
+     "qty": 900
+    },
+    {
+     "item": "blue piece of cloth",
+     "qty": 375
+    },
+    {
+     "item": "green piece of cloth",
+     "qty": 375
+    },
+    {
+     "item": "red piece of cloth",
+     "qty": 375
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "magmacrawler-cave",
+   "nome": "Magma Crawler",
+   "nivel_minimo": 200,
+   "nivel_estimado_pelo_jogo": 90,
+   "monstros": [
+    {
+     "chave": "weeper",
+     "nome": "Weeper",
+     "exp": 5800,
+     "hp": 6800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "magma_crawler",
+     "nome": "Magma Crawler",
+     "exp": 3900,
+     "hp": 4800,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "lava_golem",
+     "nome": "Lava Golem",
+     "exp": 7900,
+     "hp": 9000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "lost_berserker",
+     "nome": "Lost Berserker",
+     "exp": 4800,
+     "hp": 5900,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "magma_crawler",
+    "nome": "Magma Crawler",
+    "exp": 3900
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 5600.0,
+   "gold_por_kill": 1642.6,
+   "indice_xp": 62.3,
+   "indice_loot": 42.2,
+   "tende_para": "xp",
+   "dificuldade_ecr": 315.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 500.0
+    },
+    {
+     "item": "magma clump",
+     "gold_esperado_por_kill": 131.4
+    },
+    {
+     "item": "fire sword",
+     "gold_esperado_por_kill": 131.2
+    },
+    {
+     "item": "fire axe",
+     "gold_esperado_por_kill": 124.8
+    },
+    {
+     "item": "eye of a weeper",
+     "gold_esperado_por_kill": 103.2
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 100.0
+    },
+    {
+     "item": "crown shield",
+     "gold_esperado_por_kill": 94.4
+    },
+    {
+     "item": "blue crystal shard",
+     "gold_esperado_por_kill": 88.4
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "eye of a weeper",
+     "qty": 600
+    },
+    {
+     "item": "magma clump",
+     "qty": 600
+    },
+    {
+     "item": "blazing bone",
+     "qty": 600
+    },
+    {
+     "item": "fiery heart",
+     "qty": 600
+    },
+    {
+     "item": "iron ore",
+     "qty": 600
+    },
+    {
+     "item": "fire bug",
+     "qty": 600
+    },
+    {
+     "item": "yellow piece of cloth",
+     "qty": 600
+    },
+    {
+     "item": "green crystal fragment",
+     "qty": 600
+    },
+    {
+     "item": "red piece of cloth",
+     "qty": 250
+    },
+    {
+     "item": "clay lump",
+     "qty": 100
+    },
+    {
+     "item": "magic sulphur",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "dreadintruder-cave",
+   "nome": "Dread Intruder",
+   "nivel_minimo": 200,
+   "nivel_estimado_pelo_jogo": 45,
+   "monstros": [
+    {
+     "chave": "sparkion",
+     "nome": "Sparkion",
+     "exp": 1520,
+     "hp": 2700,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "dread_intruder",
+     "nome": "Dread Intruder",
+     "exp": 2400,
+     "hp": 4500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "breach_brood",
+     "nome": "Breach Brood",
+     "exp": 1760,
+     "hp": 3500,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "dread_intruder",
+    "nome": "Dread Intruder",
+    "exp": 2400
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1893.3,
+   "gold_por_kill": 2097.5,
+   "indice_xp": 39.1,
+   "indice_loot": 100.0,
+   "tende_para": "loot",
+   "dificuldade_ecr": 164.0,
+   "drops_que_mais_valem": [
+    {
+     "item": "ring of blue plasma",
+     "gold_esperado_por_kill": 192.0
+    },
+    {
+     "item": "ring of green plasma",
+     "gold_esperado_por_kill": 192.0
+    },
+    {
+     "item": "ring of red plasma",
+     "gold_esperado_por_kill": 192.0
+    },
+    {
+     "item": "ring of orange plasma",
+     "gold_esperado_por_kill": 192.0
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 180.0
+    },
+    {
+     "item": "blue crystal shard",
+     "gold_esperado_por_kill": 93.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "spark sphere",
+     "qty": 2000
+    },
+    {
+     "item": "energy bar",
+     "qty": 2000
+    },
+    {
+     "item": "protective charm",
+     "qty": 800
+    },
+    {
+     "item": "dangerous proto matter",
+     "qty": 800
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "werebadge-cave",
+   "nome": "Werebadge",
+   "nivel_minimo": 90,
+   "nivel_estimado_pelo_jogo": 20,
+   "monstros": [
+    {
+     "chave": "werewolf",
+     "nome": "Werewolf",
+     "exp": 1900,
+     "hp": 1955,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "werefox",
+     "nome": "Werefox",
+     "exp": 1600,
+     "hp": 1500,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    },
+    {
+     "chave": "wereboar",
+     "nome": "Wereboar",
+     "exp": 2000,
+     "hp": 2200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "werebear",
+     "nome": "Werebear",
+     "exp": 2100,
+     "hp": 2400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "werebadger",
+     "nome": "Werebadger",
+     "exp": 1600,
+     "hp": 1700,
+     "peso": null,
+     "meta_kills_bestiario": 1000
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "wereboar",
+    "nome": "Wereboar",
+    "exp": 2000
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 1840.0,
+   "gold_por_kill": 311.4,
+   "indice_xp": 69.5,
+   "indice_loot": 27.1,
+   "tende_para": "xp",
+   "dificuldade_ecr": 88.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 117.9
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 54.6
+    },
+    {
+     "item": "relic sword",
+     "gold_esperado_por_kill": 50.0
+    },
+    {
+     "item": "emerald bangle",
+     "gold_esperado_por_kill": 48.6
+    },
+    {
+     "item": "dreaded cleaver",
+     "gold_esperado_por_kill": 48.0
+    },
+    {
+     "item": "epee",
+     "gold_esperado_por_kill": 44.8
+    },
+    {
+     "item": "werewolf fur",
+     "gold_esperado_por_kill": 40.5
+    },
+    {
+     "item": "bonebreaker",
+     "gold_esperado_por_kill": 40.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "werewolf fur",
+     "qty": 225
+    },
+    {
+     "item": "wolf paw",
+     "qty": 225
+    },
+    {
+     "item": "werefox tail",
+     "qty": 100
+    },
+    {
+     "item": "fox paw",
+     "qty": 100
+    },
+    {
+     "item": "emerald bangle",
+     "qty": 100
+    },
+    {
+     "item": "troll green",
+     "qty": 100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "quararaider-lair",
+   "nome": "Quara Raider",
+   "nivel_minimo": 600,
+   "nivel_estimado_pelo_jogo": 170,
+   "monstros": [
+    {
+     "chave": "quara_looter",
+     "nome": "Quara Looter",
+     "exp": 8650,
+     "hp": 11500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "quara_plunderer",
+     "nome": "Quara Plunderer",
+     "exp": 10800,
+     "hp": 13500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "quara_raider",
+     "nome": "Quara Raider",
+     "exp": 8150,
+     "hp": 12500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "quara_raider",
+    "nome": "Quara Raider",
+    "exp": 8150
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 9200.0,
+   "gold_por_kill": 664.1,
+   "indice_xp": 54.3,
+   "indice_loot": 9.0,
+   "tende_para": "xp",
+   "dificuldade_ecr": 537.0,
+   "drops_que_mais_valem": [
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 245.0
+    },
+    {
+     "item": "crystal crossbow",
+     "gold_esperado_por_kill": 164.5
+    },
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 130.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 106.8
+    },
+    {
+     "item": "rift lance",
+     "gold_esperado_por_kill": 105.0
+    },
+    {
+     "item": "glacier robe",
+     "gold_esperado_por_kill": 100.1
+    },
+    {
+     "item": "skull staff",
+     "gold_esperado_por_kill": 88.8
+    },
+    {
+     "item": "crystalline armor",
+     "gold_esperado_por_kill": 81.6
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "amber souvenir",
+     "qty": 250
+    },
+    {
+     "item": "resinous fish fin",
+     "qty": 250
+    },
+    {
+     "item": "quara pincers",
+     "qty": 25
+    },
+    {
+     "item": "mantassin tail",
+     "qty": 25
+    },
+    {
+     "item": "preserved violet seed",
+     "qty": 25
+    },
+    {
+     "item": "preserved purple seed",
+     "qty": 25
+    },
+    {
+     "item": "preserved light blue seed",
+     "qty": 25
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "norcferatu-cave",
+   "nome": "Norcferatu Nightweaver",
+   "nivel_minimo": 600,
+   "nivel_estimado_pelo_jogo": 110,
+   "monstros": [
+    {
+     "chave": "gloom_maw",
+     "nome": "Gloom Maw",
+     "exp": 6900,
+     "hp": 8700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "norcferatu_heartless",
+     "nome": "Norcferatu Heartless",
+     "exp": 4450,
+     "hp": 5700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "norcferatu_nightweaver",
+     "nome": "Norcferatu Nightweaver",
+     "exp": 4900,
+     "hp": 6100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "orclops_bloodbreaker",
+     "nome": "Orclops Bloodbreaker",
+     "exp": 7800,
+     "hp": 10300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "orclops_bloodbreaker",
+    "nome": "Orclops Bloodbreaker",
+    "exp": 7800
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 6012.5,
+   "gold_por_kill": 946.1,
+   "indice_xp": 57.6,
+   "indice_loot": 20.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 363.8,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 930.0
+    },
+    {
+     "item": "war axe",
+     "gold_esperado_por_kill": 168.0
+    },
+    {
+     "item": "vampire shield",
+     "gold_esperado_por_kill": 120.0
+    },
+    {
+     "item": "chaos mace",
+     "gold_esperado_por_kill": 108.0
+    },
+    {
+     "item": "batwing hat",
+     "gold_esperado_por_kill": 80.0
+    },
+    {
+     "item": "wand of defiance",
+     "gold_esperado_por_kill": 78.0
+    },
+    {
+     "item": "gold coin",
+     "gold_esperado_por_kill": 30.6
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 30.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "chain leash",
+     "qty": 900
+    },
+    {
+     "item": "orcish toothbrush",
+     "qty": 375
+    },
+    {
+     "item": "piece of frozen night",
+     "qty": 375
+    },
+    {
+     "item": "heart amphora",
+     "qty": 375
+    },
+    {
+     "item": "bone fibula",
+     "qty": 375
+    },
+    {
+     "item": "blood hood",
+     "qty": 375
+    },
+    {
+     "item": "vampire teeth",
+     "qty": 375
+    },
+    {
+     "item": "bone toothpick",
+     "qty": 375
+    },
+    {
+     "item": "bloodshot giant eye",
+     "qty": 375
+    },
+    {
+     "item": "bat wing",
+     "qty": 375
+    },
+    {
+     "item": "pot of orcish warpaint",
+     "qty": 375
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "mitmah-cave",
+   "nome": "Mitmah Seer",
+   "nivel_minimo": 180,
+   "nivel_estimado_pelo_jogo": 45,
+   "monstros": [
+    {
+     "chave": "mitmah_scout",
+     "nome": "Mitmah Scout",
+     "exp": 3230,
+     "hp": 3940,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "mitmah_seer",
+     "nome": "Mitmah Seer",
+     "exp": 4580,
+     "hp": 4620,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "iks_yapunac",
+     "nome": "Iks Yapunac",
+     "exp": 3125,
+     "hp": 3125,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "iks_yapunac",
+    "nome": "Iks Yapunac",
+    "exp": 3125
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 3645.0,
+   "gold_por_kill": 1050.7,
+   "indice_xp": 69.0,
+   "indice_loot": 45.9,
+   "tende_para": "xp",
+   "dificuldade_ecr": 174.1,
+   "drops_que_mais_valem": [
+    {
+     "item": "platinum coin",
+     "gold_esperado_por_kill": 550.0
+    },
+    {
+     "item": "gearwheel chain",
+     "gold_esperado_por_kill": 157.5
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 144.0
+    },
+    {
+     "item": "spiked squelcher",
+     "gold_esperado_por_kill": 136.0
+    },
+    {
+     "item": "gold ring",
+     "gold_esperado_por_kill": 95.2
+    },
+    {
+     "item": "crystal of the mitmah",
+     "gold_esperado_por_kill": 57.0
+    },
+    {
+     "item": "red gem",
+     "gold_esperado_por_kill": 45.6
+    },
+    {
+     "item": "giant shimmering pearl",
+     "gold_esperado_por_kill": 44.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "broken mitmah necklace",
+     "qty": 900
+    },
+    {
+     "item": "ritual tooth",
+     "qty": 350
+    },
+    {
+     "item": "gold-brocaded cloth",
+     "qty": 350
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "gnomprona2-cave",
+   "nome": "Crystal Enigma",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 290,
+   "monstros": [
+    {
+     "chave": "headpecker",
+     "nome": "Headpecker",
+     "exp": 20965,
+     "hp": 16300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "mantosaurus",
+     "nome": "Mantosaurus",
+     "exp": 20168,
+     "hp": 19400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "mercurial_menace",
+     "nome": "Mercurial Menace",
+     "exp": 21086,
+     "hp": 18500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "noxious_ripptor",
+     "nome": "Noxious Ripptor",
+     "exp": 22994,
+     "hp": 22700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "shrieking_cry_stal",
+     "nome": "Shrieking Cry-Stal",
+     "exp": 23639,
+     "hp": 20650,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "noxious_ripptor",
+    "nome": "Noxious Ripptor",
+    "exp": 22994
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 21770.4,
+   "gold_por_kill": 6765.3,
+   "indice_xp": 82.3,
+   "indice_loot": 59.0,
+   "tende_para": "xp",
+   "dificuldade_ecr": 865.3,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 5142.1
+    },
+    {
+     "item": "cry-stal",
+     "gold_esperado_por_kill": 881.7
+    },
+    {
+     "item": "mantosaurus jaw",
+     "gold_esperado_por_kill": 838.3
+    },
+    {
+     "item": "mercurial wing",
+     "gold_esperado_por_kill": 786.1
+    },
+    {
+     "item": "headpecker beak",
+     "gold_esperado_por_kill": 498.1
+    },
+    {
+     "item": "headpecker feather",
+     "gold_esperado_por_kill": 434.6
+    },
+    {
+     "item": "ripptor claw",
+     "gold_esperado_por_kill": 363.3
+    },
+    {
+     "item": "ripptor scales",
+     "gold_esperado_por_kill": 225.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "mercurial wing",
+     "qty": 700
+    },
+    {
+     "item": "mantosaurus jaw",
+     "qty": 375
+    },
+    {
+     "item": "ripptor scales",
+     "qty": 375
+    },
+    {
+     "item": "cry-stal",
+     "qty": 375
+    },
+    {
+     "item": "headpecker beak",
+     "qty": 375
+    },
+    {
+     "item": "ripptor claw",
+     "qty": 375
+    },
+    {
+     "item": "headpecker feather",
+     "qty": 375
+    },
+    {
+     "item": "coral brooch",
+     "qty": 150
+    },
+    {
+     "item": "gemmed figurine",
+     "qty": 50
+    },
+    {
+     "item": "ring of the sky",
+     "qty": 50
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "crypt-cave",
+   "nome": "Crypt Construct",
+   "nivel_minimo": 700,
+   "nivel_estimado_pelo_jogo": 420,
+   "monstros": [
+    {
+     "chave": "crypt_fiend",
+     "nome": "Crypt Fiend",
+     "exp": 22500,
+     "hp": 30000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "crypt_construct",
+     "nome": "Crypt Construct",
+     "exp": 20500,
+     "hp": 25000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "creepy_crawler",
+     "nome": "Creepy Crawler",
+     "exp": 23000,
+     "hp": 27000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "crypt_construct",
+    "nome": "Crypt Construct",
+    "exp": 20500
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 22000.0,
+   "gold_por_kill": 5146.6,
+   "indice_xp": 59.3,
+   "indice_loot": 32.0,
+   "tende_para": "xp",
+   "dificuldade_ecr": 1182.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 3912.0
+    },
+    {
+     "item": "amber with a dragonfly",
+     "gold_esperado_por_kill": 364.0
+    },
+    {
+     "item": "amber",
+     "gold_esperado_por_kill": 358.0
+    },
+    {
+     "item": "amber with a bug",
+     "gold_esperado_por_kill": 266.5
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 182.5
+    },
+    {
+     "item": "blue crystal shard",
+     "gold_esperado_por_kill": 115.5
+    },
+    {
+     "item": "cyan crystal fragment",
+     "gold_esperado_por_kill": 111.6
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "crystallized death",
+     "qty": 475
+    },
+    {
+     "item": "giant tusk",
+     "qty": 475
+    },
+    {
+     "item": "toe nails",
+     "qty": 200
+    },
+    {
+     "item": "necromantic core",
+     "qty": 200
+    },
+    {
+     "item": "cluster of crystallized death",
+     "qty": 200
+    },
+    {
+     "item": "amber with a bug",
+     "qty": 200
+    },
+    {
+     "item": "amber with a dragonfly",
+     "qty": 75
+    },
+    {
+     "item": "fetid heart",
+     "qty": 75
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "rottengolem-cave",
+   "nome": "Rotten Golem",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 410,
+   "monstros": [
+    {
+     "chave": "rotten_golem",
+     "nome": "Rotten Golem",
+     "exp": 24361,
+     "hp": 28000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "branchy_crawler",
+     "nome": "Branchy Crawler",
+     "exp": 24361,
+     "hp": 27000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "mould_phantom",
+     "nome": "Mould Phantom",
+     "exp": 25002,
+     "hp": 28000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "rotten_golem",
+    "nome": "Rotten Golem",
+    "exp": 24361
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 24574.7,
+   "gold_por_kill": 10270.4,
+   "indice_xp": 65.5,
+   "indice_loot": 63.1,
+   "tende_para": "loot",
+   "dificuldade_ecr": 1157.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 7888.4
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 814.0
+    },
+    {
+     "item": "giant sword",
+     "gold_esperado_por_kill": 360.1
+    },
+    {
+     "item": "mercenary sword",
+     "gold_esperado_por_kill": 313.6
+    },
+    {
+     "item": "hammer of wrath",
+     "gold_esperado_por_kill": 313.5
+    },
+    {
+     "item": "crystal crossbow",
+     "gold_esperado_por_kill": 298.5
+    },
+    {
+     "item": "wand of defiance",
+     "gold_esperado_por_kill": 261.9
+    },
+    {
+     "item": "nightmare blade",
+     "gold_esperado_por_kill": 260.1
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "roots",
+     "qty": 1600
+    },
+    {
+     "item": "mould heart",
+     "qty": 600
+    },
+    {
+     "item": "mould robe",
+     "qty": 600
+    },
+    {
+     "item": "crawler's essence",
+     "qty": 600
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "cloakofterror-lair",
+   "nome": "Cloak Of Terror",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 400,
+   "monstros": [
+    {
+     "chave": "vibrant_phantom",
+     "nome": "Vibrant Phantom",
+     "exp": 36445,
+     "hp": 27000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "courage_leech",
+     "nome": "Courage Leech",
+     "exp": 34965,
+     "hp": 27000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "cloak_of_terror",
+     "nome": "Cloak of Terror",
+     "exp": 36445,
+     "hp": 28000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "cloak_of_terror",
+    "nome": "Cloak of Terror",
+    "exp": 36445
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 35951.7,
+   "gold_por_kill": 10608.3,
+   "indice_xp": 97.0,
+   "indice_loot": 66.0,
+   "tende_para": "xp",
+   "dificuldade_ecr": 1148.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 6807.5
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 773.8
+    },
+    {
+     "item": "hammer of wrath",
+     "gold_esperado_por_kill": 682.5
+    },
+    {
+     "item": "nightmare blade",
+     "gold_esperado_por_kill": 520.8
+    },
+    {
+     "item": "lightning legs",
+     "gold_esperado_por_kill": 500.5
+    },
+    {
+     "item": "terra rod",
+     "gold_esperado_por_kill": 349.5
+    },
+    {
+     "item": "ultimate health potion",
+     "gold_esperado_por_kill": 325.0
+    },
+    {
+     "item": "jade hammer",
+     "gold_esperado_por_kill": 284.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "vibrant heart",
+     "qty": 1700
+    },
+    {
+     "item": "telescope eye",
+     "qty": 1700
+    },
+    {
+     "item": "vibrant robe",
+     "qty": 700
+    },
+    {
+     "item": "brooch of embracement",
+     "qty": 700
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "gnomprona1-cave",
+   "nome": "Monster Graveyard",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 280,
+   "monstros": [
+    {
+     "chave": "undertaker",
+     "nome": "Undertaker",
+     "exp": 23652,
+     "hp": 20100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "sulphider",
+     "nome": "Sulphider",
+     "exp": 23276,
+     "hp": 21000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "sulphur_spouter",
+     "nome": "Sulphur Spouter",
+     "exp": 20113,
+     "hp": 19000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "nighthunter",
+     "nome": "Nighthunter",
+     "exp": 22087,
+     "hp": 19200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "stalking_stalk",
+     "nome": "Stalking Stalk",
+     "exp": 20204,
+     "hp": 17100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "sulphider",
+    "nome": "Sulphider",
+    "exp": 23276
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 21866.4,
+   "gold_por_kill": 6863.0,
+   "indice_xp": 83.6,
+   "indice_loot": 60.5,
+   "tende_para": "xp",
+   "dificuldade_ecr": 831.2,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 4888.2
+    },
+    {
+     "item": "sulphur powder",
+     "gold_esperado_por_kill": 1105.3
+    },
+    {
+     "item": "nighthunter wing",
+     "gold_esperado_por_kill": 1078.4
+    },
+    {
+     "item": "undertaker fangs",
+     "gold_esperado_por_kill": 1025.1
+    },
+    {
+     "item": "sulphider shell",
+     "gold_esperado_por_kill": 800.2
+    },
+    {
+     "item": "relic sword",
+     "gold_esperado_por_kill": 608.5
+    },
+    {
+     "item": "stalking seeds",
+     "gold_esperado_por_kill": 571.4
+    },
+    {
+     "item": "amulet of loss",
+     "gold_esperado_por_kill": 564.3
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "sulphur powder",
+     "qty": 3200
+    },
+    {
+     "item": "undertaker fangs",
+     "qty": 3200
+    },
+    {
+     "item": "sulphider shell",
+     "qty": 3200
+    },
+    {
+     "item": "nighthunter wing",
+     "qty": 3200
+    },
+    {
+     "item": "stalking seeds",
+     "qty": 3200
+    },
+    {
+     "item": "spider silk",
+     "qty": 600
+    },
+    {
+     "item": "amulet of loss",
+     "qty": 250
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "gnomprona3-cave",
+   "nome": "Sparkling Pools",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 290,
+   "monstros": [
+    {
+     "chave": "emerald_tortoise",
+     "nome": "Emerald Tortoise",
+     "exp": 21362,
+     "hp": 22300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "gore_horn",
+     "nome": "Gore Horn",
+     "exp": 22183,
+     "hp": 20620,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "gorerilla",
+     "nome": "Gorerilla",
+     "exp": 23199,
+     "hp": 16850,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "hulking_prehemoth",
+     "nome": "Hulking Prehemoth",
+     "exp": 22349,
+     "hp": 20700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "sabretooth",
+     "nome": "Sabretooth",
+     "exp": 21013,
+     "hp": 17300,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "emerald_tortoise",
+    "nome": "Emerald Tortoise",
+    "exp": 21362
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 22021.2,
+   "gold_por_kill": 6696.7,
+   "indice_xp": 83.0,
+   "indice_loot": 58.2,
+   "tende_para": "xp",
+   "dificuldade_ecr": 859.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 5210.1
+    },
+    {
+     "item": "gore horn",
+     "gold_esperado_por_kill": 1554.7
+    },
+    {
+     "item": "emerald tortoise shell",
+     "gold_esperado_por_kill": 914.4
+    },
+    {
+     "item": "prehemoth horns",
+     "gold_esperado_por_kill": 886.7
+    },
+    {
+     "item": "sabretooth fur",
+     "gold_esperado_por_kill": 879.1
+    },
+    {
+     "item": "prehemoth claw",
+     "gold_esperado_por_kill": 828.7
+    },
+    {
+     "item": "gorerilla mane",
+     "gold_esperado_por_kill": 813.6
+    },
+    {
+     "item": "gorerilla tail",
+     "gold_esperado_por_kill": 672.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "gore horn",
+     "qty": 3000
+    },
+    {
+     "item": "emerald tortoise shell",
+     "qty": 3000
+    },
+    {
+     "item": "sabretooth fur",
+     "qty": 3000
+    },
+    {
+     "item": "gorerilla mane",
+     "qty": 1500
+    },
+    {
+     "item": "prehemoth horns",
+     "qty": 1500
+    },
+    {
+     "item": "gorerilla tail",
+     "qty": 1500
+    },
+    {
+     "item": "prehemoth claw",
+     "qty": 1500
+    },
+    {
+     "item": "big bone",
+     "qty": 1500
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "infernalmdemon-cave",
+   "nome": "Infernal Demon",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 440,
+   "monstros": [
+    {
+     "chave": "infernal_phantom",
+     "nome": "Infernal Phantom",
+     "exp": 29332,
+     "hp": 26000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "infernal_demon",
+     "nome": "Infernal Demon",
+     "exp": 32420,
+     "hp": 32000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "brachiodemon",
+     "nome": "Brachiodemon",
+     "exp": 29332,
+     "hp": 25000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "infernal_demon",
+    "nome": "Infernal Demon",
+    "exp": 32420
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 30361.3,
+   "gold_por_kill": 13839.0,
+   "indice_xp": 80.9,
+   "indice_loot": 85.1,
+   "tende_para": "loot",
+   "dificuldade_ecr": 1223.9,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 9143.5
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 1461.6
+    },
+    {
+     "item": "terra rod",
+     "gold_esperado_por_kill": 1056.2
+    },
+    {
+     "item": "giant sword",
+     "gold_esperado_por_kill": 753.6
+    },
+    {
+     "item": "mercenary sword",
+     "gold_esperado_por_kill": 532.0
+    },
+    {
+     "item": "war axe",
+     "gold_esperado_por_kill": 532.0
+    },
+    {
+     "item": "fire axe",
+     "gold_esperado_por_kill": 450.2
+    },
+    {
+     "item": "epee",
+     "gold_esperado_por_kill": 408.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "hand",
+     "qty": 1900
+    },
+    {
+     "item": "infernal heart",
+     "qty": 800
+    },
+    {
+     "item": "head",
+     "qty": 800
+    },
+    {
+     "item": "infernal robe",
+     "qty": 800
+    },
+    {
+     "item": "diabolic skull",
+     "qty": 275
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "bonyseadevil-cave",
+   "nome": "Bony Sea Devil",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 820,
+   "monstros": [
+    {
+     "chave": "turbulent_elemental",
+     "nome": "Turbulent Elemental",
+     "exp": 32138,
+     "hp": 28000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "hazardous_phantom",
+     "nome": "Hazardous Phantom",
+     "exp": 109560,
+     "hp": 70000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "capricious_phantom",
+     "nome": "Capricious Phantom",
+     "exp": 32138,
+     "hp": 30000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "bony_sea_devil",
+     "nome": "Bony Sea Devil",
+     "exp": 32320,
+     "hp": 24000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "bony_sea_devil",
+    "nome": "Bony Sea Devil",
+    "exp": 32320
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 51539.0,
+   "gold_por_kill": 16019.4,
+   "indice_xp": 100.0,
+   "indice_loot": 71.7,
+   "tende_para": "xp",
+   "dificuldade_ecr": 2114.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 7411.3
+    },
+    {
+     "item": "gold ingot",
+     "gold_esperado_por_kill": 940.0
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 588.1
+    },
+    {
+     "item": "great spirit potion",
+     "gold_esperado_por_kill": 437.5
+    },
+    {
+     "item": "glacier robe",
+     "gold_esperado_por_kill": 324.5
+    },
+    {
+     "item": "skullcracker armor",
+     "gold_esperado_por_kill": 308.3
+    },
+    {
+     "item": "ultimate health potion",
+     "gold_esperado_por_kill": 264.1
+    },
+    {
+     "item": "sacred tree amulet",
+     "gold_esperado_por_kill": 231.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "capricious heart",
+     "qty": 1200
+    },
+    {
+     "item": "hazardous robe",
+     "qty": 475
+    },
+    {
+     "item": "gemmed figurine",
+     "qty": 475
+    },
+    {
+     "item": "hazardous heart",
+     "qty": 475
+    },
+    {
+     "item": "jaws",
+     "qty": 475
+    },
+    {
+     "item": "capricious robe",
+     "qty": 475
+    },
+    {
+     "item": "rod",
+     "qty": 175
+    },
+    {
+     "item": "goblet of gloom",
+     "qty": 175
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "darkthais-cave",
+   "nome": "Dark Thais",
+   "nivel_minimo": 800,
+   "nivel_estimado_pelo_jogo": 400,
+   "monstros": [
+    {
+     "chave": "sorcerers_apparition",
+     "nome": "Sorcerer's Apparition",
+     "exp": 28600,
+     "hp": 25000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "paladins_apparition",
+     "nome": "Paladin's Apparition",
+     "exp": 28600,
+     "hp": 25000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "monks_apparition",
+     "nome": "Monk's Apparition",
+     "exp": 18870,
+     "hp": 25000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "knights_apparition",
+     "nome": "Knight's Apparition",
+     "exp": 28600,
+     "hp": 25000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "druids_apparition",
+     "nome": "Druid's Apparition",
+     "exp": 28600,
+     "hp": 25000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "distorted_phantom",
+     "nome": "Distorted Phantom",
+     "exp": 18870,
+     "hp": 26000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "many_faces",
+     "nome": "Many Faces",
+     "exp": 18870,
+     "hp": 30000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "many_faces",
+    "nome": "Many Faces",
+    "exp": 18870
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "on",
+   "exp_por_kill": 24430.0,
+   "gold_por_kill": 11909.0,
+   "indice_xp": 69.7,
+   "indice_loot": 78.3,
+   "tende_para": "loot",
+   "dificuldade_ecr": 1145.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 9588.8
+    },
+    {
+     "item": "skull helmet",
+     "gold_esperado_por_kill": 935.2
+    },
+    {
+     "item": "epee",
+     "gold_esperado_por_kill": 687.0
+    },
+    {
+     "item": "ring of red plasma",
+     "gold_esperado_por_kill": 487.0
+    },
+    {
+     "item": "ring of blue plasma",
+     "gold_esperado_por_kill": 482.0
+    },
+    {
+     "item": "terra rod",
+     "gold_esperado_por_kill": 438.5
+    },
+    {
+     "item": "warrior helmet",
+     "gold_esperado_por_kill": 428.1
+    },
+    {
+     "item": "giant sword",
+     "gold_esperado_por_kill": 365.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "apron",
+     "qty": 1000
+    },
+    {
+     "item": "distorted heart",
+     "qty": 1000
+    },
+    {
+     "item": "distorted robe",
+     "qty": 400
+    },
+    {
+     "item": "head",
+     "qty": 400
+    },
+    {
+     "item": "gruesome fan",
+     "qty": 150
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "bloatedmanmaggot-cave",
+   "nome": "bloated man-maggot",
+   "nivel_minimo": 1500,
+   "nivel_estimado_pelo_jogo": 480,
+   "monstros": [
+    {
+     "chave": "mycobiontic_beetle",
+     "nome": "Mycobiontic Beetle",
+     "exp": 21175,
+     "hp": 30200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "bloated_man_maggot",
+     "nome": "Bloated Man-Maggot",
+     "exp": 21570,
+     "hp": 31700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "sopping_corpus",
+     "nome": "Sopping Corpus",
+     "exp": 22465,
+     "hp": 33400,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "oozing_corpus",
+     "nome": "Oozing Corpus",
+     "exp": 20600,
+     "hp": 28700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "bloated_man_maggot",
+    "nome": "Bloated Man-Maggot",
+    "exp": 21570
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 21452.5,
+   "gold_por_kill": 5185.8,
+   "indice_xp": 51.0,
+   "indice_loot": 28.4,
+   "tende_para": "xp",
+   "dificuldade_ecr": 1330.4,
+   "drops_que_mais_valem": [
+    {
+     "item": "relic sword",
+     "gold_esperado_por_kill": 1741.0
+    },
+    {
+     "item": "buckle",
+     "gold_esperado_por_kill": 1604.4
+    },
+    {
+     "item": "butcher's axe",
+     "gold_esperado_por_kill": 1434.1
+    },
+    {
+     "item": "skullcracker armor",
+     "gold_esperado_por_kill": 1308.6
+    },
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 900.0
+    },
+    {
+     "item": "crimson sword",
+     "gold_esperado_por_kill": 817.3
+    },
+    {
+     "item": "jade hammer",
+     "gold_esperado_por_kill": 768.2
+    },
+    {
+     "item": "glacier mask",
+     "gold_esperado_por_kill": 548.0
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "rotten roots",
+     "qty": 6200
+    },
+    {
+     "item": "scarab coin",
+     "qty": 6200
+    },
+    {
+     "item": "organic acid",
+     "qty": 3100
+    },
+    {
+     "item": "emerald bangle",
+     "qty": 3100
+    },
+    {
+     "item": "bloated maggot",
+     "qty": 3100
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "maggot-cave",
+   "nome": "Rotten man-maggot",
+   "nivel_minimo": 1500,
+   "nivel_estimado_pelo_jogo": 440,
+   "monstros": [
+    {
+     "chave": "rotten_man_maggot",
+     "nome": "Rotten Man-Maggot",
+     "exp": 22625,
+     "hp": 31100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "oozing_carcass",
+     "nome": "Oozing Carcass",
+     "exp": 20980,
+     "hp": 27500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "oozing_corpus",
+     "nome": "Oozing Corpus",
+     "exp": 20600,
+     "hp": 28700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "meandering_mushroom",
+     "nome": "Meandering Mushroom",
+     "exp": 21980,
+     "hp": 29100,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "rotten_man_maggot",
+    "nome": "Rotten Man-Maggot",
+    "exp": 22625
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 21546.2,
+   "gold_por_kill": 4007.4,
+   "indice_xp": 54.6,
+   "indice_loot": 23.4,
+   "tende_para": "xp",
+   "dificuldade_ecr": 1244.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "bloody edge",
+     "gold_esperado_por_kill": 3681.0
+    },
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 1175.5
+    },
+    {
+     "item": "jade hammer",
+     "gold_esperado_por_kill": 768.2
+    },
+    {
+     "item": "skull staff",
+     "gold_esperado_por_kill": 739.0
+    },
+    {
+     "item": "wood cape",
+     "gold_esperado_por_kill": 718.6
+    },
+    {
+     "item": "assassin dagger",
+     "gold_esperado_por_kill": 700.0
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 490.4
+    },
+    {
+     "item": "spellbook of warding",
+     "gold_esperado_por_kill": 406.7
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "rotten roots",
+     "qty": 2700
+    },
+    {
+     "item": "lichen gobbler",
+     "qty": 2700
+    },
+    {
+     "item": "organic acid",
+     "qty": 2700
+    },
+    {
+     "item": "decayed finger bone",
+     "qty": 2700
+    },
+    {
+     "item": "blooded worm",
+     "qty": 2700
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "draklightsource-cave",
+   "nome": "Darklight Source",
+   "nivel_minimo": 1500,
+   "nivel_estimado_pelo_jogo": 510,
+   "monstros": [
+    {
+     "chave": "walking_pillar",
+     "nome": "Walking Pillar",
+     "exp": 24300,
+     "hp": 38000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "darklight_emitter",
+     "nome": "Darklight Emitter",
+     "exp": 20600,
+     "hp": 27500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "darklight_matter",
+     "nome": "Darklight Matter",
+     "exp": 22250,
+     "hp": 30150,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "darklight_source",
+     "nome": "Darklight Source",
+     "exp": 22465,
+     "hp": 31550,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "darklight_striker",
+     "nome": "Darklight Striker",
+     "exp": 22200,
+     "hp": 29700,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "darklight_source",
+    "nome": "Darklight Source",
+    "exp": 22465
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 22363.0,
+   "gold_por_kill": 5671.8,
+   "indice_xp": 52.5,
+   "indice_loot": 30.7,
+   "tende_para": "xp",
+   "dificuldade_ecr": 1416.5,
+   "drops_que_mais_valem": [
+    {
+     "item": "twiceslicer",
+     "gold_esperado_por_kill": 3246.9
+    },
+    {
+     "item": "zaoan helmet",
+     "gold_esperado_por_kill": 2507.4
+    },
+    {
+     "item": "magma legs",
+     "gold_esperado_por_kill": 1594.7
+    },
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 1438.0
+    },
+    {
+     "item": "zaoan armor",
+     "gold_esperado_por_kill": 1200.4
+    },
+    {
+     "item": "crystal mace",
+     "gold_esperado_por_kill": 1057.4
+    },
+    {
+     "item": "rubber cap",
+     "gold_esperado_por_kill": 789.8
+    },
+    {
+     "item": "blue gem",
+     "gold_esperado_por_kill": 645.5
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "unstable darklight matter",
+     "qty": 2500
+    },
+    {
+     "item": "dark obsidian splinter",
+     "qty": 2500
+    },
+    {
+     "item": "darklight core",
+     "qty": 2500
+    },
+    {
+     "item": "darklight basalt chunk",
+     "qty": 2500
+    },
+    {
+     "item": "onyx chip",
+     "qty": 2500
+    },
+    {
+     "item": "magma clump",
+     "qty": 2500
+    },
+    {
+     "item": "darklight obsidian axe",
+     "qty": 2500
+    },
+    {
+     "item": "yellow darklight matter",
+     "qty": 2500
+    },
+    {
+     "item": "coal",
+     "qty": 2500
+    },
+    {
+     "item": "basalt crumbs",
+     "qty": 2500
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  },
+  {
+   "id": "wanderingpillar-cave",
+   "nome": "Wandering Pillar",
+   "nivel_minimo": 1500,
+   "nivel_estimado_pelo_jogo": 510,
+   "monstros": [
+    {
+     "chave": "wandering_pillar",
+     "nome": "Wandering Pillar",
+     "exp": 23200,
+     "hp": 37000,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "darklight_emitter",
+     "nome": "Darklight Emitter",
+     "exp": 20600,
+     "hp": 27500,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "converter",
+     "nome": "Converter",
+     "exp": 21425,
+     "hp": 29600,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    },
+    {
+     "chave": "darklight_construct",
+     "nome": "Darklight Construct",
+     "exp": 22050,
+     "hp": 32200,
+     "peso": null,
+     "meta_kills_bestiario": 2500
+    }
+   ],
+   "boss_da_wave_10": {
+    "chave": "wandering_pillar",
+    "nome": "Wandering Pillar",
+    "exp": 23200
+   },
+   "max_vivos": 4,
+   "spawn_ms": 2200,
+   "disponivel": "test",
+   "exp_por_kill": 21818.8,
+   "gold_por_kill": 3992.8,
+   "indice_xp": 50.9,
+   "indice_loot": 21.5,
+   "tende_para": "xp",
+   "dificuldade_ecr": 1404.7,
+   "drops_que_mais_valem": [
+    {
+     "item": "white gem",
+     "gold_esperado_por_kill": 1744.0
+    },
+    {
+     "item": "magma coat",
+     "gold_esperado_por_kill": 1292.8
+    },
+    {
+     "item": "zaoan armor",
+     "gold_esperado_por_kill": 1200.4
+    },
+    {
+     "item": "crystal coin",
+     "gold_esperado_por_kill": 1129.0
+    },
+    {
+     "item": "dark obsidian splinter",
+     "gold_esperado_por_kill": 560.3
+    },
+    {
+     "item": "lightning legs",
+     "gold_esperado_por_kill": 550.0
+    },
+    {
+     "item": "basalt core",
+     "gold_esperado_por_kill": 524.1
+    },
+    {
+     "item": "amber staff",
+     "gold_esperado_por_kill": 499.2
+    }
+   ],
+   "codex_da_hunt": [
+    {
+     "item": "darklight obsidian axe",
+     "qty": 3400
+    },
+    {
+     "item": "darklight core",
+     "qty": 3400
+    },
+    {
+     "item": "dark obsidian splinter",
+     "qty": 3400
+    },
+    {
+     "item": "coal",
+     "qty": 3400
+    },
+    {
+     "item": "onyx chip",
+     "qty": 3400
+    },
+    {
+     "item": "basalt core",
+     "qty": 3400
+    },
+    {
+     "item": "basalt crumbs",
+     "qty": 3400
+    },
+    {
+     "item": "magma clump",
+     "qty": 3400
+    },
+    {
+     "item": "sulphurous stone",
+     "qty": 3400
+    }
+   ],
+   "xp_hora": null,
+   "gold_hora": null,
+   "fonte": "https://baiakidle.com/jogar/assets/index-DnzxFejS.js (bundle do jogo, 2026-09-09)",
+   "visto_em": "2026-09-09"
+  }
+ ]
+}
