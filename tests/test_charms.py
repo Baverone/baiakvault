@@ -152,6 +152,34 @@ class Rules(unittest.TestCase):
         own["charms"] = [{"charm_key": "gut", "tier": 1, "assigned_creature_key": None}]
         self.assertEqual(len(C.recommend(self.cat, own, "cobra-cave")["assignments"]), 1)
 
+    def test_zero_score_charm_never_takes_a_creature(self):
+        # Crawler: as 3 criaturas sao imunes a terra (100 %). Antes da correccao de 16/09/2026 o
+        # Poison pontuava 0 em todas, o arrependimento «1 - 0» punha-o a decidir primeiro e
+        # ficava com o Crawler (54 % da exposicao) sem fazer nada — e empurrava Wound e Dodge.
+        view = C.hunt_view(self.cat, "crawler-cave")
+        self.assertTrue(all((c["resist"] or {}).get("earth") == 100 for c in view["creatures"]))
+        charms = [{"charm_key": k, "tier": 3, "assigned_creature_key": None} for k in ("poison", "wound", "dodge")]
+        rec = C.recommend(self.cat, _owner(charms=charms, bestiary=None), "crawler-cave")
+        placed = {a["charm_key"]: a for a in rec["assignments"]}
+        self.assertNotIn("poison", placed)
+        out = {x["charm_key"]: x for x in rec["left_out"]}
+        self.assertEqual(out["poison"]["kind"], "useless")
+        self.assertIn("nao faz nada nesta hunt", out["poison"]["reason"])
+        # o Crawler vai para um dos que fazem alguma coisa (Wound e Dodge sao os dois maiores:
+        # um por criatura, o arrependimento decide qual)
+        self.assertIn("crawler", {placed["wound"]["creature_key"], placed["dodge"]["creature_key"]})
+        self.assertTrue(all(a["score"] > 0 for a in rec["assignments"]))
+
+    def test_minor_needs_one_kill_when_kills_are_registered(self):
+        own = _owner(charms=[{"charm_key": "gut", "tier": 1, "assigned_creature_key": None}],
+                     bestiary={"cobra_vizier": 0, "cobra_assassin": 0, "cobra_scout": 0})
+        rec = C.recommend(self.cat, own, "cobra-cave")
+        self.assertEqual(rec["assignments"], [])
+        self.assertIn("pelo menos 1", rec["left_out"][0]["reason"])
+        own["bestiary"]["cobra_scout"] = 1
+        rec = C.recommend(self.cat, own, "cobra-cave")
+        self.assertEqual([a["creature_key"] for a in rec["assignments"]], ["cobra_scout"])
+
     def test_dodge_goes_to_the_creature_that_hits_hardest(self):
         view = C.hunt_view(self.cat, "cobra-cave")
         hardest = max(c["taken"] for c in view["creatures"])
