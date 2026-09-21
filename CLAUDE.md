@@ -574,6 +574,41 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   contexto). Limite conhecido: o modelo e linear e nao ve a sobrevivencia — a confirmacao no
   simulador apanha isso nas rotas (o `sim_check` diz quando discorda), e na etapa 2 e o simulador
   que decide entre assinaturas.
+- **21/09/2026 (ordem 10b, o Andre precisou a regra 13:05 — sobrepoe-se a ordem de etapas da 10)** —
+  «No caso seria assim: Avatar, Exp, Loot, e tu decides o resto.» **`PRIORITY_ORDER = ("avatar",
+  "exp", "loot", "damage")`**: quatro etapas — Avatar como na 9b/10; **Exp** e **Loot** pelo efeito
+  por ponto exacto com o caminho no custo (as etapas 2-3 da ordem 9, `_stage_by_effect`), cada uma
+  esgotada (todos os ranks que os pontos deixem) antes da seguinte; **«damage» = a etapa 2 da ordem
+  10 tal e qual** sobre o que sobra (modelo linear medido sobre a arvore das etapas 1-3,
+  `info["pre_damage_tree"]`; 9c dentro do mesmo stat; `prune_and_refill(protected=etapas 1-3)` so
+  aqui). Invariante: um rank de Exp/Loot que nao cabia no fim da etapa nunca volta a caber (comprar
+  um no do caminho tira ao orcamento o que tira ao caminho); a unica excepcao era a poda a libertar
+  pontos, por isso **a poda reverte-se se um rank de Exp/Loot passar a caber** com o que ela libertou
+  (`info["prune_reverted"]`; a poda rende ~0 por definicao). **A rota** (`choose_avatar_route`,
+  `route_priority_score`): cada rota que so sobe avalia-se pelo vector **(Avatar, +% exp, +% loot,
+  DPS do modelo linear)** — Exp/Loot pelas contas por stat sobre «rota + Avatar», o DPS pelo modelo
+  sobre o que sobra; fica o grupo de maior (exp, loot), dentro dele o modelo ordena, as
+  `PRIORITY_ROUTE_SIM_TIES = 8` melhores (+ a mais barata se estiver no grupo) confirmam-se no
+  simulador e ganha a de maior DPS (empate -> mais barata -> menos nos). A rota de maior DPS no
+  modelo sem olhar a Exp/Loot (`info["route"]["dps_best"]`, a que a ordem 10 escolhia) mede-se
+  tambem no simulador e a pagina mostra «escolhida vs maior DPS» com exp, loot e DPS das duas.
+  Efeito ao nivel dele (Livraria FIRE, fixadas): **druid volta a rota Fortune/Lucky Charm** (21
+  pontos, +1 % loot sobre a mais barata; Exp 162 pontos = 22 %, Loot 13 = 6,4 %, dano 2; DPS
+  3 196 -> 1 981 — e o preco da regra, mostrado); **paladin 284 X = 319** outra vez (ao nivel de
+  avaliacao 324 a rota de 19 deixa 5 pontos para a Exp e a de 21 so 3: a regra prefere a Exp; a
+  pagina mostra a de 21 como «maior DPS»; Exp 56, Loot 55, DPS 2 126 -> 1 887); sorcerer Scholar 55
+  pontos (10 % exp; DPS 2 557 -> 2 560); knight e monk sem alteracao (o knight nao tem nos de Exp
+  nem de Loot — diz-se; o Guiding Presence do monk nao cabe aos 336). O bloco passa a «Depois do
+  Avatar, Exp e Loot: o que rende mais» (`priority_stages_before_damage()` gera a frase a partir de
+  `PRIORITY_ORDER`) e conta-se sobre a arvore das etapas 1-3; o veredicto idem. `validacao.md`
+  **§1f**: `validation.exp_loot_by_hand` (so `arvore.json`: +% exp/loot e pontos por no, e o rank
+  de Exp/Loot mais barato que ainda cabia antes do dano — Dijkstra proprio) bate nos totais do
+  motor e confirma «esgotadas» nas 5 ao nivel 500. Teste de propriedade
+  (`test_priority.exp_loot_before_damage_violations`): nenhum passo da etapa «damage» com um rank de
+  Exp/Loot compravel nos pontos que sobravam, nas 5 + 8 niveis + paladin 319; e a 9c dentro de
+  Exp/Loot (`same_stat_violations(any_signature=True)`). O advisor diz no passo de Exp/Loot «+X %
+  exp por rank (Y %/pt)». Custo: build de um personagem 2,5-7 s (a rota do druid avalia as 411
+  rotas com as etapas Exp/Loot em ~1 s gracas ao `path_cache` no `_stage_by_effect`).
 
 ## Fontes
 

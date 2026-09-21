@@ -209,6 +209,12 @@ def _fmt_pct(x):
     return ("%+.1f%%" % x).replace(".", ",")
 
 
+def _fmt_num(x, decimals=2):
+    """Um numero em portugues (virgula), sem zeros a mais: 1 -> «1», 0,5 -> «0,5», 0,333 -> «0,33»."""
+    s = ("%.*f" % (decimals, x)).rstrip("0").rstrip(".")
+    return (s or "0").replace(".", ",")
+
+
 def _node_name(cat, nid):
     return (cat.node_by_id.get(nid) or {}).get("nome") or nid
 
@@ -310,6 +316,16 @@ def priority_tree_suggestions(cat, state, target, equipment, rotation, plan, cur
                 stat_label = {"attack": "Ataque", "critChance": "Chance de critico", "critDmg": "Dano critico"}.get(
                     step["stat"], "so ligacao" if step.get("link") else "resto: elemento/notable/tactica")
                 stage = "%s — %s" % (stage, stat_label)
+        elif nxt.stage in ("exp", "loot"):
+            # ordem 10b: as etapas Exp e Loot compram pelo efeito por ponto — diz-se o que o rank da
+            stat = "expPct" if nxt.stage == "exp" else "lootPct"
+            per_rank = (node.get("efeito_por_rank") or {}).get(stat)
+            if isinstance(per_rank, (int, float)) and cost:
+                stage = "%s — +%s %% %s por rank (%s %%/pt%s)" % (
+                    stage, _fmt_num(per_rank), "exp" if nxt.stage == "exp" else "loot", _fmt_num(per_rank / cost),
+                    ", caminho incluido" if path else "")
+            elif getattr(nxt, "link", False):
+                stage = "%s — so ligacao (caminho para um no de %s)" % (stage, B.PRIORITY_LABEL[nxt.stage])
         via = " (antes: %s)" % " → ".join("%s 1" % _node_name(cat, v) for v in path) if path else ""
         fits = cost <= left
         out.append(_suggestion(

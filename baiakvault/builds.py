@@ -68,7 +68,12 @@ PRIORITY_ORDER_ORDEM_9 = ("avatar", "exp", "loot", "crit", "attack", "critdmg", 
 # em pacotes do mesmo tamanho, ordem 9c), com a poda so aqui. Exp e Loot deixam de ser
 # prioridade (so entram como ligacao ou quando nao ha onde por um ponto). Para voltar a ordem
 # da 9: PRIORITY_ORDER = PRIORITY_ORDER_ORDEM_9 (a estrutura por etapas ficou).
-PRIORITY_ORDER = ("avatar", "damage")
+# Ordem 10b (o Andre precisou a regra, 21/09/2026 13:05): «No caso seria assim: Avatar, Exp, Loot,
+# e tu decides o resto.» Quatro etapas: Avatar (rota escolhida como abaixo), Exp e Loot pelo efeito
+# por ponto (as etapas 2-3 da ordem 9, esgotam-se antes da seguinte), e «damage» = a etapa 2 da
+# ordem 10 sobre o que sobra. A rota avalia-se pelo vector (Avatar, +% exp, +% loot, DPS do modelo
+# linear); a poda so na etapa «damage» e nunca toca nas etapas 1-3.
+PRIORITY_ORDER = ("avatar", "exp", "loot", "damage")
 PRIORITY_LABEL = {"avatar": "Avatar", "exp": "Exp", "loot": "Loot", "crit": "Crit", "attack": "Ataque",
                   "critdmg": "Dano critico", "element": "Elemento", "rest": "O que sobrar", "damage": "Dano"}
 # O modelo linear do dano (ordem 10): o valor marginal de +1 de cada stat, medido no simulador
@@ -120,7 +125,16 @@ GOAL_ASKED = {("knight", "tank"): "Sobreviver", ("knight", "damage"): "Dar dano"
               ("knight", "best"): "A melhor possivel", ("druid", "best"): "A melhor possivel",
               ("sorcerer", "best"): "A melhor possivel", ("paladin", "best"): "A melhor possivel",
               ("monk", "best"): "A melhor possivel"}
-PRIORITY_ASKED = "Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide)"
+PRIORITY_ASKED = "Prioridades do Andre: Avatar › Exp › Loot › dano (o simulador decide)"
+
+
+def priority_stages_before_damage():
+    """Os rotulos das etapas antes da «damage» («Avatar, Exp e Loot»), para as frases da
+    pagina e do veredicto: seguem `PRIORITY_ORDER`, nao um texto fixo."""
+    labels = [PRIORITY_LABEL[s] for s in PRIORITY_ORDER if s != "damage"]
+    if len(labels) <= 1:
+        return labels[0] if labels else ""
+    return ", ".join(labels[:-1]) + " e " + labels[-1]
 for _voc in AVATAR_NODE:
     GOAL_ASKED[(_voc, PRIORITY_GOAL)] = PRIORITY_ASKED
 
@@ -1655,7 +1669,7 @@ def _stat_signature(node):
     return tuple(sorted((node.get("efeito_por_rank") or {}).keys()))
 
 
-def _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, buy, score_fn=None):
+def _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, buy, score_fn=None, path_cache=None):
     """Uma etapa pelo efeito por ponto (com o caminho que faltar no custo), ate nao caber
     mais nenhum rank da categoria. `buy(nid, is_link)` poe um rank e regista o passo.
     Com `score_fn(tree)` (ordem 9c, etapas 4-7): entre ranks com o MESMO stat decide a
@@ -1666,16 +1680,26 @@ def _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, b
     tudo se compara pelo efeito por ponto, como na ordem 9. Entre stats diferentes o
     simulador mede pacotes do MESMO tamanho (o rank mais caro dos candidatos contra os
     ranks do mesmo stat dos outros ate igualar o custo): a +1,5 % de Fury contra os 50
-    pontos de Combat Mastery ainda era ruido; 50 pontos de Fury/Warlord/Cleave nao."""
+    pontos de Combat Mastery ainda era ruido; 50 pontos de Fury/Warlord/Cleave nao.
+    `path_cache` como em `_rank_candidates` (as etapas Exp/Loot correm por cada uma das
+    centenas de rotas na escolha da rota, ordem 10b)."""
     spent = sum(F.tree_total_cost(node_by_id[k], v) for k, v in tree.items())
 
     def candidates(state, spent_state):
         """assinatura de stats -> (efeito/ponto, no, caminho, custo) do melhor rank dela em `state`"""
         groups = {}
+        bought = frozenset(k for k, v in state.items() if v) if path_cache is not None else None
         for nid, node in node_by_id.items():
             if category[nid] != stage or state.get(nid, 0) >= (node.get("rank_maximo") or 1):
                 continue
-            path = unlock_path(node, state, adj, node_by_id)
+            if path_cache is None:
+                path = unlock_path(node, state, adj, node_by_id)
+            else:
+                key = (nid, bought)
+                if key in path_cache:
+                    path = path_cache[key]
+                else:
+                    path = path_cache[key] = unlock_path(node, state, adj, node_by_id)
             if path is None:
                 continue
             c = sum(F.tree_rank_cost(node_by_id[p], state.get(p, 0)) for p in path) + F.tree_rank_cost(node, state.get(nid, 0))
@@ -1722,6 +1746,22 @@ def _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, b
             buy(p, True)
         buy(nid, False)
         spent += c
+
+
+def _stage_candidates(node_by_id, adj, tree, budget, category, stages, elements):
+    """Ha algum rank de uma das `stages` (exp/loot) ligado e a caber com o caminho no custo?
+    (a verificacao da regra «Exp e Loot antes do dano» depois da poda, ordem 10b)"""
+    spent = sum(F.tree_total_cost(node_by_id[k], v) for k, v in tree.items())
+    for nid, node in node_by_id.items():
+        if category[nid] not in stages or tree.get(nid, 0) >= (node.get("rank_maximo") or 1):
+            continue
+        path = unlock_path(node, tree, adj, node_by_id)
+        if path is None:
+            continue
+        c = sum(F.tree_rank_cost(node_by_id[p], tree.get(p, 0)) for p in path) + F.tree_rank_cost(node, tree.get(nid, 0))
+        if spent + c <= budget:
+            return True
+    return False
 
 
 # --- o modelo linear do dano e a etapa «damage» (ordem 10, 21/09/2026) ----------------------------
@@ -1907,6 +1947,19 @@ def route_damage_score(cat, vocation, level, route, model, with_avatar=True, pat
     que faltar no custo, so o que rende > 0). Devolve (valor no modelo = soma das
     fraccoes de DPS, arvore) ou None se a rota nao cabe. `path_cache` partilha-se entre
     as centenas de rotas (as arvores parecem-se)."""
+    got = route_priority_score(cat, vocation, level, route, model, None, frozenset(), with_avatar=with_avatar,
+                               path_cache=path_cache, stages=())
+    return (got[0][3], got[1]) if got else None
+
+
+def route_priority_score(cat, vocation, level, route, model, category, elements, with_avatar=True, path_cache=None,
+                         stages=None):
+    """A rota avaliada pelas prioridades (ordem 10b): a rota a rank 1 + o Avatar, depois as
+    etapas `stages` (as de `PRIORITY_ORDER` entre o Avatar e a «damage»: Exp, Loot) pelo
+    efeito por ponto, e os pontos restantes pelo modelo linear do dano (ganho por ponto
+    exacto, com o caminho que faltar no custo, so o que rende > 0). Devolve (vector, arvore)
+    — vector = (Avatar 1/0, +% exp, +% loot, valor no modelo = soma das fraccoes de DPS) —
+    ou None se a rota nao cabe. `path_cache` partilha-se entre as centenas de rotas."""
     node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
     adj = _adjacency(cat, vocation)
     budget = F.tree_budget(level)
@@ -1918,6 +1971,17 @@ def route_damage_score(cat, vocation, level, route, model, with_avatar=True, pat
         return None
     skip = {AVATAR_NODE[vocation]}
     paths = path_cache if path_cache is not None else {}
+    if stages is None:
+        stages = tuple(s for s in PRIORITY_ORDER if s not in ("avatar", "damage", "rest"))
+    if stages:
+        if category is None:
+            category = {nid: priority_category(n, elements, vocation) for nid, n in node_by_id.items()}
+
+        def buy(nid, is_link=False):
+            tree[nid] = tree.get(nid, 0) + 1
+        for stage in stages:
+            _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, buy, path_cache=paths)
+        spent = _spent(cat, tree)
     while True:
         groups = _rank_candidates(node_by_id, adj, tree, budget, spent, lambda n: model_rank_value(n, model),
                                   skip=skip, by_signature=False, path_cache=paths)
@@ -1930,7 +1994,8 @@ def route_damage_score(cat, vocation, level, route, model, with_avatar=True, pat
             tree[p] = tree.get(p, 0) + 1
         spent += c
     total = sum(model_rank_value(node_by_id[nid], model) * r for nid, r in tree.items() if nid in node_by_id)
-    return total, tree
+    tot = priority_totals(cat, vocation, tree, elements) if stages else {"expPct": 0.0, "lootPct": 0.0}
+    return (1 if with_avatar else 0, round(tot["expPct"], 6), round(tot["lootPct"], 6), total), tree
 
 
 # --- a rota ate ao Avatar (ordem 9b, 21/09/2026) ---------------------------------------------------
@@ -2038,48 +2103,69 @@ def choose_avatar_route(cat, vocation, level, elements, score_fn=None, max_delay
     pruned = ties = sim_ties = 0
     model_best = model_score = sim_score = cheapest_sim = cheapest_model = None
     sim_agrees = None
+    vector_10b = cheapest_10b = None
+    dps_best = None   # ordem 10b: a rota de maior DPS no modelo, sem olhar a Exp/Loot (a pagina mostra-a ao lado)
     if forced is not None:
         route = list(forced)
         cost = sum(F.tree_rank_cost(node_by_id[p], 0) for p in route)
         vec = route_vector(cat, vocation, eval_level, route, category, elements)
         vector = vec[0] if vec else None
         if model is not None:
-            got = route_damage_score(cat, vocation, eval_level, route, model)
-            model_score = got[0] if got else None
+            got = route_priority_score(cat, vocation, eval_level, route, model, category, elements)
+            model_score = got[0][3] if got else None
+            vector_10b = got[0] if got else None
     elif model is not None:
-        # ordem 10: o modelo linear ordena as rotas, o simulador confirma as melhores
+        # ordem 10/10b: cada rota avalia-se pelo vector (Avatar, +% exp, +% loot, DPS do modelo linear)
+        # — Exp e Loot pelas contas por stat das etapas 2-3, o DPS pelo modelo sobre o que sobra; entre
+        # rotas com o mesmo exp e loot ganha a de maior DPS, e as melhores confirmam-se no simulador
         if len(cands) > PRIORITY_ROUTE_MAX_ENUM:
             cands, pruned = _dominated_routes(cands, category)
         scored = []
         paths = {}
         for c, r in cands:
-            got = route_damage_score(cat, vocation, eval_level, r, model, path_cache=paths)
+            got = route_priority_score(cat, vocation, eval_level, r, model, category, elements, path_cache=paths)
             if got is not None:
-                scored.append((got[0], -c, -len(r), r, got[1]))
+                scored.append((got[0][3], -c, -len(r), r, got[1], got[0]))
+        # a rota de maior DPS no modelo (ignorando Exp/Loot): e o que a ordem 10 escolhia
         scored.sort(key=lambda s: (s[0], s[1], s[2]), reverse=True)
-        model_best, model_score = list(scored[0][3]), scored[0][0]
+        dps_best_entry = scored[0]
+        # o grupo das prioridades: o maior (exp, loot); dentro dele o modelo ordena
+        top_key = max(s[5][1:3] for s in scored)
+        group = [s for s in scored if s[5][1:3] == top_key]
+        group.sort(key=lambda s: (s[0], s[1], s[2]), reverse=True)
+        model_best, model_score = list(group[0][3]), group[0][0]
         cheapest_entry = next((s for s in scored if s[3] == cheapest[1]), None)
         cheapest_model = cheapest_entry[0] if cheapest_entry else None
+        cheapest_10b = cheapest_entry[5] if cheapest_entry else None
+        cheapest_in_group = cheapest_entry is not None and any(s is cheapest_entry for s in group)
         if score_fn is not None:
-            # as melhores no modelo confirmam-se no simulador, e a mais barata entra sempre na
-            # confirmacao: a escolhida nunca fica abaixo dela no simulador
-            top = scored[:PRIORITY_ROUTE_SIM_TIES]
-            if cheapest_entry is not None and not any(s is cheapest_entry for s in top):
+            # as melhores do grupo no modelo confirmam-se no simulador; a mais barata e a de maior DPS
+            # medem-se tambem (para a pagina), mas so entram na escolha se tiverem o mesmo exp e loot
+            top = group[:PRIORITY_ROUTE_SIM_TIES]
+            if cheapest_in_group and not any(s is cheapest_entry for s in top):
                 top.append(cheapest_entry)
-            sim_scores = {id(s): score_fn(s[4]) for s in top}
+            extra = [s for s in (cheapest_entry, dps_best_entry) if s is not None and not any(s is t for t in top)]
+            sim_scores = {id(s): score_fn(s[4]) for s in top + extra}
         else:
-            top = scored[:1]
+            top = group[:1]
             sim_scores = {id(top[0]): top[0][0]}
+            if dps_best_entry is not top[0]:
+                sim_scores[id(dps_best_entry)] = dps_best_entry[0]
         sim_ties = len(top)
         winner = max(top, key=lambda s: (sim_scores[id(s)], s[1], s[2]))
         route, cost = list(winner[3]), -winner[1]
         sim_score = sim_scores[id(winner)]
+        vector_10b = winner[5]
         cheapest_sim = sim_scores.get(id(cheapest_entry)) if cheapest_entry else None
         vec = route_vector(cat, vocation, eval_level, route, category, elements)
         vector = vec[0] if vec else None
+        dps_best = {"route": list(dps_best_entry[3]), "cost": -dps_best_entry[1], "level": -dps_best_entry[1] + avatar_cost,
+                    "vector": dps_best_entry[5], "model_score": dps_best_entry[0],
+                    "sim_score": sim_scores.get(id(dps_best_entry)), "same": dps_best_entry is winner,
+                    "same_exp_loot": dps_best_entry[5][1:3] == top_key}
         if score_fn is not None:
-            model_best_sim = sim_scores[id(scored[0])]
-            sim_agrees = {"agrees": winner is scored[0], "model_best_sim": model_best_sim,
+            model_best_sim = sim_scores[id(group[0])]
+            sim_agrees = {"agrees": winner is group[0], "model_best_sim": model_best_sim,
                           "diff_pct": (sim_score / model_best_sim - 1.0) * 100.0 if model_best_sim else None}
     else:
         if len(cands) > PRIORITY_ROUTE_MAX_ENUM:
@@ -2109,18 +2195,25 @@ def choose_avatar_route(cat, vocation, level, elements, score_fn=None, max_delay
             # ordem 10: a escolha pelo DPS
             "by_model": model is not None, "model_best_route": model_best, "model_score": model_score,
             "sim_score": sim_score, "cheapest_sim": cheapest_sim, "cheapest_model": cheapest_model,
-            "sim_check": sim_agrees if isinstance(sim_agrees, dict) else None}
+            "sim_check": sim_agrees if isinstance(sim_agrees, dict) else None,
+            # ordem 10b: o vector (Avatar, +% exp, +% loot, DPS do modelo) da escolhida e da mais barata,
+            # e a rota de maior DPS no modelo (a que a ordem 10 escolhia) para a pagina comparar
+            "vector_10b": vector_10b, "cheapest_vector_10b": cheapest_10b, "dps_best": dps_best,
+            "priority_stages": tuple(s for s in PRIORITY_ORDER if s not in ("avatar", "damage", "rest"))}
 
 
 def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, elements, route=None, score_fn=None):
-    """A arvore pelas prioridades do Andre (21/09/2026), etapa a etapa (`PRIORITY_ORDER`):
-    1 a rota mais util ate ao Avatar (`choose_avatar_route`, ordem 9b) + o Avatar — se o
-    Avatar nao couber, compra-se a rota na mesma (e o plano B: gastar agora e importar
-    a build com o Avatar ao nivel em que cabe) e diz-se o nivel; 2 Exp e 3 Loot pelo
-    efeito por ponto (com o caminho que faltar no custo); 4-7 o mesmo stat pela conta por
-    stat e stats diferentes da categoria pelo simulador (ordem 9c; desligado,
-    `PRIORITY_GREEDY_BY_STAT`, o guloso de DPS restrito a categoria da ordem 9); 8 o
-    resto pelo guloso de DPS e a poda so aqui. `route` forca
+    """A arvore pelas prioridades do Andre (21/09/2026), etapa a etapa (`PRIORITY_ORDER`;
+    desde a 10b: Avatar, Exp, Loot, «damage»): 1 a rota mais util ate ao Avatar
+    (`choose_avatar_route`, ordem 9b/10b) + o Avatar — se o Avatar nao couber, compra-se a
+    rota na mesma (e o plano B: gastar agora e importar a build com o Avatar ao nivel em
+    que cabe) e diz-se o nivel; 2 Exp e 3 Loot pelo efeito por ponto (com o caminho que
+    faltar no custo), cada uma esgotada antes da seguinte; «damage» (ordem 10) tudo o que
+    sobra no que rende mais DPS, com o modelo linear medido sobre a arvore das etapas 1-3
+    e a poda so aqui (nunca toca nas etapas anteriores). Da ordem 9 ficam disponiveis:
+    4-7 o mesmo stat pela conta por stat e stats diferentes da categoria pelo simulador
+    (ordem 9c; desligado, `PRIORITY_GREEDY_BY_STAT`, o guloso de DPS restrito a categoria);
+    8 o resto pelo guloso de DPS e a poda so aqui. `route` forca
     a rota (a build do nivel do Avatar usa a mesma que se escolheu abaixo dele).
     Devolve (arvore, passos com etapa, info) — info: avatar (bool), avatar_level (o da
     rota escolhida), avatar_path (= a rota), route {...} (a escolha e a mais barata),
@@ -2134,7 +2227,7 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
     steps = []
     link = set()
     info = {"avatar": False, "avatar_level": None, "avatar_path": [], "category": category, "elements": sorted(elements),
-            "stage_points": {}, "pruned": [], "link": link, "route": None}
+            "stage_points": {}, "pruned": [], "link": link, "route": None, "pre_damage_tree": None}
 
     def spent():
         return _spent(cat, tree)
@@ -2200,8 +2293,10 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
                 steps.extend(st)
         elif stage == "damage":
             # ordem 10: tudo o que sobra no que rende mais DPS (9c sobre todos os nos); o modelo
-            # medido sobre «rota + Avatar» e o «o que rende mais» da pagina, antes de gastar
+            # medido sobre a arvore das etapas anteriores («rota + Avatar + Exp + Loot», 10b) e o
+            # «o que rende mais» da pagina, antes de gastar; a poda nao toca nessas etapas
             protected = dict(tree)
+            info["pre_damage_tree"] = dict(tree)   # a arvore das etapas 1-3: e sobre ela que o bloco e a validacao 1e contam
             model_start = model_at(tree)
             info["stat_model"] = model_start
             info["stat_report"] = priority_stat_report(cat, vocation, level, tree, model_start, elements, eq=eq)
@@ -2215,8 +2310,22 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
             for s in st:
                 s.stage = "damage"
             steps.extend(st)
+            before_prune = dict(tree)
             tree, pruned, refill_steps = prune_and_refill(cat, vocation, "damage", level, tree, eq, target, hunt_rot,
                                                           boss_rot, heal, protected=protected)
+            info["prune_reverted"] = None
+            after_prune = dict(before_prune)
+            for n, a, c in pruned:
+                if c:
+                    after_prune[n] = c
+                else:
+                    after_prune.pop(n, None)
+            if pruned and _stage_candidates(node_by_id, adj, after_prune, budget, category,
+                                            [s for s in PRIORITY_ORDER if s in ("exp", "loot")], elements):
+                # 10b: a poda libertou pontos com que um rank de Exp/Loot passava a caber — e a regra e Exp e
+                # Loot antes de um ponto ir ao dano. A poda rende ~0 por definicao: fica como estava, e diz-se
+                info["prune_reverted"] = [(n, a, c) for n, a, c in pruned]
+                tree, pruned, refill_steps = before_prune, [], []
             for s in refill_steps:
                 s.stage = "damage"
             steps.extend(refill_steps)
@@ -2336,7 +2445,8 @@ def priority_stat_report_finish(cat, vocation, report, tree, steps, info):
         for o in order:
             if o["stat"] and o["stat"] not in cum_at and not o["link"]:
                 cum_at[o["stat"]] = o["cumulative"] - start
-        parts = ["depois do Avatar rende mais %s (%.2f %%/pt)" % (first["label"].lower(), first["best"]["gain_per_point"] * 100)]
+        parts = ["depois do %s rende mais %s (%.2f %%/pt)" % (priority_stages_before_damage(), first["label"].lower(),
+                                                              first["best"]["gain_per_point"] * 100)]
         if len(ranked) > 1:
             second = ranked[1]
             n = cum_at.get(second["key"])

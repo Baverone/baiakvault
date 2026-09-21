@@ -430,11 +430,12 @@ def priority_block(cat, b, root="../", with_avatar_code=True, stage_order=True):
             continue
         pts = info["stage_points"].get(stage, 0)
         if stage == "damage":
-            # ordem 10: a etapa 2 e tudo o que rende dano, o simulador a decidir
-            text = ("+%s atk / +%s dano de magia, +%s critical chance, +%s dano critico, %s; exp +%s, loot +%s "
-                    "(so como ligacao ou ponto que sobrou)"
+            # ordem 10: a etapa e tudo o que rende dano, o simulador a decidir
+            text = ("+%s atk / +%s dano de magia, +%s critical chance, +%s dano critico, %s"
                     % (_pct(tot["atkPct"], 1), _pct(tot["spellDmgPct"], 1), _pct(tot["critChance"], 1), _pct(tot["critDmg"], 1),
-                       stage_texts["element"], _pct(tot["expPct"], 1), _pct(tot["lootPct"], 1)))
+                       stage_texts["element"]))
+            if "exp" not in B.PRIORITY_ORDER:
+                text += "; exp +%s, loot +%s (so como ligacao ou ponto que sobrou)" % (_pct(tot["expPct"], 1), _pct(tot["lootPct"], 1))
             if info.get("pruned"):
                 text += " <small class=\"mudo\">— podados: %s</small>" % h.esc(
                     ", ".join("%s %d→%d" % (_node_name(cat, n), a, c) for n, a, c in info["pruned"]))
@@ -442,6 +443,13 @@ def priority_block(cat, b, root="../", with_avatar_code=True, stage_order=True):
             text = stage_texts.get(stage, "")
             if stage in ("exp", "loot") and not have.get(stage):
                 text = "<b>a vocacao nao tem nos de %s</b> — nada a comprar nesta etapa" % B.PRIORITY_LABEL[stage]
+            elif stage in ("exp", "loot"):
+                # ordem 10b: os nos da etapa com o rank comprado (todos os ranks que os pontos deixaram)
+                bought = [(_node_name(cat, nid), b["tree"].get(nid, 0)) for nid, c in info["category"].items()
+                          if c == stage and b["tree"].get(nid, 0)]
+                text += " <small class=\"mudo\">(%s; esgotada: nenhum rank de %s ficou compravel com o que sobrou)</small>" % (
+                    h.esc(", ".join("%s %d" % nr for nr in sorted(bought))) if bought else "nenhum no comprado — nao cabia nenhum",
+                    B.PRIORITY_LABEL[stage])
             elif stage == "element":
                 text += " <small class=\"mudo\">(elementos da rotacao e da arma: %s)</small>" % h.esc(
                     ", ".join(ELEMENT_LABEL.get(el, el) for el in info["elements"]))
@@ -454,11 +462,24 @@ def priority_block(cat, b, root="../", with_avatar_code=True, stage_order=True):
                      if rest_pts else "0 pontos — as sete etapas gastaram tudo")
         rows.append(("8. O que sobrar (guloso de DPS)", rest_text))
     out.append(h.kv(rows))
+    if "exp" in B.PRIORITY_ORDER and not have.get("exp") and not have.get("loot"):
+        out.append('<p class="mudo">O %s fica <b>sem nos de Exp nem de Loot</b>: a arvore do cliente nao os tem nesta vocacao, '
+                   "as etapas 2 e 3 ficam vazias e passa-se ao dano.</p>" % h.esc(VOCATION_LABEL.get(voc, voc)))
+    elif "exp" in B.PRIORITY_ORDER and not have.get("loot"):
+        out.append('<p class="mudo">O %s fica <b>sem nos de Loot</b>: a arvore do cliente nao os tem nesta vocacao, a etapa 3 '
+                   "fica vazia e passa-se ao dano.</p>" % h.esc(VOCATION_LABEL.get(voc, voc)))
     if "damage" in B.PRIORITY_ORDER:
-        out.append('<p class="mudo">Regra de 21/09/2026 (ordem 10): «Quero Avatar, e depois quero que me indiques o que e melhor: '
-                   "se Atk, se Chance Critico, se Dano Critico.» Depois do Avatar todos os pontos vao ao que rende mais DPS "
-                   "medido no simulador com a rotacao/arma fixadas — o mesmo stat pela conta por ponto, stats diferentes pelo "
-                   "simulador em pacotes do mesmo tamanho (ordem 9c); Exp e Loot ja nao sao prioridade.</p>")
+        if "exp" in B.PRIORITY_ORDER:
+            out.append('<p class="mudo">Regra de 21/09/2026 (ordem 10b, precisada 5 minutos depois da 10): «No caso seria assim: '
+                       "Avatar, Exp, Loot, e tu decides o resto.» A Exp e o Loot esgotam-se (todos os ranks que os pontos deixem, "
+                       "pelo efeito por ponto com o caminho no custo) antes de um ponto ir ao dano; depois todos os pontos vao ao "
+                       "que rende mais DPS medido no simulador com a rotacao/arma fixadas — o mesmo stat pela conta por ponto, "
+                       "stats diferentes pelo simulador em pacotes do mesmo tamanho (ordem 9c).</p>")
+        else:
+            out.append('<p class="mudo">Regra de 21/09/2026 (ordem 10): «Quero Avatar, e depois quero que me indiques o que e melhor: '
+                       "se Atk, se Chance Critico, se Dano Critico.» Depois do Avatar todos os pontos vao ao que rende mais DPS "
+                       "medido no simulador com a rotacao/arma fixadas — o mesmo stat pela conta por ponto, stats diferentes pelo "
+                       "simulador em pacotes do mesmo tamanho (ordem 9c); Exp e Loot ja nao sao prioridade.</p>")
         out.append(stat_report_block(cat, b, stage_order=stage_order))
     elif not have.get("exp") and not have.get("loot"):
         out.append('<p class="mudo">Esta vocacao nao tem nos de Exp nem de Loot na arvore do cliente: as etapas 2 e 3 '
@@ -511,7 +532,9 @@ def stat_report_block(cat, b, stage_order=True):
     if not rep:
         return ""
     voc, level = b["vocation"], b["level"]
-    out = ['<h4>Depois do Avatar: o que rende mais (nivel %d, sobre a arvore «rota + Avatar»)</h4>' % level]
+    before = B.priority_stages_before_damage()
+    base_tree = "rota + Avatar" if "exp" not in B.PRIORITY_ORDER else "rota + Avatar + Exp + Loot"
+    out = ['<h4>Depois do %s: o que rende mais (nivel %d, sobre a arvore «%s»)</h4>' % (h.esc(before), level, base_tree)]
     rows = []
     for r in rep["rows"]:
         best = r.get("best")
@@ -524,18 +547,19 @@ def stat_report_block(cat, b, stage_order=True):
     if rep.get("verdict"):
         out.append("<p><b>Veredicto</b> — %s %d: %s</p>" % (h.esc(voc.capitalize()), level, h.esc(rep["verdict"])))
     pts = rep.get("points_by_stat") or {}
-    out.append('<p class="mudo">Pontos da etapa 2: Ataque %d, Chance de critico %d, Dano critico %d, resto (elemento, notables '
-               "especiais, tacticas, HP…) %d, so ligacao %d. O DPS base da tabela e %s (rota + Avatar, sem mais nada); o valor "
+    n_stage = STAGE_NUMBER.get("damage", 2)
+    out.append('<p class="mudo">Pontos da etapa %d: Ataque %d, Chance de critico %d, Dano critico %d, resto (elemento, notables '
+               "especiais, tacticas, HP…) %d, so ligacao %d. O DPS base da tabela e %s (%s, sem mais nada); o valor "
                "de +1 %% e a media das perturbacoes +1 e +2 no simulador; o modelo volta a medir-se a cada %d pontos.</p>"
-               % (pts.get("attack", 0), pts.get("critChance", 0), pts.get("critDmg", 0), pts.get("rest", 0), pts.get("link", 0),
-                  _n(rep["dps_base"]), B.PRIORITY_MODEL_REFRESH))
+               % (n_stage, pts.get("attack", 0), pts.get("critChance", 0), pts.get("critDmg", 0), pts.get("rest", 0), pts.get("link", 0),
+                  _n(rep["dps_base"]), base_tree, B.PRIORITY_MODEL_REFRESH))
     order = rep.get("order") or []
     if order and stage_order:
         rows = [["%d" % i, h.esc(o["name"]), "%d" % o["rank"], "%d" % o["cost"],
                  h.esc(("so ligacao" if o["link"] and o["stat"] is None else STAT_LINE_LABEL.get(o["stat"], "resto"))), _n(o["cumulative"])]
                 for i, o in enumerate(order, 1)]
-        out.append("<details><summary>Ordem de compra da etapa 2 (%d passos, com o stat de cada um)</summary>%s</details>"
-                   % (len(rows), h.table(["#", "no", "rank", "custo", "stat", "ate ao nivel"], rows, numeric=(0, 2, 3, 5))))
+        out.append("<details><summary>Ordem de compra da etapa %d (%d passos, com o stat de cada um)</summary>%s</details>"
+                   % (n_stage, len(rows), h.table(["#", "no", "rank", "custo", "stat", "ate ao nivel"], rows, numeric=(0, 2, 3, 5))))
     return "".join(out)
 
 
@@ -567,14 +591,17 @@ def route_line(cat, rt):
         return ""
     same = rt["route"] == rt["cheapest_route"]
     if rt.get("by_model"):
-        # ordem 10: a rota escolheu-se pelo DPS (modelo linear + confirmacao no simulador)
+        # ordem 10: a rota escolheu-se pelo DPS (modelo linear + confirmacao no simulador); 10b: pelo
+        # vector (Avatar, +% exp, +% loot, DPS do modelo), e a de maior DPS mostra-se ao lado
         chk = rt.get("sim_check") or {}
         model_names = ", ".join(_node_name(cat, p) for p in (rt.get("model_best_route") or []))
+        by_prio = bool(rt.get("priority_stages"))
+        how = "pelas prioridades (Avatar, exp, loot, DPS)" if by_prio else "pelo DPS"
         if same:
-            head = "Rota: a escolhida pelo DPS e a mais barata sao a mesma (%d pontos)" % rt["cost"]
+            head = "Rota: a escolhida %s e a mais barata sao a mesma (%d pontos)" % (how, rt["cost"])
         else:
-            head = ("Rota escolhida pelo DPS <b>%d pontos</b> (Avatar ao nivel %d) contra a mais barata <b>%d pontos</b> (%s; Avatar ao nivel %d)"
-                    % (rt["cost"], rt["level"], rt["cheapest_cost"], h.esc(", ".join(_node_name(cat, p) for p in rt["cheapest_route"])),
+            head = ("Rota escolhida %s <b>%d pontos</b> (Avatar ao nivel %d) contra a mais barata <b>%d pontos</b> (%s; Avatar ao nivel %d)"
+                    % (how, rt["cost"], rt["level"], rt["cheapest_cost"], h.esc(", ".join(_node_name(cat, p) for p in rt["cheapest_route"])),
                        rt["cheapest_level"]))
         sim_bits = ""
         if rt.get("sim_score") and rt.get("cheapest_sim"):
@@ -584,11 +611,33 @@ def route_line(cat, rt):
         if chk:
             agree = (" — o simulador concordou com o modelo" if chk.get("agrees")
                      else " — o simulador preferiu outra rota a do modelo (%s; %s no simulador)" % (h.esc(model_names), _pct_signed(chk.get("diff_pct") or 0.0, 2)))
+        base_tree = "rota mais barata + Avatar"
+        dps_best = rt.get("dps_best")
+        vs_dps = ""
+        if by_prio and dps_best and rt.get("vector_10b"):
+            v, w = rt["vector_10b"], dps_best["vector"]
+            if dps_best.get("same"):
+                vs_dps = (" <b>Escolhida vs maior DPS</b>: sao a mesma rota (+%s exp, +%s loot ao nivel %d)."
+                          % (_pct(v[1], 1), _pct(v[2], 1), rt["eval_level"]))
+            else:
+                sim_cmp = ""
+                if dps_best.get("sim_score") and rt.get("sim_score"):
+                    sim_cmp = "; no simulador %s contra %s (%s)" % (
+                        _n(rt["sim_score"]), _n(dps_best["sim_score"]), _pct_signed((rt["sim_score"] / dps_best["sim_score"] - 1) * 100))
+                vs_dps = (" <b>Escolhida vs maior DPS</b>: a escolhida da +%s exp e +%s loot ao nivel %d; a rota de maior DPS no "
+                          "modelo (%d pontos: %s) daria +%s exp e +%s loot%s — %s."
+                          % (_pct(v[1], 1), _pct(v[2], 1), rt["eval_level"], dps_best["cost"],
+                             h.esc(", ".join(_node_name(cat, p) for p in dps_best["route"])), _pct(w[1], 1), _pct(w[2], 1), sim_cmp,
+                             "o mesmo exp e loot: a escolhida ganhou no simulador" if dps_best.get("same_exp_loot")
+                             else "a regra dele e Exp e Loot antes do dano, por isso fica a escolhida"))
         return ("<br><small class=\"mudo\">%s%s: modelo linear do dano (valor de +1 %% de cada stat medido no simulador sobre "
-                "«rota mais barata + Avatar» ao nivel %d) sobre as %d rotas que so sobem (%d avaliadas), as %d melhores "
-                "confirmadas com a arvore inteira no simulador%s%s.</small>"
-                % (head, sim_bits, rt["eval_level"], rt["routes_total"], rt["routes_candidates"], rt.get("sim_ties") or 0, agree,
-                   (", %d podadas por dominancia" % rt["routes_pruned"]) if rt.get("routes_pruned") else ""))
+                "«%s» ao nivel %d) sobre as %d rotas que so sobem (%d avaliadas)%s, as %d melhores "
+                "confirmadas com a arvore inteira no simulador%s%s.%s</small>"
+                % (head, sim_bits, base_tree, rt["eval_level"], rt["routes_total"], rt["routes_candidates"],
+                   " — cada uma com a Exp e o Loot pelas contas por stat e o DPS do modelo sobre o que sobra; entre rotas com o "
+                   "mesmo exp e loot ganha a de maior DPS" if by_prio else "",
+                   rt.get("sim_ties") or 0, agree,
+                   (", %d podadas por dominancia" % rt["routes_pruned"]) if rt.get("routes_pruned") else "", vs_dps))
     if same:
         text = ("<br><small class=\"mudo\">Rota: a mais util e a mais barata sao a mesma (%d pontos; %d rotas que so sobem "
                 "enumeradas, %d avaliadas ao nivel %d%s).</small>"
@@ -615,8 +664,8 @@ def avatar_plans_block(cat, b, plans, avatar):
     out = ['<h4>%s ao nivel %d: a rota para ires ja pondo pontos, e os dois planos</h4>' % (h.esc(avatar["nome"]), lx)]
     cheaper = ""
     if plans["cheapest_level"] < lx:
-        cheaper = (" A rota mais barata (%d pontos) dava o Avatar ao nivel %d, mas passa por nos que rendem menos (DPS no "
-                   "simulador, ordem 10); a escolhida atrasa-o %d nivel%s (tecto: %d)."
+        cheaper = (" A rota mais barata (%d pontos) dava o Avatar ao nivel %d, mas passa por nos que rendem menos nas "
+                   "prioridades (exp, loot, DPS no simulador); a escolhida atrasa-o %d nivel%s (tecto: %d)."
                    % (plans["cheapest_cost"], plans["cheapest_level"], lx - plans["cheapest_level"],
                       "" if lx - plans["cheapest_level"] == 1 else "eis", B.PRIORITY_ROUTE_MAX_DELAY))
     out.append("<p>O Avatar cabe <b>ao nivel %d</b> = rota mais util (%d pontos a rank 1) + 300.%s</p>"
@@ -635,8 +684,8 @@ def avatar_plans_block(cat, b, plans, avatar):
     a, pb = plans["a"], plans["b"]
     a_vs_b = (a["dps"] / pb["dps"] - 1) * 100 if pb["dps"] else None
     rows = [
-        ["Plano A — sem respec", "so a rota (%d pontos) e guardar o resto; ao nivel %d o Avatar de uma vez (300); depois a etapa 2 (dano)"
-         % (plans["route_cost"], lx),
+        ["Plano A — sem respec", "so a rota (%d pontos) e guardar o resto; ao nivel %d o Avatar de uma vez (300); depois as etapas seguintes (%s)"
+         % (plans["route_cost"], lx, ", ".join(B.PRIORITY_LABEL[s] for s in B.PRIORITY_ORDER if s != "avatar")),
          "0 gold", "%d pontos por gastar ate ao nivel %d" % (a["unspent"], lx),
          "%s (%s vs %s do plano B)" % (_pct_signed(a_vs_b) if a_vs_b is not None else h.UNKNOWN, _n(a["dps"]), _n(pb["dps"]))],
         ["Plano B — gastar agora e respec ao nivel %d (recomendado)" % lx,
@@ -1329,9 +1378,12 @@ def crit_marginals_rows(cat, plan):
     (o que, a mao, simulador, diferenca %, ok)."""
     rep = (plan.get("priority") or {}).get("stat_report") or {}
     info = plan["priority"]
-    tree = {p: 1 for p in info["avatar_path"]}
-    if info["avatar"]:
-        tree[B.AVATAR_NODE[plan["vocation"]]] = 1
+    # a arvore sobre a qual o bloco mediu: as etapas antes da «damage» (10b: rota + Avatar + Exp + Loot)
+    tree = dict(info.get("pre_damage_tree") or {})
+    if not tree:
+        tree = {p: 1 for p in info["avatar_path"]}
+        if info["avatar"]:
+            tree[B.AVATAR_NODE[plan["vocation"]]] = 1
     hand = validation.crit_marginals_by_hand(cat, plan["vocation"], plan["level"], tree, plan["equipment"])
     by_key = {r["key"]: r for r in rep.get("rows") or []}
     rows = []
@@ -1456,6 +1508,37 @@ def validation_markdown(cat, plans, rows=None, rows_rune=None, sorcerer_plan=Non
                                                     (_md_num(diff, 2) + " %") if diff is not None else "?", "sim" if ok else "**NAO**"))
     else:
         out.append("Sem personagem sorcerer com a build «prioridades» na vault.db: a seccao fica vazia (?).")
+    out += ["", "## 1f. Exp e Loot antes do dano: os pontos de cada etapa, a mao, por vocacao (ordem 10b, 21/09/2026)", "",
+            "A regra precisada pelo Andre («Avatar, Exp, Loot, e tu decides o resto»): a Exp e o Loot esgotam-se antes de "
+            "um ponto ir ao dano. A conta a mao (`validation.exp_loot_by_hand`, so com o `arvore.json` cru) soma o +% exp e "
+            "o +% loot da arvore final e os pontos gastos nos nos de cada um (cliente `z3e`), e verifica na arvore das "
+            "etapas 1-3 (rota + Avatar + Exp + Loot, antes do dano) que o rank de Exp/Loot mais barato que ainda se podia "
+            "comprar (o proximo rank mais o caminho, Dijkstra proprio) nao cabia nos pontos que sobravam. Ao lado o que o "
+            "motor deu. Build «prioridades» de nivel 500.", "",
+            "| vocacao | +% exp a mao / motor | pontos em nos de Exp | +% loot a mao / motor | pontos em nos de Loot | "
+            "antes do dano: sobravam / rank de Exp ou Loot mais barato | esgotadas | ok |",
+            "|---|---|---|---|---|---|---|---|"]
+    for voc in ("knight", "paladin", "sorcerer", "druid", "monk"):
+        b500 = plans.get((voc, B.PRIORITY_GOAL, 500))
+        info = (b500.get("priority") or {}) if b500 else {}
+        if not b500 or not info.get("pre_damage_tree"):
+            out.append("| %s | ? | ? | ? | ? | ? | ? | ? |" % VOCATION_LABEL[voc])
+            continue
+        final = validation.exp_loot_by_hand(cat.raw["arvore"], voc, 500, b500["tree"])
+        before = validation.exp_loot_by_hand(cat.raw["arvore"], voc, 500, info["pre_damage_tree"])
+        tot = info["totals"]
+        exp_ok = abs(final["exp"]["pct"] - tot["expPct"]) < 1e-6
+        loot_ok = abs(final["loot"]["pct"] - tot["lootPct"]) < 1e-6
+        exhausted = before["exp"]["exhausted"] and before["loot"]["exhausted"]
+        nxt = [c for c in (before["exp"]["next_cost"], before["loot"]["next_cost"]) if c is not None]
+        has = {k: final[k]["has_nodes"] for k in ("exp", "loot")}
+        out.append("| %s | %s / %s | %s | %s / %s | %s | %s / %s | %s | %s |" % (
+            VOCATION_LABEL[voc], _md_num(final["exp"]["pct"], 1), _md_num(tot["expPct"], 1),
+            ("%d" % final["exp"]["points"]) if has["exp"] else "sem nos de Exp",
+            _md_num(final["loot"]["pct"], 1), _md_num(tot["lootPct"], 1),
+            ("%d" % final["loot"]["points"]) if has["loot"] else "sem nos de Loot",
+            _md_num(before["unspent"], 0), (_md_num(min(nxt), 0) + " pontos") if nxt else "nenhum por comprar",
+            "sim" if exhausted else "**NAO**", "sim" if (exp_ok and loot_ok and exhausted) else "**NAO**"))
     out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
             "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
             "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (

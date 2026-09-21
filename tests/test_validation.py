@@ -91,7 +91,12 @@ class HandVsEngine(unittest.TestCase):
         self.assertIn("## 1c.", md)
         # ordem 9b: a seccao 1d — as rotas contadas a mao e a mais barata, o motor a bater nas 5 (+ 5 «sim»)
         self.assertIn("## 1d.", md)
-        self.assertEqual(md.count("| sim |"), 10)
+        # ordem 10b: a seccao 1f — Exp e Loot a mao, uma linha por vocacao com «esgotadas | ok» (mais 5 «| sim |»:
+        # «| sim | sim |» conta uma vez, o count nao sobrepoe)
+        self.assertIn("## 1f.", md)
+        self.assertEqual(md.count("| sim |"), 15)
+        self.assertEqual(md.count("| sim | sim |"), 5)
+        self.assertIn("sem nos de Exp", md)   # o knight
         self.assertNotIn("**NAO**", md)
         self.assertEqual(len(re.findall(r"\| \d+ / \d+ \| sim \| \d+ pontos, Avatar ao nivel \d+ \(", md)), 5)
         self.assertAlmostEqual(validation.guide_dps(100), 7.012 * 100 ** 0.948, places=6)
