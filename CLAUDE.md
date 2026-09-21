@@ -530,6 +530,50 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   37,5 % -> 40,0 % com 63 pontos em vez de 67 (DPS 3 635 -> 3 675). Teste de propriedade
   (`test_priority.same_stat_violations`, 5 + 8 niveis + paladin 319: chumbava antes no knight) e
   arvore a mao com custos 1 e 3.
+- **21/09/2026 (ordem 10, regra nova do Andre 13:00 — sobrepoe-se a ordem de prioridades da 9)** —
+  «Desculpa, vamos alterar. Quero Avatar, e depois quero que me indiques o que e melhor: se Atk,
+  se Chance Critico, se Dano Critico.» **`PRIORITY_ORDER = ("avatar", "damage")`**: duas etapas
+  (a ordem da 9 fica inteira em `PRIORITY_ORDER_ORDEM_9` — voltar a por Exp/Loot e uma linha; a
+  estrutura por etapas, os rotulos e a categoria de cada no ficaram). Etapa 2 = **tudo o que
+  rende mais DPS no simulador** com a rotacao/arma fixadas (`builds._stage_damage`): a regra da 9c
+  sobre TODOS os nos — dentro da mesma assinatura de stats decide o **modelo linear** por ponto
+  (`stat_model`: o valor de +1 de cada stat — atkPct, spellDmgPct, critChance, critDmg,
+  attackSpeedPct, elementDmgPct util — medido no simulador como fraccao do **DPS do ciclo** (nao
+  da metrica com a sobrevivencia: sobre «rota + Avatar» a fraccao de sobreviver e minuscula e +1 %
+  dava +60 %), media das perturbacoes +1 e +2, `sim.Profile(extra=)`; volta a medir-se a cada
+  `PRIORITY_MODEL_REFRESH = 40` pontos porque crit e dano critico multiplicam-se); entre
+  assinaturas diferentes o simulador em pacotes do mesmo tamanho (com fila preguicosa por
+  assinatura: o ganho medido so se repete quando o melhor rank dela muda ou o modelo se refresca —
+  sem isto eram G simulacoes por rank); os nos que o modelo nao ve (HP, tacticas, notables
+  especiais) valem 0 no modelo e so o simulador os mete; para quando nada rende > 0; `_refill` +
+  `prune_and_refill(protected=rota+Avatar)` so aqui. Exp/Loot so entram como ligacao ou ponto que
+  sobrou (teste). **A rota escolhe-se pelo DPS** (`choose_avatar_route(model=)`): o modelo medido
+  uma vez por vocacao sobre «rota mais barata + Avatar» ao nivel de avaliacao ordena as centenas de
+  rotas (`route_damage_score`: rota a rank 1 + Avatar + o resto pelo modelo, com `path_cache` dos
+  caminhos de desbloqueio — 411 rotas do druid em ~1 s), as `PRIORITY_ROUTE_SIM_TIES = 8` melhores
+  **e a mais barata** confirmam-se com a arvore inteira no simulador e ganha a de maior DPS (empate
+  -> mais barata -> menos nos); `info["route"]` leva `model_best_route`, `sim_score`,
+  `cheapest_sim`, `sim_check` (se o simulador concordou e a diferenca). Abaixo do Avatar o mesmo ao
+  nivel «mais barata + 300 + 5» (`PRIORITY_ROUTE_MAX_DELAY` fica): **o paladin 284 passa a X = 321**
+  (rota Might/Rapid Fire/…/Lightbringer, 21 pontos; +0,8 % de DPS sobre a de 19). **O bloco
+  «Depois do Avatar: o que rende mais»** (`priority_stat_report` + `_finish`, puro; pagina
+  `pages_builds.stat_report_block`): Ataque (atkPct no knight/monk, spellDmgPct nos mages, os dois no
+  paladin) / Chance de critico / Dano critico — o que +1 % rende no simulador (fraccao e DPS), o
+  melhor rank compravel agora com o ganho por ponto, o que a build comprou (% e pontos; um no conta
+  no stat de maior contribuicao no modelo), o veredicto gerado da conta («rende mais X (a %/pt) ate
+  aos ~N pontos, depois Y; dano critico so vale a chance: com C % de chance efectiva (Avatar «crita
+  sempre» u % do tempo) cada 1 % de dano critico vale … e cada 1 % de chance vale …») e a ordem de
+  compra da etapa 2 com o stat de cada passo. O advisor poe o stat ao lado do proximo rank da
+  etapa 2. `validacao.md` **§1e**: a conta a mao de +1 % de chance vs +1 % de dano critico no
+  sorcerer dele (`validation.crit_marginals_by_hand`: formula do critico do guia + Avatar 15 s, so
+  JSON) bate no simulador a ~1e-12 (tolerancia 5 %). Ao nivel dele (Livraria FIRE, fixadas): knight
+  3 675 -> 5 382 DPS (ataque 43,5 %, dano critico 25,5 %, crit 1,1 %; a «dano» do mesmo nivel da
+  4 363 — o guloso por stat + modelo e melhor optimizador do que o guloso do simulador), sorcerer
+  1 980 -> 2 557, druid 1 961 -> 3 196, monk 1 434 -> 1 466, paladin 1 550 -> 2 126. Custo: knight
+  ~5 s, monk 8, paladin 10, sorcerer 12, druid ~30 s a frio (a maior parte e a build «dano» de
+  contexto). Limite conhecido: o modelo e linear e nao ve a sobrevivencia — a confirmacao no
+  simulador apanha isso nas rotas (o `sim_check` diz quando discorda), e na etapa 2 e o simulador
+  que decide entre assinaturas.
 
 ## Fontes
 

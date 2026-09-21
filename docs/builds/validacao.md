@@ -66,10 +66,21 @@ Desde a correccao do Andre (21/09/2026) a rota ate ao Avatar e a mais util pelas
 | vocacao | rotas (a mao) | mais barata (a mao) | motor: rotas / mais barata | ok | escolhida na build de nivel 500 (pontos, Avatar ao nivel) |
 |---|---|---|---|---|---|
 | Knight (EK) | 299 | 16 | 299 / 16 | sim | 19 pontos, Avatar ao nivel 319 (Fury, Sharpened Steel, Vampiric Blows, Second Wind, Bloodlust, Cold Precision, Overpower, Smite, Warlust, Carnage) |
-| Paladin (RP) | 304 | 19 | 304 / 19 | sim | 21 pontos, Avatar ao nivel 321 (Might, Rapid Fire, Power Shot, Precision, Swift Quiver, Marksman, Deadly Aim, Volley, Hawkeye, Relentless, Lightbringer) |
-| Sorcerer (MS) | 513 | 16 | 513 / 16 | sim | 21 pontos, Avatar ao nivel 321 (Arcane Power, Pyromancy, Ignite, Conduit, Necromancy, Soul Harvest, Reaper, Death Chill, Archmage, Void Touch, Cataclysm) |
-| Druid (ED) | 820 | 20 | 820 / 20 | sim | 21 pontos, Avatar ao nivel 321 (Nature's Wrath, Terra Attunement, Fortune, Herbalist, Lucky Charm, Windfall, Ice Ward, Stone Skin, Grove Guardian, Lifekeeper, Evergreen) |
-| Monk | 908 | 19 | 908 / 19 | sim | 21 pontos, Avatar ao nivel 321 (Inner Focus, Chi Drain, Pressure Points, Crane Style, Guard, Iron Lungs, Flurry, Inner Peace, Ascendant, Harmony, Enlightened) |
+| Paladin (RP) | 304 | 19 | 304 / 19 | sim | 21 pontos, Avatar ao nivel 321 (Might, Rapid Fire, Piercing Bolts, Precision, Swift Quiver, Marksman, Deadly Aim, Volley, Hawkeye, Relentless, Lightbringer) |
+| Sorcerer (MS) | 513 | 16 | 513 / 16 | sim | 20 pontos, Avatar ao nivel 320 (Arcane Focus, Devastation, Conduit, Necromancy, Soul Harvest, Reaper, Death Chill, Archmage, Void Touch, Cataclysm) |
+| Druid (ED) | 820 | 20 | 820 / 20 | sim | 20 pontos, Avatar ao nivel 320 (Nature's Wrath, Frost Attunement, Frostbite, Glacier, Winter Heart, Nature's Bond, Permafrost, Elder Wisdom, Lifekeeper, Evergreen) |
+| Monk | 908 | 19 | 908 / 19 | sim | 21 pontos, Avatar ao nivel 321 (Iron Fists, Flow, Open Palm, Tiger Style, Swift Strikes, Sacred Fist, Flurry, Inner Peace, Ascendant, Harmony, Enlightened) |
+
+## 1e. Chance de critico vs dano critico: +1 % de cada, a mao, no sorcerer dele (ordem 10, 21/09/2026)
+
+A regra de 21/09/2026 («Avatar, e depois o que e melhor: Atk, Chance Critico ou Dano Critico») responde-se com o valor marginal de cada stat medido no simulador sobre a arvore «rota + Avatar». Aqui a mesma conta a mao (`validation.crit_marginals_by_hand`, so com o `arvore.json`, os itens e a formula do critico `1 + chance x (50 + critDmg)/10000` do guia, mais o Avatar «crita sempre» 15 s do cliente): como o critico multiplica todo o dano que sai, +1 de chance na arvore vale (1 − uptime) × (50 + critDmg)/10000 / M e +1 de dano critico vale chance efectiva/10000 / M. Tolerancia 5 %.
+
+Sorcerer nivel 481, rotacao Rage of the Skies, Avalanche, arvore «rota + Avatar» (11 nos): chance da arvore + itens 11,3 %, dano critico 62,5 %, attack speed 0,0 %, Avatar 5,0 % por golpe → uptime 42,9 %, chance efectiva 49,3 %, multiplicador 1,5548.
+
+| o que | a mao | simulador | diferenca | ok |
+|---|---|---|---|---|
+| +1 % de chance de critico (fraccao do DPS) | 0,413 % | 0,413 % | -0,00 % | sim |
+| +1 % de dano critico (fraccao do DPS) | 0,317 % | 0,317 % | 0,00 % | sim |
 
 ## 2. A curva de DPS do guia vs o DPS do ciclo do simulador
 
@@ -77,46 +88,46 @@ Curva do guia: `7,012 x nivel^0,948` (guiabaiakidle.com/_astro/character-planner
 
 | build | nivel | hunt | DPS ciclo (simulador) | curva do guia | razao |
 |---|---|---|---|---|---|
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 50 | Crawler | 336 | 286 | x1,17 |
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 100 | Orclops | 404 | 552 | x0,73 |
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 200 | Undead Dragon | 844 | 1.065 | x0,79 |
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 300 | Naga Lair | 1.982 | 1.564 | x1,27 |
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 500 | Livraria EARTH | 3.790 | 2.538 | x1,49 |
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 800 | Bony Sea Devil | 6.395 | 3.963 | x1,61 |
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1200 | Bony Sea Devil | 12.472 | 5.820 | x2,14 |
-| Knight (EK) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1500 | Rotten man-maggot | 21.576 | 7.191 | x3,00 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 50 | Crawler | 290 | 286 | x1,01 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 100 | Orclops | 527 | 552 | x0,96 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 200 | Undead Dragon | 619 | 1.065 | x0,58 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 300 | Naga Lair | 1.248 | 1.564 | x0,80 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 500 | Livraria EARTH | 1.812 | 2.538 | x0,71 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 800 | Bony Sea Devil | 3.318 | 3.963 | x0,84 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1200 | Bony Sea Devil | 8.584 | 5.820 | x1,47 |
-| Druid (ED) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1500 | Rotten man-maggot | 13.533 | 7.191 | x1,88 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 50 | Crawler | 294 | 286 | x1,03 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 100 | Orclops | 568 | 552 | x1,03 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 200 | Undead Dragon | 995 | 1.065 | x0,93 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 300 | Naga Lair | 1.579 | 1.564 | x1,01 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 500 | Livraria EARTH | 3.004 | 2.538 | x1,18 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 800 | Bony Sea Devil | 7.071 | 3.963 | x1,78 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1200 | Bony Sea Devil | 16.015 | 5.820 | x2,75 |
-| Sorcerer (MS) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1500 | Rotten man-maggot | 19.733 | 7.191 | x2,74 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 50 | Crawler | 631 | 286 | x2,21 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 100 | Orclops | 846 | 552 | x1,53 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 200 | Undead Dragon | 1.535 | 1.065 | x1,44 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 300 | Naga Lair | 1.959 | 1.564 | x1,25 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 500 | Livraria EARTH | 3.256 | 2.538 | x1,28 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 800 | Bony Sea Devil | 5.948 | 3.963 | x1,50 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1200 | Bony Sea Devil | 11.593 | 5.820 | x1,99 |
-| Paladin (RP) — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1500 | Rotten man-maggot | 16.354 | 7.191 | x2,27 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 50 | Crawler | 223 | 286 | x0,78 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 100 | Orclops | 354 | 552 | x0,64 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 200 | Undead Dragon | 572 | 1.065 | x0,54 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 300 | Naga Lair | 985 | 1.564 | x0,63 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 500 | Livraria EARTH | 1.940 | 2.538 | x0,76 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 800 | Bony Sea Devil | 3.377 | 3.963 | x0,85 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1200 | Bony Sea Devil | 6.716 | 5.820 | x1,15 |
-| Monk — Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento | 1500 | Rotten man-maggot | 10.887 | 7.191 | x1,51 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 50 | Crawler | 398 | 286 | x1,39 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 100 | Orclops | 402 | 552 | x0,73 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 200 | Undead Dragon | 1.097 | 1.065 | x1,03 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 300 | Naga Lair | 3.034 | 1.564 | x1,94 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 500 | Livraria EARTH | 5.313 | 2.538 | x2,09 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 800 | Bony Sea Devil | 8.821 | 3.963 | x2,23 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1200 | Bony Sea Devil | 18.790 | 5.820 | x3,23 |
+| Knight (EK) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1500 | Rotten man-maggot | 25.650 | 7.191 | x3,57 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 50 | Crawler | 350 | 286 | x1,22 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 100 | Orclops | 733 | 552 | x1,33 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 200 | Undead Dragon | 1.011 | 1.065 | x0,95 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 300 | Naga Lair | 2.241 | 1.564 | x1,43 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 500 | Livraria EARTH | 2.590 | 2.538 | x1,02 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 800 | Bony Sea Devil | 6.025 | 3.963 | x1,52 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1200 | Bony Sea Devil | 11.452 | 5.820 | x1,97 |
+| Druid (ED) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1500 | Rotten man-maggot | 18.822 | 7.191 | x2,62 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 50 | Crawler | 353 | 286 | x1,23 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 100 | Orclops | 799 | 552 | x1,45 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 200 | Undead Dragon | 1.300 | 1.065 | x1,22 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 300 | Naga Lair | 2.435 | 1.564 | x1,56 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 500 | Livraria EARTH | 3.719 | 2.538 | x1,47 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 800 | Bony Sea Devil | 9.749 | 3.963 | x2,46 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1200 | Bony Sea Devil | 20.450 | 5.820 | x3,51 |
+| Sorcerer (MS) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1500 | Rotten man-maggot | 26.180 | 7.191 | x3,64 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 50 | Crawler | 691 | 286 | x2,41 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 100 | Orclops | 1.000 | 552 | x1,81 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 200 | Undead Dragon | 1.932 | 1.065 | x1,82 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 300 | Naga Lair | 2.557 | 1.564 | x1,64 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 500 | Livraria EARTH | 4.289 | 2.538 | x1,69 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 800 | Bony Sea Devil | 8.580 | 3.963 | x2,17 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1200 | Bony Sea Devil | 16.114 | 5.820 | x2,77 |
+| Paladin (RP) — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1500 | Rotten man-maggot | 24.102 | 7.191 | x3,35 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 50 | Crawler | 228 | 286 | x0,80 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 100 | Orclops | 535 | 552 | x0,97 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 200 | Undead Dragon | 677 | 1.065 | x0,64 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 300 | Naga Lair | 1.138 | 1.564 | x0,73 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 500 | Livraria EARTH | 2.463 | 2.538 | x0,97 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 800 | Bony Sea Devil | 5.924 | 3.963 | x1,49 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1200 | Bony Sea Devil | 12.139 | 5.820 | x2,09 |
+| Monk — Prioridades do Andre: Avatar › dano (Atk, crit, dano critico… o simulador decide) | 1500 | Rotten man-maggot | 14.983 | 7.191 | x2,08 |
 | Knight (EK) — Dar dano | 50 | Crawler | 428 | 286 | x1,50 |
 | Knight (EK) — Dar dano | 100 | Orclops | 510 | 552 | x0,92 |
 | Knight (EK) — Dar dano | 200 | Undead Dragon | 1.194 | 1.065 | x1,12 |

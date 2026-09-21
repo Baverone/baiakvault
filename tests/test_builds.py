@@ -140,10 +140,11 @@ class Optimizer(unittest.TestCase):
             # sobrou» rende ~0 e nada depende dele; «dano» rende; «tactica» e o Battle Tactics
             self.assertEqual(set(b["roles"]), set(tree), key)
             if b["goal"] == builds.PRIORITY_GOAL:
-                # na «prioridades» o papel e a etapa (ordem 9): os papeis medidos so na etapa 8 — test_priority
+                # na «prioridades» o papel e a etapa (ordem 9) ou, num no da rota, a categoria dele (ordem 9b);
+                # os papeis medidos na ultima etapa — test_priority
                 for nid, (role, gain) in b["roles"].items():
                     self.assertIn(role, (builds.ROLE_DAMAGE, builds.ROLE_LINK, builds.ROLE_TACTICS, builds.ROLE_LEFTOVER)
-                                  + tuple(builds.PRIORITY_ORDER[:-1]), key)
+                                  + tuple(builds.PRIORITY_ORDER_ORDEM_9[:-1]) + tuple(builds.PRIORITY_ORDER[:-1]), key)
                 continue
             for nid, (role, gain) in b["roles"].items():
                 self.assertIn(role, (builds.ROLE_DAMAGE, builds.ROLE_LINK, builds.ROLE_TACTICS, builds.ROLE_LEFTOVER), key)

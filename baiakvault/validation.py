@@ -395,6 +395,60 @@ def avatar_routes_by_hand(tree_json):
     return out
 
 
+AVATAR_SECONDS_BY_HAND = (15, "cliente: desc dos nos Avatar «entrar na forma avatar por 15s (crita sempre …)»")
+
+
+def crit_marginals_by_hand(cat, vocation, level, tree, equipment, c=None):
+    """§1e (ordem 10): o valor de +1 % de chance de critico e de +1 % de dano critico, a mao,
+    so com os JSON e a formula do critico (guia: `1 + chance x (50 + critDmg)/10000`) e a do
+    Avatar («crita sempre» 15 s; uptime = 15/(15 + espera), espera = 1/(golpes/s x p)), sem
+    importar `sim`. `equipment` e o da build ({slot: {"item", "up", "imbuements"}}). Como o
+    critico multiplica TODO o dano que sai, a fraccao de DPS por +1 e a derivada do
+    multiplicador: +1 de chance na arvore vale (1 - u) x (50 + d)/10000 / M; +1 de dano
+    critico vale chance_efectiva/10000 / M. Devolve um dicionario com as contas."""
+    c = c or {k: v[0] for k, v in HAND_CONSTANTS.items()}
+    node_by_id = cat.node_by_id
+    imb_by_key = {i["key"]: i for i in (cat.meta("itens").get("imbuements") or {}).get("lista") or []}
+    chance = dmg = speed = 0.0
+    avatar_p = 0.0
+    for nid, rank in (tree or {}).items():
+        node = node_by_id[nid]
+        sp = node.get("especial") or {}
+        if sp.get("key") == "avatar":
+            avatar_p += sp["value"] * rank
+        for key, val in (node.get("efeito_por_rank") or {}).items():
+            if key == "critChance":
+                chance += val * rank
+            elif key == "critDmg":
+                dmg += val * rank
+            elif key == "attackSpeedPct":
+                speed += val * rank
+    for slot, eq in (equipment or {}).items():
+        item = (eq or {}).get("item") or {}
+        chance += item.get("crit_chance") or 0
+        dmg += item.get("crit_dano") or 0
+        for imb in (eq or {}).get("imbuements") or ():
+            key, tier = (imb, 3) if isinstance(imb, str) else (imb[0], imb[1])
+            info = imb_by_key.get(key) or {}
+            if info.get("kind") == "crit":
+                dmg += info["values"][max(0, min(2, tier - 1))]
+                chance += c["imbuement_crit_chance"]
+    p = avatar_p / 100.0
+    if p > 0:
+        interval = c["auto_interval_s"] / (1 + speed / 100.0)
+        hits_per_s = 1.0 / interval + 1.0 / c["gcd_s"]
+        wait = 1.0 / (hits_per_s * p)
+        u = AVATAR_SECONDS_BY_HAND[0] / (AVATAR_SECONDS_BY_HAND[0] + wait)
+    else:
+        u = 0.0
+    eff = u * 100.0 + (1 - u) * chance
+    mult = 1 + eff * (c["crit_base"] + dmg) / 10000.0
+    return {"chance": chance, "crit_dmg": dmg, "attack_speed": speed, "avatar_p": avatar_p, "uptime": u,
+            "effective_chance": eff, "multiplier": mult,
+            "per_crit_chance": (1 - u) * (c["crit_base"] + dmg) / 10000.0 / mult,
+            "per_crit_dmg": eff / 10000.0 / mult}
+
+
 # --- 2. a curva do guia --------------------------------------------------------------------------
 GUIDE_CURVE = (7.012, 0.948, "guiabaiakidle.com/_astro/character-planner.D0n3Vxn3.js — `F=7.012,I=.948` (lido a 2026-09-16)")
 

@@ -8,7 +8,9 @@ from baiakvault import build, html
 FORBIDDEN = re.compile(r"\b(None|nan|NaN|undefined|null)\b")
 # 256 KiB desde a ordem 8 (16/09/2026): as paginas das builds passaram de ~187 para ~228 KB com o
 # papel de cada no na ordem de compra, o codigo de build e a validacao do cliente nos 8 niveis
-MAX_PAGE_BYTES = 256 * 1024
+# 320 KiB desde a ordem 10 (21/09/2026): o bloco «Depois do Avatar: o que rende mais» em cada um
+# dos 8 niveis pos a sorcerer-priority.html a 267 KB (era 256 KiB desde a 8b)
+MAX_PAGE_BYTES = 320 * 1024
 # 30 s desde a ordem 8 (16/09/2026): o plano do personagem avalia tambem o caminho da «best» na
 # hunt dele, e um caminho a frio custa ate ~16 s (o «poupar para um notable»); com o Planner
 # quente (o serve guarda-o em memoria) o mesmo build leva ~1,5 s — medido em _tempo_8b.py
