@@ -301,6 +301,15 @@ def priority_tree_suggestions(cat, state, target, equipment, rotation, plan, cur
         s, _ = _score_of(cat, voc, level, "damage", trial, equipment, target, rotation)
         gain = _pct(s, current_score)
         stage = B.PRIORITY_LABEL.get(nxt.stage, nxt.stage or "?")
+        if nxt.stage == "damage":
+            # ordem 10: a etapa 2 e «o que rende mais DPS» — diz-se o stat do passo (Ataque / Chance de
+            # critico / Dano critico / resto) que o bloco «o que rende mais» da build atribuiu
+            rep = (plan.get("priority") or {}).get("stat_report") or {}
+            step = next((o for o in rep.get("order") or [] if o["node_id"] == nxt.node_id and o["rank"] == nxt.rank), None)
+            if step is not None:
+                stat_label = {"attack": "Ataque", "critChance": "Chance de critico", "critDmg": "Dano critico"}.get(
+                    step["stat"], "so ligacao" if step.get("link") else "resto: elemento/notable/tactica")
+                stage = "%s — %s" % (stage, stat_label)
         via = " (antes: %s)" % " → ".join("%s 1" % _node_name(cat, v) for v in path) if path else ""
         fits = cost <= left
         out.append(_suggestion(

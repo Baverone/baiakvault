@@ -142,7 +142,7 @@ class Profile:
     vem do skill tipico do guia (marcado)."""
 
     def __init__(self, cat, vocation, level, tree=None, equipment=None, skills=None,
-                 heal_at_pct=85, potion_hp_pct=85, potion_mana_pct=25):
+                 heal_at_pct=85, potion_hp_pct=85, potion_mana_pct=25, extra=None):
         self.cat = cat
         self.vocation = vocation
         self.level = int(level)
@@ -152,12 +152,16 @@ class Profile:
         self.heal_at_pct = heal_at_pct
         self.potion_hp_pct = potion_hp_pct
         self.potion_mana_pct = potion_mana_pct
+        # `extra` (ordem 10): um `efeito_por_rank` a somar aos bonus da arvore — serve para medir
+        # o valor marginal de +1 % de um stat no simulador (nao existe no jogo: e uma perturbacao)
+        self.extra = dict(extra or {})
         self.assumed_skill = False
         self._build()
 
     def _build(self):
         cat, voc, level = self.cat, self.vocation, self.level
         bon, specials = tree_bonuses(cat, voc, self.tree)
+        add_bonus(bon, self.extra)
         weapon = (self.equipment.get("weapon") or {}).get("item")
         self.weapon = weapon
         self.weapon_type = (weapon or {}).get("tipo_de_arma") or ("wand" if voc in MAGES else "fist")

@@ -644,7 +644,11 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
                 for lv in builds_module.LEVELS:
                     written.append(_write(out / "print" / ("helper-%s-%d.html" % (pages_builds.slug(voc, goal), lv)),
                                           pages_builds.render_print(cat, plans[(voc, goal, lv)], generated_at)))
-            text = pages_builds.validation_markdown(cat, plans)
+            # §1e (ordem 10): o critico a mao contra o simulador no sorcerer dele (rotacao fixada)
+            sorcerer = next((advice_by_slug[c["slug"]]["plan"] for c in characters
+                             if c.get("vocation") == "sorcerer" and advice_by_slug[c["slug"]].get("plan")
+                             and (advice_by_slug[c["slug"]]["plan"].get("priority") or {}).get("stat_report")), None)
+            text = pages_builds.validation_markdown(cat, plans, sorcerer_plan=sorcerer)
             written.append(_write(out / "builds" / "validacao.md", text))
             written.append(_write(out / "builds" / "validacao.html",
                                   pages_builds.render_validation(text, generated_at)))

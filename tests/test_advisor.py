@@ -113,7 +113,7 @@ class Advisor(unittest.TestCase):
         tree = [s for s in druid["suggestions"] if s["kind"] == "tree"]
         self.assertTrue(tree, druid["suggestions"])
         self.assertIn("etapa", tree[0]["why"])
-        self.assertIn(tree[0]["stage"], ("avatar", "exp", "loot", "crit", "attack", "critdmg", "element", "rest"))
+        self.assertIn(tree[0]["stage"], builds.PRIORITY_ORDER_ORDEM_9 + ("damage",))
         respec = [s for s in druid["suggestions"] if s["kind"] == "respec" and "Avatar of Nature" in s["action"]]
         self.assertTrue(respec, druid["suggestions"])
         # ordem 9b: a 1.a linha e o Avatar ao nivel X com o plano B; X = rota mais util + 300, a mais

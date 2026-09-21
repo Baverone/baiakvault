@@ -22,18 +22,22 @@ O que ja la esta (v0.1):
   registado; ao lado, a build recomendada para a tua vocacao/objectivo/nivel.
   O que nao esta registado sai «?» e a lista diz o que falta preencher.
 - **Builds** — a build das **prioridades do Andre** de cada vocacao (a omissao
-  desde 21/09/2026): a arvore segue a ordem estrita **Avatar › Exp › Loot ›
-  Crit › Ataque › Dano critico › Elemento › o que sobrar**, cada etapa esgotada
-  antes da seguinte (o Avatar e o notable de tier 11 pela **rota mais util**:
-  entre todas as rotas do tier 0 ate la fica a que deixa a build melhor pelas
-  prioridades, nao a mais barata — a pagina mostra as duas; se ainda nao cabe,
-  diz a que nivel cabe, a rota por ordem de clique para ir ja pondo pontos e os
-  dois planos ate la, sem respec ou com respec ao chegar, com os numeros e o
-  recomendado, e da a build e o codigo desse nivel; dentro de cada etapa os
-  ranks do mesmo stat compram-se pelo efeito por ponto exacto, e o simulador
-  so decide entre stats diferentes), com a ordem de compra por
-  etapas, os totais por
-  categoria e, ao lado em numero, o que a build de **dano** daria a mais; a
+  desde 21/09/2026): **Avatar › dano** (regra dele de 21/09/2026, 13:00: «Quero
+  Avatar, e depois quero que me indiques o que e melhor: se Atk, se Chance
+  Critico, se Dano Critico»). O Avatar e o notable de tier 11 pela rota que
+  deixa a build final com mais DPS (todas as rotas do tier 0 ate la, ordenadas
+  por um modelo linear medido no simulador e as melhores confirmadas nele — a
+  pagina mostra a escolhida e a mais barata; se ainda nao cabe, diz a que nivel
+  cabe, a rota por ordem de clique para ir ja pondo pontos e os dois planos ate
+  la, sem respec ou com respec ao chegar, com os numeros e o recomendado, e da
+  a build e o codigo desse nivel); depois **todos os pontos vao ao que rende
+  mais DPS** medido no simulador com a rotacao/arma fixadas (ranks do mesmo
+  stat pelo modelo por ponto exacto, stats diferentes pelo simulador em pacotes
+  do mesmo tamanho), e o bloco **«Depois do Avatar: o que rende mais»**
+  responde com numeros a Ataque vs Chance de critico vs Dano critico (o que
+  +1 % rende, o melhor rank agora, o que a build comprou e o veredicto — o
+  dano critico so vale a chance); com a ordem de compra por etapas, os totais
+  por categoria e, ao lado em numero, o que a build de **dano** daria a mais; a
   build de dano de cada vocacao (o maior DPS do ciclo = XP/h, sem tecto de
   gold — pocoes e runas a vontade nos mages e no paladin, a mana como limite no
   knight e no monk, sobreviver so como restricao minima), a **melhor**

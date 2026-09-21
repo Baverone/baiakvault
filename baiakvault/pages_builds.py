@@ -417,27 +417,48 @@ def priority_block(cat, b, root="../", with_avatar_code=True):
             c = B.PRIORITY_STAT_CATEGORY.get(stat)
             if c:
                 have.setdefault(c, set()).add(node["nome"])
-    for stage, text in (("exp", "+%s exp" % _pct(tot["expPct"], 1)), ("loot", "+%s loot" % _pct(tot["lootPct"], 1)),
-                        ("crit", "+%s critical chance" % _pct(tot["critChance"], 1)),
-                        ("attack", "+%s atk / +%s dano de magia" % (_pct(tot["atkPct"], 1), _pct(tot["spellDmgPct"], 1))),
-                        ("critdmg", "+%s dano critico" % _pct(tot["critDmg"], 1)),
-                        ("element", ", ".join("+%s %s" % (_pct(v, 1), ELEMENT_LABEL.get(el, el)) for el, v in sorted(tot["element"].items()))
-                         or "nenhum no de elemento da rotacao/arma comprado")):
+    stage_texts = {"exp": "+%s exp" % _pct(tot["expPct"], 1), "loot": "+%s loot" % _pct(tot["lootPct"], 1),
+                   "crit": "+%s critical chance" % _pct(tot["critChance"], 1),
+                   "attack": "+%s atk / +%s dano de magia" % (_pct(tot["atkPct"], 1), _pct(tot["spellDmgPct"], 1)),
+                   "critdmg": "+%s dano critico" % _pct(tot["critDmg"], 1),
+                   "element": ", ".join("+%s %s" % (_pct(v, 1), ELEMENT_LABEL.get(el, el)) for el, v in sorted(tot["element"].items()))
+                   or "nenhum no de elemento da rotacao/arma comprado"}
+    for stage in B.PRIORITY_ORDER:
+        if stage in ("avatar", "rest"):
+            continue
         pts = info["stage_points"].get(stage, 0)
-        if stage in ("exp", "loot") and not have.get(stage):
-            text = "<b>a vocacao nao tem nos de %s</b> — nada a comprar nesta etapa" % B.PRIORITY_LABEL[stage]
-        elif stage == "element":
-            text += " <small class=\"mudo\">(elementos da rotacao e da arma: %s)</small>" % h.esc(
-                ", ".join(ELEMENT_LABEL.get(el, el) for el in info["elements"]))
+        if stage == "damage":
+            # ordem 10: a etapa 2 e tudo o que rende dano, o simulador a decidir
+            text = ("+%s atk / +%s dano de magia, +%s critical chance, +%s dano critico, %s; exp +%s, loot +%s "
+                    "(so como ligacao ou ponto que sobrou)"
+                    % (_pct(tot["atkPct"], 1), _pct(tot["spellDmgPct"], 1), _pct(tot["critChance"], 1), _pct(tot["critDmg"], 1),
+                       stage_texts["element"], _pct(tot["expPct"], 1), _pct(tot["lootPct"], 1)))
+            if info.get("pruned"):
+                text += " <small class=\"mudo\">— podados: %s</small>" % h.esc(
+                    ", ".join("%s %d→%d" % (_node_name(cat, n), a, c) for n, a, c in info["pruned"]))
+        else:
+            text = stage_texts.get(stage, "")
+            if stage in ("exp", "loot") and not have.get(stage):
+                text = "<b>a vocacao nao tem nos de %s</b> — nada a comprar nesta etapa" % B.PRIORITY_LABEL[stage]
+            elif stage == "element":
+                text += " <small class=\"mudo\">(elementos da rotacao e da arma: %s)</small>" % h.esc(
+                    ", ".join(ELEMENT_LABEL.get(el, el) for el in info["elements"]))
         rows.append((_stage_text(stage), "%s <small class=\"mudo\">— %s ponto%s nesta etapa</small>" % (text, _n(pts), "" if pts == 1 else "s")))
-    rest_pts = info["stage_points"].get("rest", 0)
-    rest_nodes = [(_node_name(cat, st.node_id), st.rank) for st in b.get("order") or [] if st.stage == "rest"]
-    rest_text = ("%s ponto%s: %s" % (_n(rest_pts), "" if rest_pts == 1 else "s",
-                                       h.esc(", ".join("%s %d" % (n, r) for n, r in rest_nodes[-12:])) or "—")
-                 if rest_pts else "0 pontos — as sete etapas gastaram tudo")
-    rows.append(("8. O que sobrar (guloso de DPS)", rest_text))
+    if "rest" in B.PRIORITY_ORDER:
+        rest_pts = info["stage_points"].get("rest", 0)
+        rest_nodes = [(_node_name(cat, st.node_id), st.rank) for st in b.get("order") or [] if st.stage == "rest"]
+        rest_text = ("%s ponto%s: %s" % (_n(rest_pts), "" if rest_pts == 1 else "s",
+                                           h.esc(", ".join("%s %d" % (n, r) for n, r in rest_nodes[-12:])) or "—")
+                     if rest_pts else "0 pontos — as sete etapas gastaram tudo")
+        rows.append(("8. O que sobrar (guloso de DPS)", rest_text))
     out.append(h.kv(rows))
-    if not have.get("exp") and not have.get("loot"):
+    if "damage" in B.PRIORITY_ORDER:
+        out.append('<p class="mudo">Regra de 21/09/2026 (ordem 10): «Quero Avatar, e depois quero que me indiques o que e melhor: '
+                   "se Atk, se Chance Critico, se Dano Critico.» Depois do Avatar todos os pontos vao ao que rende mais DPS "
+                   "medido no simulador com a rotacao/arma fixadas — o mesmo stat pela conta por ponto, stats diferentes pelo "
+                   "simulador em pacotes do mesmo tamanho (ordem 9c); Exp e Loot ja nao sao prioridade.</p>")
+        out.append(stat_report_block(cat, b))
+    elif not have.get("exp") and not have.get("loot"):
         out.append('<p class="mudo">Esta vocacao nao tem nos de Exp nem de Loot na arvore do cliente: as etapas 2 e 3 '
                    "ficam vazias e passa-se ao Crit.</p>")
     dmg = b.get("damage_plan")
@@ -476,6 +497,46 @@ def priority_block(cat, b, root="../", with_avatar_code=True):
     return "".join(out)
 
 
+STAT_LINE_LABEL = {"attack": "Ataque", "critChance": "Chance de critico", "critDmg": "Dano critico", None: "resto"}
+
+
+def stat_report_block(cat, b):
+    """«Depois do Avatar: o que rende mais» (ordem 10): a tabela Ataque / Chance de critico /
+    Dano critico com o que +1 % rende no simulador, o melhor rank disponivel agora e o que a
+    build acabou por comprar; o veredicto gerado da conta; a ordem de compra da etapa 2 com o
+    stat de cada passo e o resumo dos pontos."""
+    rep = (b.get("priority") or {}).get("stat_report")
+    if not rep:
+        return ""
+    voc, level = b["vocation"], b["level"]
+    out = ['<h4>Depois do Avatar: o que rende mais (nivel %d, sobre a arvore «rota + Avatar»)</h4>' % level]
+    rows = []
+    for r in rep["rows"]:
+        best = r.get("best")
+        rows.append([h.esc(r["label"]),
+                     "%s (%s DPS)" % (_pct_signed(r["per_unit"] * 100, 2), _n(r["dps_per_unit"])),
+                     h.esc("%s rank %d (%d pt%s)" % (best["name"], best["rank"], best["cost"], "" if best["cost"] == 1 else "s")) if best else "nenhum compravel",
+                     _pct_signed(best["gain_per_point"] * 100, 2) + "/pt" if best else h.UNKNOWN,
+                     "+%s com %d pt%s" % (_pct(r["bought_pct"], 1), r["bought_points"], "" if r["bought_points"] == 1 else "s")])
+    out.append(h.table(["stat", "+1 % rende (simulador)", "melhor rank agora", "ganho por ponto", "a build comprou"], rows, numeric=(1, 3, 4)))
+    if rep.get("verdict"):
+        out.append("<p><b>Veredicto</b> — %s %d: %s</p>" % (h.esc(voc.capitalize()), level, h.esc(rep["verdict"])))
+    pts = rep.get("points_by_stat") or {}
+    out.append('<p class="mudo">Pontos da etapa 2: Ataque %d, Chance de critico %d, Dano critico %d, resto (elemento, notables '
+               "especiais, tacticas, HP…) %d, so ligacao %d. O DPS base da tabela e %s (rota + Avatar, sem mais nada); o valor "
+               "de +1 %% e a media das perturbacoes +1 e +2 no simulador; o modelo volta a medir-se a cada %d pontos.</p>"
+               % (pts.get("attack", 0), pts.get("critChance", 0), pts.get("critDmg", 0), pts.get("rest", 0), pts.get("link", 0),
+                  _n(rep["dps_base"]), B.PRIORITY_MODEL_REFRESH))
+    order = rep.get("order") or []
+    if order:
+        rows = [["%d" % i, h.esc(o["name"]), "%d" % o["rank"], "%d" % o["cost"],
+                 h.esc(("so ligacao" if o["link"] and o["stat"] is None else STAT_LINE_LABEL.get(o["stat"], "resto"))), _n(o["cumulative"])]
+                for i, o in enumerate(order, 1)]
+        out.append("<details><summary>Ordem de compra da etapa 2 (%d passos, com o stat de cada um)</summary>%s</details>"
+                   % (len(rows), h.table(["#", "no", "rank", "custo", "stat", "ate ao nivel"], rows, numeric=(0, 2, 3, 5))))
+    return "".join(out)
+
+
 VECTOR_LABEL = ("Avatar", "exp", "loot", "crit", "atk+magia", "dano crit.", "elemento util", "pontos p/ resto")
 
 
@@ -503,6 +564,29 @@ def route_line(cat, rt):
     if not rt:
         return ""
     same = rt["route"] == rt["cheapest_route"]
+    if rt.get("by_model"):
+        # ordem 10: a rota escolheu-se pelo DPS (modelo linear + confirmacao no simulador)
+        chk = rt.get("sim_check") or {}
+        model_names = ", ".join(_node_name(cat, p) for p in (rt.get("model_best_route") or []))
+        if same:
+            head = "Rota: a escolhida pelo DPS e a mais barata sao a mesma (%d pontos)" % rt["cost"]
+        else:
+            head = ("Rota escolhida pelo DPS <b>%d pontos</b> (Avatar ao nivel %d) contra a mais barata <b>%d pontos</b> (%s; Avatar ao nivel %d)"
+                    % (rt["cost"], rt["level"], rt["cheapest_cost"], h.esc(", ".join(_node_name(cat, p) for p in rt["cheapest_route"])),
+                       rt["cheapest_level"]))
+        sim_bits = ""
+        if rt.get("sim_score") and rt.get("cheapest_sim"):
+            sim_bits = "; no simulador %s contra %s da mais barata (%s)" % (
+                _n(rt["sim_score"]), _n(rt["cheapest_sim"]), _pct_signed((rt["sim_score"] / rt["cheapest_sim"] - 1) * 100))
+        agree = ""
+        if chk:
+            agree = (" — o simulador concordou com o modelo" if chk.get("agrees")
+                     else " — o simulador preferiu outra rota a do modelo (%s; %s no simulador)" % (h.esc(model_names), _pct_signed(chk.get("diff_pct") or 0.0, 2)))
+        return ("<br><small class=\"mudo\">%s%s: modelo linear do dano (valor de +1 %% de cada stat medido no simulador sobre "
+                "«rota mais barata + Avatar» ao nivel %d) sobre as %d rotas que so sobem (%d avaliadas), as %d melhores "
+                "confirmadas com a arvore inteira no simulador%s%s.</small>"
+                % (head, sim_bits, rt["eval_level"], rt["routes_total"], rt["routes_candidates"], rt.get("sim_ties") or 0, agree,
+                   (", %d podadas por dominancia" % rt["routes_pruned"]) if rt.get("routes_pruned") else ""))
     if same:
         text = ("<br><small class=\"mudo\">Rota: a mais util e a mais barata sao a mesma (%d pontos; %d rotas que so sobem "
                 "enumeradas, %d avaliadas ao nivel %d%s).</small>"
@@ -529,8 +613,8 @@ def avatar_plans_block(cat, b, plans, avatar):
     out = ['<h4>%s ao nivel %d: a rota para ires ja pondo pontos, e os dois planos</h4>' % (h.esc(avatar["nome"]), lx)]
     cheaper = ""
     if plans["cheapest_level"] < lx:
-        cheaper = (" A rota mais barata (%d pontos) dava o Avatar ao nivel %d, mas passa por nos que nao rendem nada nas "
-                   "prioridades; a escolhida atrasa-o %d nivel%s (tecto: %d)."
+        cheaper = (" A rota mais barata (%d pontos) dava o Avatar ao nivel %d, mas passa por nos que rendem menos (DPS no "
+                   "simulador, ordem 10); a escolhida atrasa-o %d nivel%s (tecto: %d)."
                    % (plans["cheapest_cost"], plans["cheapest_level"], lx - plans["cheapest_level"],
                       "" if lx - plans["cheapest_level"] == 1 else "eis", B.PRIORITY_ROUTE_MAX_DELAY))
     out.append("<p>O Avatar cabe <b>ao nivel %d</b> = rota mais util (%d pontos a rank 1) + 300.%s</p>"
@@ -549,7 +633,7 @@ def avatar_plans_block(cat, b, plans, avatar):
     a, pb = plans["a"], plans["b"]
     a_vs_b = (a["dps"] / pb["dps"] - 1) * 100 if pb["dps"] else None
     rows = [
-        ["Plano A — sem respec", "so a rota (%d pontos) e guardar o resto; ao nivel %d o Avatar de uma vez (300); depois as etapas 2-8"
+        ["Plano A — sem respec", "so a rota (%d pontos) e guardar o resto; ao nivel %d o Avatar de uma vez (300); depois a etapa 2 (dano)"
          % (plans["route_cost"], lx),
          "0 gold", "%d pontos por gastar ate ao nivel %d" % (a["unspent"], lx),
          "%s (%s vs %s do plano B)" % (_pct_signed(a_vs_b) if a_vs_b is not None else h.UNKNOWN, _n(a["dps"]), _n(pb["dps"]))],
@@ -1233,7 +1317,31 @@ def _md_num(x, decimals=1):
     return h.fmt(x, decimals)
 
 
-def validation_markdown(cat, plans, rows=None, rows_rune=None):
+CRIT_HAND_TOLERANCE_PCT = 5.0
+
+
+def crit_marginals_rows(cat, plan):
+    """§1e (ordem 10): a conta a mao do valor de +1 % de chance de critico e de +1 % de dano
+    critico (`validation.crit_marginals_by_hand`, so JSON + formula do critico) contra o que o
+    simulador mediu no bloco «o que rende mais» da build («rota + Avatar»). Linhas
+    (o que, a mao, simulador, diferenca %, ok)."""
+    rep = (plan.get("priority") or {}).get("stat_report") or {}
+    info = plan["priority"]
+    tree = {p: 1 for p in info["avatar_path"]}
+    if info["avatar"]:
+        tree[B.AVATAR_NODE[plan["vocation"]]] = 1
+    hand = validation.crit_marginals_by_hand(cat, plan["vocation"], plan["level"], tree, plan["equipment"])
+    by_key = {r["key"]: r for r in rep.get("rows") or []}
+    rows = []
+    for key, label in (("critChance", "+1 % de chance de critico (fraccao do DPS)"), ("critDmg", "+1 % de dano critico (fraccao do DPS)")):
+        by_hand = hand["per_crit_chance" if key == "critChance" else "per_crit_dmg"]
+        engine = by_key[key]["per_unit"] if key in by_key else None
+        diff = (engine / by_hand - 1) * 100 if (engine is not None and by_hand) else None
+        rows.append((label, by_hand, engine, diff, diff is not None and abs(diff) <= CRIT_HAND_TOLERANCE_PCT))
+    return rows, hand
+
+
+def validation_markdown(cat, plans, rows=None, rows_rune=None, sorcerer_plan=None):
     """O `docs/builds/validacao.md` gerado: contas a mao vs simulador, a curva do guia
     por build e nivel, e as discordancias guia/cliente. Nada e escondido: uma
     linha fora da tolerancia sai marcada (e o teste chumba)."""
@@ -1325,6 +1433,27 @@ def validation_markdown(cat, plans, rows=None, rows_rune=None):
         out.append("| %s | %d | %d | %d / %d | %s | %s |" % (
             VOCATION_LABEL[voc], n_hand, cheap_hand, n_motor, cheap_motor,
             "sim" if (n_hand == n_motor and cheap_hand == cheap_motor) else "**NAO**", chosen))
+    out += ["", "## 1e. Chance de critico vs dano critico: +1 % de cada, a mao, no sorcerer dele (ordem 10, 21/09/2026)", "",
+            "A regra de 21/09/2026 («Avatar, e depois o que e melhor: Atk, Chance Critico ou Dano Critico») responde-se com o "
+            "valor marginal de cada stat medido no simulador sobre a arvore «rota + Avatar». Aqui a mesma conta a mao "
+            "(`validation.crit_marginals_by_hand`, so com o `arvore.json`, os itens e a formula do critico `1 + chance x "
+            "(50 + critDmg)/10000` do guia, mais o Avatar «crita sempre» 15 s do cliente): como o critico multiplica todo o "
+            "dano que sai, +1 de chance na arvore vale (1 − uptime) × (50 + critDmg)/10000 / M e +1 de dano critico vale "
+            "chance efectiva/10000 / M. Tolerancia %s %%." % _md_num(CRIT_HAND_TOLERANCE_PCT, 0), ""]
+    if sorcerer_plan is not None:
+        crit_rows, hand = crit_marginals_rows(cat, sorcerer_plan)
+        out += ["Sorcerer nivel %d, rotacao %s, arvore «rota + Avatar» (%d nos): chance da arvore + itens %s %%, dano critico %s %%, "
+                "attack speed %s %%, Avatar %s %% por golpe → uptime %s %%, chance efectiva %s %%, multiplicador %s." % (
+                    sorcerer_plan["level"], ", ".join(sl.spell["nome"] for sl in sorcerer_plan["rotation"]),
+                    len(sorcerer_plan["priority"]["avatar_path"]) + (1 if sorcerer_plan["priority"]["avatar"] else 0),
+                    _md_num(hand["chance"], 1), _md_num(hand["crit_dmg"], 1), _md_num(hand["attack_speed"], 1), _md_num(hand["avatar_p"], 1),
+                    _md_num(hand["uptime"] * 100, 1), _md_num(hand["effective_chance"], 1), _md_num(hand["multiplier"], 4)),
+                "", "| o que | a mao | simulador | diferenca | ok |", "|---|---|---|---|---|"]
+        for label, by_hand, engine, diff, ok in crit_rows:
+            out.append("| %s | %s | %s | %s | %s |" % (label, _md_num(by_hand * 100, 3) + " %", (_md_num(engine * 100, 3) + " %") if engine is not None else "?",
+                                                    (_md_num(diff, 2) + " %") if diff is not None else "?", "sim" if ok else "**NAO**"))
+    else:
+        out.append("Sem personagem sorcerer com a build «prioridades» na vault.db: a seccao fica vazia (?).")
     out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
             "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
             "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (
