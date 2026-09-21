@@ -265,7 +265,10 @@ def _why(r, report):
         if r["unknown"]:
             bits.append("sem drop conhecido: %s" % h.esc(", ".join(r["unknown"])))
     if m["unlock_gold"]:
-        bits.append("abrir custa %s" % _gold(m["unlock_gold"]))
+        if r["status"] == "em curso":
+            bits.append("degrau ja aberto (%s pagos)" % _gold(m["unlock_gold"]))
+        else:
+            bits.append("abrir custa %s" % _gold(m["unlock_gold"]))
     return "; ".join(bits) if bits else "nada a dizer"
 
 
@@ -432,7 +435,7 @@ def render_print(cat, report, generated_at):
     add("(e) Sets (Comum)", plan["gear"], 5)
     add("(f) Degraus II/III", plan["deep"], 5)
     return ("<!doctype html><html lang=\"pt\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-            "<title>Codex — plano</title><style>body{margin:0;background:#fff;color:#111;font:13px/1.35 system-ui,sans-serif}"
+            "<title>Codex — plano — BaiakVault</title><style>body{margin:0;background:#fff;color:#111;font:13px/1.35 system-ui,sans-serif}"
             ".c{width:390px;padding:10px 12px}h1{font-size:16px;margin:0 0 6px}h2{font-size:13px;margin:10px 0 2px;border-top:1px solid #ccc;padding-top:4px}"
             "p{margin:3px 0}.m{color:#555;font-size:12px}</style></head><body><div class=\"c\"><h1>Codex — plano (BaiakVault)</h1>"
             "<p class=\"m\">valor = ganho de DPS da party (por conta, por confirmar); horas com a party actual; gold = omissao do cliente, II confirmado. %s</p>%s"
