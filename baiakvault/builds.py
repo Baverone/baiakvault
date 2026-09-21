@@ -40,15 +40,39 @@ from . import formulas as F
 from . import sim
 from . import treecode
 
-# A omissao e a build de «dano» (decisao do Andre, 16/09/2026 13:30: «quero dano, nao
-# importa o custo, importa e o dano e a XP» — sobrepoe-se ao pedido das 12:20, que punha a
-# «melhor» a frente). A «melhor» (equilibrada) e as outras ficam disponiveis.
-DEFAULT_GOAL = "damage"
-BUILDS = (("knight", "damage"), ("druid", "damage"), ("sorcerer", "damage"), ("paladin", "damage"), ("monk", "damage"),
+# A omissao e a build das «prioridades do Andre» (decisao dele, 21/09/2026, ordem 9): a arvore
+# segue uma ordem estrita de categorias (Avatar > Exp > Loot > Crit > Ataque > Dano critico >
+# Elemento > o resto pelo guloso de DPS) — ver PRIORITY_ORDER. Sobrepoe-se a omissao «dano» de
+# 16/09/2026 13:30 SO na omissao: a «dano» (DPS puro), a «melhor» e as outras ficam disponiveis
+# para comparacao, e a pagina da «prioridades» mostra o que a «dano» daria a mais.
+DEFAULT_GOAL = "priority"
+PRIORITY_GOAL = "priority"
+BUILDS = (("knight", "priority"), ("druid", "priority"), ("sorcerer", "priority"), ("paladin", "priority"), ("monk", "priority"),
+          ("knight", "damage"), ("druid", "damage"), ("sorcerer", "damage"), ("paladin", "damage"), ("monk", "damage"),
           ("knight", "best"), ("druid", "best"), ("sorcerer", "best"), ("paladin", "best"), ("monk", "best"),
           ("knight", "tank"), ("druid", "heal"), ("monk", "support"))
 LEVELS = (50, 100, 200, 300, 500, 800, 1200, 1500)
-GOAL_LABEL = {"best": "melhor", "damage": "dano", "tank": "tank", "heal": "cura", "support": "support"}
+GOAL_LABEL = {"priority": "prioridades", "best": "melhor", "damage": "dano", "tank": "tank", "heal": "cura", "support": "support"}
+# --- as prioridades do Andre (21/09/2026) — constantes para ele afinar -------------------------
+# A ordem das etapas; cada uma esgota-se (todos os ranks de todos os nos dela que os pontos
+# deixem comprar) antes da seguinte. «avatar» e o notable de tier 11 mais o caminho ligado mais
+# barato; «exp»/«loot» ordenam-se pelo proprio efeito por ponto (o simulador nao mede XP nem
+# loot); «crit»/«attack»/«critdmg»/«element» pelo ganho de DPS por ponto medido no simulador,
+# restrito aos nos da categoria; «rest» e o guloso de DPS de sempre (e a unica etapa onde a poda
+# `prune_and_refill` entra: um rank de Exp rende 0 de DPS e a poda tirava-o).
+PRIORITY_ORDER = ("avatar", "exp", "loot", "crit", "attack", "critdmg", "element", "rest")
+PRIORITY_LABEL = {"avatar": "Avatar", "exp": "Exp", "loot": "Loot", "crit": "Crit", "attack": "Ataque",
+                  "critdmg": "Dano critico", "element": "Elemento", "rest": "O que sobrar"}
+# stat do `efeito_por_rank` -> categoria; um no pertence a categoria de MAIOR prioridade entre os
+# seus efeitos (Berserk Mastery atkPct+critDmg -> attack; Lord of Destruction critChance+critDmg
+# -> crit; Guiding Presence exp+loot -> exp; Rage of the Skies energy+spellDmg -> attack; Twin
+# Bursts so elemento -> element). `elementDmgPct` so conta nos elementos que a rotacao e a arma
+# usam; os outros valem 0 e ficam no «rest». O que nao tem stat destes (HP, armor, leech, attack
+# speed, mana, regen, Battle Tactics, notables de efeito especial) e «rest».
+PRIORITY_STAT_CATEGORY = {"expPct": "exp", "lootPct": "loot", "critChance": "crit", "atkPct": "attack",
+                          "spellDmgPct": "attack", "critDmg": "critdmg", "elementDmgPct": "element"}
+AVATAR_NODE = {"knight": "k_avatar_steel", "paladin": "p_avatar_light", "sorcerer": "s_avatar_storm",
+               "druid": "d_avatar_nature", "monk": "m_avatar_balance"}
 # Tecto de gold/h dos supplies (pocoes em regime + runas) na escolha da rotacao: existe como
 # parametro (`Planner(gold_cap=…)`, `choose_rotation(gold_cap=…)`) mas a omissao e SEM tecto
 # — «nao importa o custo» (Andre, 16/09/2026 13:30).
@@ -60,6 +84,15 @@ GOAL_ASKED = {("knight", "tank"): "Sobreviver", ("knight", "damage"): "Dar dano"
               ("knight", "best"): "A melhor possivel", ("druid", "best"): "A melhor possivel",
               ("sorcerer", "best"): "A melhor possivel", ("paladin", "best"): "A melhor possivel",
               ("monk", "best"): "A melhor possivel"}
+PRIORITY_ASKED = "Prioridades do Andre: Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento"
+for _voc in AVATAR_NODE:
+    GOAL_ASKED[(_voc, PRIORITY_GOAL)] = PRIORITY_ASKED
+
+
+def metric_goal(goal):
+    """A metrica com que uma build se mede: a «prioridades» mede-se como a «dano» (DPS
+    sustentado x nao morrer) — so a construcao da arvore e diferente."""
+    return "damage" if goal == PRIORITY_GOAL else goal
 SLOTS = ("weapon", "shield", "helmet", "armor", "legs", "boots", "amulet", "ring")
 SECONDARY_DPS_EXPONENT = 0.3
 TTD_CAP = 600.0
@@ -242,6 +275,7 @@ def damage_constraints(metrics):
 
 def goal_constraints(metrics, goal):
     """As condicoes que a metrica do objectivo impoe ({} nos objectivos sem elas)."""
+    goal = metric_goal(goal)
     if goal == "best":
         return best_constraints(metrics)
     if goal == "damage":
@@ -250,6 +284,7 @@ def goal_constraints(metrics, goal):
 
 
 def score_of(metrics, goal):
+    goal = metric_goal(goal)
     dps = max(1e-6, metrics["dps_cycle"])
     if goal in ("damage", "best"):
         if goal == "damage":
@@ -287,6 +322,7 @@ def rotation_value(r, profile, goal):
     se esgota nos 60 s. Na «dano» mages/paladin bebem a vontade (ponto 0,
     16/09/2026). Ate 16/09/2026 (ordem 7, ponto 6) era o DPS todo x (fraccao)^2:
     com as runas a nao gastar mana isso deixava o monk so com Sudden Death no boss."""
+    goal = metric_goal(goal)
     if goal not in ("best", "damage"):
         return r.dps
     if not profile.uses_mana_potions:
@@ -433,6 +469,7 @@ def choose_imbuements(item, goal, target, vocation=None):
         return []
     dominant = target.dominant_element()
     prot_name = "elemental protection " + dominant
+    goal = metric_goal(goal)
     if goal in ("best", "damage"):
         # na «dano» a mana continua a ser a restricao do knight/monk (ponto 0, 16/09/2026)
         goal = "damage" if (vocation is None or F.USES_MANA_POTIONS.get(vocation, True)) else "sustain"
@@ -595,20 +632,22 @@ def unlock_path(node, ranks, adj, node_by_id, exclude=()):
 
 
 class TreeStep:
-    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point", "saving")
+    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point", "saving", "stage")
 
-    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point, saving=None):
+    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point, saving=None, stage=None):
         self.node_id, self.rank, self.cost = node_id, rank, cost
         self.cumulative, self.level, self.score, self.gain_per_point = cumulative, level, score, gain_per_point
         # so no passo que fecha uma poupanca longa: {"wait", "from_level", "gain_pct",
         # "alt_gain_pct", "alt"} — o que a espera rende face a gastar os mesmos pontos
         # nos outros nos (ver SAVE_*)
         self.saving = saving
+        # a etapa das prioridades (PRIORITY_ORDER) em que o rank entrou; None nas outras builds
+        self.stage = stage
 
 
 def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target_at, start_ranks=None,
                   level_of=None, exclude=(), check_saving=True, boss_rotation_at=None, heal_at=None,
-                  stop_at_zero_gain=False):
+                  stop_at_zero_gain=False, only=None):
     """Caminho guloso de compra ate `budget` pontos. `equipment_at(level)`,
     `rotation_at(level, profile)` e `target_at(level)` dao o contexto do nivel
     em que cada ponto se gasta (level = pontos gastos, minimo 8, ou `level_of`).
@@ -618,7 +657,8 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
     condicao «aguenta o boss» media-se noutra rotacao e comprava defesa a mais.
     `exclude` sao nos que nao se compram nem servem de caminho; `check_saving` liga
     o teste da poupanca (SAVE_*), que se desliga na chamada aninhada que calcula a
-    alternativa."""
+    alternativa. `only` (ordem 9) restringe os nos que se COMPRAM como alvo a esse
+    conjunto — o caminho de desbloqueio continua a passar por qualquer no."""
     tree = cat.tree_by_vocation[vocation]
     node_by_id = {n["id"]: n for n in tree["nos"]}
     adj = _adjacency(cat, vocation)
@@ -700,7 +740,7 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
     # Tira-se o topo; se o valor e velho, re-avalia-se e reinsere-se; se ja e
     # fresco (calculado neste estado) compra-se. Cada estado re-avalia no
     # maximo N nos, por isso termina.
-    heap = [(-math.inf, nid) for nid in node_by_id if nid not in exclude]
+    heap = [(-math.inf, nid) for nid in node_by_id if nid not in exclude and (only is None or nid in only)]
     heapq.heapify(heap)
     fresh = {}
     parked = {}     # no -> ganho/ponto da alternativa: poupanca recusada neste estado, fora da fila ate se comprar algo
@@ -816,6 +856,7 @@ class Planner:
         self._rotation = {}    # (voc, goal, checkpoint) -> (hunt rotation, boss rotation)
         self._paths = {}       # (voc, goal, hunt ou None) -> (ranks, steps)
         self._ally = {}        # (hunt, checkpoint) -> pressao do pack sobre o knight «best»
+        self._priority = {}    # (voc, nivel, hunt, fixed) -> a build «prioridades» (ordem 9)
         self.timings = {}
 
     # contexto por nivel: usa o checkpoint (nivel representativo) mais alto <= nivel
@@ -991,12 +1032,14 @@ class Planner:
         «dano», quando se pede a «best») e fica o melhor; sobre o vencedor corre a
         melhoria local e o `prune_and_refill` (nos de ligacao que deixaram de ser
         precisos saem e os pontos voltam a gastar-se)."""
+        if goal == PRIORITY_GOAL:
+            return self.plan_priority(vocation, level, hunt_id, fixed_rotation, fixed_weapon)
         cat = self.cat
         fixed = self.fixed_key(fixed_rotation, fixed_weapon)
         budget = F.tree_budget(level)
         target = self.target_for(vocation, goal, level, hunt_id, strict=True)   # a hunt dele, mesmo abaixo do minimo
         candidates = [self._candidate(vocation, goal, goal, level, hunt_id, fixed, target)]
-        other = "best" if goal != "best" else DEFAULT_GOAL
+        other = "best" if goal != "best" else "damage"   # o outro caminho e sempre um dos dois com caminho por nivel
         if PATH_CANDIDATES and other in {g for v, g in BUILDS if v == vocation}:
             candidates.append(self._candidate(vocation, goal, other, level, hunt_id, fixed, target,
                                               equipment=(candidates[0]["eq"], candidates[0]["alts"])))
@@ -1080,6 +1123,66 @@ class Planner:
             "helper": helper_config(prof, target, hunt_rot, boss_rot, heal, metrics, hunt_sim, boss_sim),
             "gold_cap": self.gold_cap,
         }
+
+    def plan_priority(self, vocation, level, hunt_id=None, fixed_rotation=None, fixed_weapon=None):
+        """A build «prioridades do Andre» (21/09/2026): a arvore por `priority_tree` ao
+        nivel exacto, a partir do equipamento e da rotacao da build «dano» do mesmo
+        nivel (que fica ao lado, em numero — e a comparacao que a pagina mostra); depois
+        o equipamento optimiza-se para a arvore das prioridades e a rotacao volta a
+        escolher-se (a fixada por ele fica). Sem caminho por nivel: cada nivel constroi-se
+        do zero, e a ordem de compra sai por etapas."""
+        cat = self.cat
+        goal = PRIORITY_GOAL
+        fixed = self.fixed_key(fixed_rotation, fixed_weapon)
+        cache_key = (vocation, level, hunt_id, fixed)
+        if cache_key in self._priority:
+            return self._priority[cache_key]
+        budget = F.tree_budget(level)
+        damage = self.plan(vocation, "damage", level, hunt_id=hunt_id, fixed_rotation=fixed_rotation, fixed_weapon=fixed_weapon)
+        target = damage["target"]
+        eq, hunt_rot, boss_rot, heal = damage["equipment"], damage["rotation"], damage["boss_rotation"], damage["heal"]
+        elements = priority_elements(damage["profile"], hunt_rot)
+        tree, steps, info = priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, elements)
+        # o equipamento para ESTA arvore (a da «dano» serviu de contexto para a construir)
+        eq, alts, _ = optimize_equipment(cat, vocation, level, goal, tree, target, gold_cap=self.gold_cap,
+                                         fixed_weapon=self._fixed_weapon_item(fixed))
+        prof = sim.Profile(cat, vocation, level, tree, eq)
+        hunt_rot, hunt_sim = self.rotation(prof, target, False, goal, fixed=fixed)
+        boss_rot, boss_sim = self.rotation(prof, target, True, goal, fixed=fixed)
+        heal = default_heal(prof)
+        hunt_rot_no_runes, hunt_sim_no_runes = self.rotation(prof, target, False, goal, runes=False)
+        boss_rot_no_runes, boss_sim_no_runes = self.rotation(prof, target, True, goal, runes=False)
+        model_rot = model_sim = None
+        if fixed and fixed[0]:
+            model_rot, model_sim = choose_rotation(prof, target, boss=False, goal=goal, gold_cap=self.gold_cap)
+        metrics = evaluate(prof, target, hunt_rot, boss_rot, heal)
+        order = purchase_order(cat, vocation, tree, steps)
+        roles = priority_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal, steps, info)
+        spent = _spent(cat, tree)
+        # o Avatar fora de alcance: a build do nivel em que cabe, com o codigo (a mesma hunt e o que ele fixou)
+        avatar_plan = None
+        if not info["avatar"] and info["avatar_level"] is not None and info["avatar_level"] > level:
+            avatar_plan = self.plan_priority(vocation, info["avatar_level"], hunt_id, fixed_rotation, fixed_weapon)
+        self._priority[cache_key] = out = {
+            "vocation": vocation, "goal": goal, "level": level, "hunt": target.hunt_id, "target": target,
+            "profile": prof, "tree": tree, "steps": steps, "fill_steps": [], "improved": [],
+            "pruned": info["pruned"], "refill_steps": [], "order": order, "roles": roles,
+            "path_goal": goal, "path_scores": {}, "next_step": None, "points_spent": spent, "points_budget": budget,
+            "equipment": eq, "equipment_alternatives": alts,
+            "rotation": hunt_rot, "boss_rotation": boss_rot, "hunt_sim": hunt_sim, "boss_sim": boss_sim,
+            "rotation_no_runes": hunt_rot_no_runes, "hunt_sim_no_runes": hunt_sim_no_runes,
+            "boss_rotation_no_runes": boss_rot_no_runes, "boss_sim_no_runes": boss_sim_no_runes,
+            "fixed_rotation": list(fixed[0]) if fixed and fixed[0] else None,
+            "fixed_weapon": fixed[1] if fixed else None,
+            "model_rotation": model_rot, "model_sim": model_sim,
+            "heal": heal, "metrics": metrics, "score": score_of(metrics, goal),
+            "tree_alternatives": {"freed": 0, "removed": [], "base": dict(tree), "options": []},
+            "helper": helper_config(prof, target, hunt_rot, boss_rot, heal, metrics, hunt_sim, boss_sim),
+            "gold_cap": self.gold_cap,
+            # o que e so da «prioridades»
+            "priority": info, "damage_plan": damage, "avatar_plan": avatar_plan,
+        }
+        return out
 
 
 def _spent(cat, tree):
@@ -1200,7 +1303,7 @@ def _is_defensive(node):
     return any(k in per for k in DEFENSIVE_EFFECTS)
 
 
-def prune_and_refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal):
+def prune_and_refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal, protected=None):
     """Enquanto houver um rank cujo ganho na metrica e ~0 (< PRUNE_GAIN_PCT) e cuja
     remocao mantem a arvore ligada (`treecode.is_connected`, cliente O3e), tira-se —
     o pedido era o small a rank 1 comprado so como caminho; a mesma regra rank a rank
@@ -1208,13 +1311,17 @@ def prune_and_refill(cat, vocation, goal, level, tree, eq, target, hunt_rot, bos
     (o knight «dano» a 527 tinha Fire Ward 10 e Bulwark 10 a render 0 depois de o
     Battle Tactics entrar). No fim os pontos libertados voltam a gastar-se com o
     guloso, sem recomprar o que se podou; ate PRUNE_OUTER_ROUNDS vezes. Devolve
-    (arvore, [(no, rank antes, rank depois)], passos do refill)."""
+    (arvore, [(no, rank antes, rank depois)], passos do refill). `protected` {no: rank}
+    (ordem 9) sao ranks que a poda nao toca — as etapas 1 a 7 das prioridades."""
     tree = dict(tree)
     pruned = {}
     refill = []
+    protected = protected or {}
 
     def loss_of(nid):
         """(perda % na metrica, arvore sem o ultimo rank de `nid`), ou None se o tirar desliga a arvore."""
+        if tree[nid] <= protected.get(nid, 0):
+            return None
         trial = dict(tree)
         if trial[nid] > 1:
             trial[nid] -= 1
@@ -1344,11 +1451,13 @@ def purchase_order(cat, vocation, tree, hint_steps=()):
     wanted = {nid: r for nid, r in tree.items() if r >= 1}
     queue = []
     seen = set()
+    stage_of = {}
     for st in hint_steps:   # sem repetidos: a melhoria local e o refill podem recomprar um rank tirado
         key = (st.node_id, st.rank)
         if st.rank <= wanted.get(st.node_id, 0) and key not in seen:
             seen.add(key)
             queue.append(key)
+            stage_of[key] = getattr(st, "stage", None)
     # o que os passos nao cobrem (podado e recomprado, refill) entra por BFS
     for nid, r in sorted(wanted.items(), key=lambda kv: (node_by_id[kv[0]].get("tier", 0), kv[0])):
         for rank in range(1, r + 1):
@@ -1374,8 +1483,207 @@ def purchase_order(cat, vocation, tree, hint_steps=()):
         c = F.tree_rank_cost(node, rank - 1)
         spent += c
         state[nid] = rank
-        order.append(TreeStep(nid, rank, c, spent, spent, 0.0, 0.0))
+        order.append(TreeStep(nid, rank, c, spent, spent, 0.0, 0.0, stage=stage_of.get((nid, rank))))
     return order
+
+
+# --- as prioridades do Andre (ordem 9, 21/09/2026) -------------------------------------------------
+def priority_category(node, elements, vocation=None):
+    """A categoria de um no: a de maior prioridade entre os seus efeitos
+    (`PRIORITY_STAT_CATEGORY`); o Avatar da vocacao e «avatar»; `elementDmgPct` so
+    conta nos `elements` (os que a rotacao e a arma usam); o resto e «rest»."""
+    if vocation and node["id"] == AVATAR_NODE.get(vocation):
+        return "avatar"
+    best = "rest"
+    for stat, value in (node.get("efeito_por_rank") or {}).items():
+        cat_name = PRIORITY_STAT_CATEGORY.get(stat)
+        if cat_name is None:
+            continue
+        if stat == "elementDmgPct":
+            if not any(el in (elements or ()) for el in (value or {})):
+                continue
+        if PRIORITY_ORDER.index(cat_name) < PRIORITY_ORDER.index(best):
+            best = cat_name
+    return best
+
+
+def priority_elements(profile, hunt_rot):
+    """Os elementos que a rotacao de hunt e a arma usam: o de cada feitico da rotacao
+    (`F.spell_element`), o do golpe da arma (fisico nas armas de corpo a corpo e
+    arcos, mais a parte elemental dela; o da wand nos mages)."""
+    elements = set()
+    for sl in hunt_rot or ():
+        elements.add(F.spell_element(sl.spell["palavras"]))
+    if profile.wand:
+        elements.add(profile.wand["element"])
+    else:
+        elements.add("physical")
+        if profile.attack_element_share and profile.weapon_element:
+            elements.add(profile.weapon_element)
+    return frozenset(elements)
+
+
+def avatar_reach(cat, vocation, tree=None):
+    """(custo do caminho ligado mais barato ate ao Avatar a partir de `tree`, caminho,
+    nivel em que cabe a partir da arvore vazia). O nivel = caminho + 300, porque cada
+    nivel da um ponto (cliente)."""
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
+    adj = _adjacency(cat, vocation)
+    avatar = node_by_id[AVATAR_NODE[vocation]]
+    ranks = dict(tree or {})
+    path = unlock_path(avatar, ranks, adj, node_by_id)
+    if path is None:
+        return None, [], None
+    cost = sum(F.tree_rank_cost(node_by_id[p], ranks.get(p, 0)) for p in path) + F.tree_rank_cost(avatar, 0)
+    return cost, path, cost
+
+
+def _effect_value(node, stage):
+    per = node.get("efeito_por_rank") or {}
+    return sum(float(v) for k, v in per.items() if PRIORITY_STAT_CATEGORY.get(k) == stage and isinstance(v, (int, float)))
+
+
+def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, elements):
+    """A arvore pelas prioridades do Andre (21/09/2026), etapa a etapa (`PRIORITY_ORDER`):
+    1 Avatar + caminho mais barato (salta-se se nao couber; diz-se a que nivel cabe);
+    2 Exp e 3 Loot pelo efeito por ponto (com o caminho que faltar no custo); 4-7 pelo
+    guloso de DPS restrito a categoria; 8 o resto pelo guloso de DPS e a poda so aqui.
+    Devolve (arvore, passos com etapa, info) — info: avatar (bool), avatar_level,
+    avatar_path, category {no: categoria}, link {no bought only as caminho}, stage
+    points por etapa, pruned, totals por stat."""
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
+    adj = _adjacency(cat, vocation)
+    budget = F.tree_budget(level)
+    category = {nid: priority_category(n, elements, vocation) for nid, n in node_by_id.items()}
+    tree = {}
+    steps = []
+    link = set()
+    info = {"avatar": False, "avatar_level": None, "avatar_path": [], "category": category, "elements": sorted(elements),
+            "stage_points": {}, "pruned": [], "link": link}
+
+    def spent():
+        return _spent(cat, tree)
+
+    def buy(nid, stage, is_link=False):
+        node = node_by_id[nid]
+        c = F.tree_rank_cost(node, tree.get(nid, 0))
+        tree[nid] = tree.get(nid, 0) + 1
+        steps.append(TreeStep(nid, tree[nid], c, spent(), level, 0.0, 0.0, stage=stage))
+        if is_link and tree[nid] == 1 and category[nid] != stage:
+            link.add(nid)
+
+    # 1. o Avatar e o caminho ligado mais barato ate la
+    cost, path, reach = avatar_reach(cat, vocation)
+    info["avatar_level"], info["avatar_path"] = reach, path
+    if cost is not None and cost <= budget:
+        for p in path:
+            buy(p, "avatar", is_link=True)
+        buy(AVATAR_NODE[vocation], "avatar")
+        info["avatar"] = True
+    info["stage_points"]["avatar"] = spent()
+
+    # 2-3. Exp e Loot pelo efeito por ponto (o caminho que faltar conta no custo)
+    for stage in ("exp", "loot"):
+        before = spent()
+        while True:
+            best = None
+            for nid, node in node_by_id.items():
+                if category[nid] != stage or tree.get(nid, 0) >= (node.get("rank_maximo") or 1):
+                    continue
+                path = unlock_path(node, tree, adj, node_by_id)
+                if path is None:
+                    continue
+                c = sum(F.tree_rank_cost(node_by_id[p], tree.get(p, 0)) for p in path) + F.tree_rank_cost(node, tree.get(nid, 0))
+                if spent() + c > budget:
+                    continue
+                value = _effect_value(node, stage) / c
+                if best is None or value > best[0]:
+                    best = (value, nid, path)
+            if best is None:
+                break
+            _, nid, path = best
+            for p in path:
+                buy(p, stage, is_link=True)
+            buy(nid, stage)
+        info["stage_points"][stage] = spent() - before
+
+    # 4-7. pelo ganho de DPS por ponto medido no simulador, restrito aos nos da categoria
+    for stage in ("crit", "attack", "critdmg", "element"):
+        before = spent()
+        only = {nid for nid, c in category.items() if c == stage}
+        if only and spent() < budget:
+            start = dict(tree)
+            tree, st = optimize_tree(cat, vocation, "damage", budget,
+                                     equipment_at=lambda lv, ranks: eq, rotation_at=lambda lv, p: hunt_rot,
+                                     target_at=lambda lv: target, start_ranks=tree, level_of=lambda pts: level,
+                                     boss_rotation_at=lambda lv, p: boss_rot, heal_at=lambda p: heal, only=only)
+            for s in st:
+                s.stage = stage
+                if category[s.node_id] != stage and s.rank == 1 and start.get(s.node_id, 0) == 0:
+                    link.add(s.node_id)
+            steps.extend(st)
+        info["stage_points"][stage] = spent() - before
+
+    # 8. o que sobrar: o guloso de DPS de sempre, e a poda so sobre o que esta etapa comprou
+    protected = dict(tree)
+    before = spent()
+    tree, st = _refill(cat, vocation, "damage", level, tree, eq, target, hunt_rot, boss_rot, heal)
+    for s in st:
+        s.stage = "rest"
+    steps.extend(st)
+    tree, pruned, refill_steps = prune_and_refill(cat, vocation, "damage", level, tree, eq, target, hunt_rot, boss_rot, heal,
+                                                  protected=protected)
+    for s in refill_steps:
+        s.stage = "rest"
+    steps.extend(refill_steps)
+    info["pruned"] = pruned
+    info["stage_points"]["rest"] = spent() - before
+    info["totals"] = priority_totals(cat, vocation, tree, elements)
+    return tree, steps, info
+
+
+def priority_totals(cat, vocation, tree, elements):
+    """Os totais por categoria da arvore: +% exp, loot, crit, atk, spell, crit dmg e
+    elemento (so os `elements`), somados dos `efeito_por_rank` x rank."""
+    out = {"expPct": 0.0, "lootPct": 0.0, "critChance": 0.0, "atkPct": 0.0, "spellDmgPct": 0.0, "critDmg": 0.0,
+           "element": {}}
+    for nid, rank in tree.items():
+        node = cat.node_by_id.get(nid)
+        if not node or not rank:
+            continue
+        for stat, value in (node.get("efeito_por_rank") or {}).items():
+            if stat == "elementDmgPct":
+                for el, v in (value or {}).items():
+                    if el in elements and isinstance(v, (int, float)):
+                        out["element"][el] = out["element"].get(el, 0.0) + v * rank
+            elif stat in out and isinstance(value, (int, float)):
+                out[stat] += value * rank
+    return out
+
+
+def priority_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal, steps, info):
+    """Os papeis na build «prioridades»: os nos das etapas 1-7 levam a etapa como papel
+    (so ligacao os que so entraram como caminho); os da etapa 8 os papeis de sempre
+    (`node_roles`). {no: (papel, ganho %)}."""
+    stage_of = {}
+    for st in steps:
+        stage_of.setdefault(st.node_id, st.stage)
+    rest_nodes = {nid for nid, s in stage_of.items() if s == "rest"}
+    measured = node_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal)
+    roles = {}
+    for nid in tree:
+        stage = stage_of.get(nid, "rest")
+        role, gain = measured.get(nid, (ROLE_LEFTOVER, None))
+        if nid in info["link"] and tree[nid] == 1:
+            roles[nid] = (ROLE_LINK, gain)
+        elif nid in info["link"]:
+            # entrou como caminho, mas a propria categoria comprou-lhe mais ranks depois
+            roles[nid] = (info["category"].get(nid, "rest") if info["category"].get(nid) != "rest" else role, gain)
+        elif stage == "rest" or nid in rest_nodes:
+            roles[nid] = (role, gain)
+        else:
+            roles[nid] = (stage, gain)
+    return roles
 
 
 def tree_check(cat, vocation, level, tree):

@@ -28,10 +28,13 @@ SOURCES = ("manual", "captura")
 # custo») a omissao e «damage»; a «best» das 12:20 (a equilibrada) e os objectivos da
 # ordem 2 ficam disponiveis. Sem migracao: e so a omissao que muda, os valores gravados
 # ficam (os 5 personagens dele passaram a NULL = omissao, nunca escolheram).
-GOALS_BY_VOCATION = {"knight": ("damage", "best", "tank"), "druid": ("damage", "best", "heal"),
-                     "sorcerer": ("damage", "best"), "paladin": ("damage", "best"),
-                     "monk": ("damage", "best", "support")}
-GOALS = ("best", "damage", "tank", "heal", "support")
+# 21/09/2026 (ordem 9): a omissao passa a «priority» (as prioridades do Andre: Avatar > Exp >
+# Loot > Crit > Ataque > Dano critico > Elemento), em todas as vocacoes; «damage» e as outras
+# ficam para comparacao. O CHECK da coluna nao aceitava o valor: esquema v6.
+GOALS_BY_VOCATION = {"knight": ("priority", "damage", "best", "tank"), "druid": ("priority", "damage", "best", "heal"),
+                     "sorcerer": ("priority", "damage", "best"), "paladin": ("priority", "damage", "best"),
+                     "monk": ("priority", "damage", "best", "support")}
+GOALS = ("priority", "best", "damage", "tank", "heal", "support")
 # O catalogo so da slot aos itens que o cliente marca como equipaveis; mochila
 # e municao nao tem slot la mas existem no boneco (decisao 16/09/2026).
 EXTRA_SLOTS = ("backpack", "ammo")
@@ -103,7 +106,31 @@ _SCHEMA_V5 = """
 ALTER TABLE characters ADD COLUMN fixed_rotation_json TEXT;
 ALTER TABLE characters ADD COLUMN fixed_weapon TEXT;
 """
-MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4, _SCHEMA_V5]
+# v6 (21/09/2026, ordem 9): o objectivo «priority» (as prioridades do Andre) entra no CHECK — a
+# tabela reconstroi-se como na v2/v4, com as colunas da v5; os valores e os NULL ficam.
+_SCHEMA_V6 = """
+CREATE TABLE characters_v6 (
+    id           INTEGER PRIMARY KEY,
+    name         TEXT NOT NULL UNIQUE,
+    slug         TEXT NOT NULL UNIQUE,
+    vocation     TEXT CHECK (vocation IN ('knight','monk','paladin','sorcerer','druid')),
+    level        INTEGER CHECK (level IS NULL OR level >= 1),
+    current_hunt TEXT,
+    vip          INTEGER CHECK (vip IN (0, 1)),
+    goal         TEXT CHECK (goal IN ('priority','best','damage','tank','heal','support')),
+    notes        TEXT,
+    source       TEXT CHECK (source IN ('manual','captura')),
+    seen_at      TEXT,
+    updated_at   TEXT NOT NULL,
+    fixed_rotation_json TEXT,
+    fixed_weapon TEXT
+);
+INSERT INTO characters_v6 SELECT id, name, slug, vocation, level, current_hunt, vip, goal,
+    notes, source, seen_at, updated_at, fixed_rotation_json, fixed_weapon FROM characters;
+DROP TABLE characters;
+ALTER TABLE characters_v6 RENAME TO characters;
+"""
+MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4, _SCHEMA_V5, _SCHEMA_V6]
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
