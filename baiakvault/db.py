@@ -130,7 +130,20 @@ INSERT INTO characters_v6 SELECT id, name, slug, vocation, level, current_hunt, 
 DROP TABLE characters;
 ALTER TABLE characters_v6 RENAME TO characters;
 """
-MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4, _SCHEMA_V5, _SCHEMA_V6]
+# v7 (21/09/2026, ordem 11): o progresso do Codex, **por conta** (nao por personagem): por missao, se
+# esta concluida e as contagens por item na ordem do `req` (JSON), quando era verdade e de onde veio.
+# Escrito so pelo `Vault.set_codex_progress`; o id valida-se contra `codex.Codex.missions()`.
+_SCHEMA_V7 = """
+CREATE TABLE codex_progress (
+    mission_id    TEXT PRIMARY KEY,
+    done          INTEGER NOT NULL CHECK (done IN (0, 1)),
+    progress_json TEXT,
+    source        TEXT CHECK (source IN ('manual','captura')),
+    seen_at       TEXT,
+    updated_at    TEXT NOT NULL
+);
+"""
+MIGRATIONS = [_SCHEMA_V1, _SCHEMA_V2, _SCHEMA_V3, _SCHEMA_V4, _SCHEMA_V5, _SCHEMA_V6, _SCHEMA_V7]
 SCHEMA_VERSION = len(MIGRATIONS)
 
 
@@ -639,6 +652,73 @@ class Vault:
             "SELECT * FROM readings WHERE character_id = ? ORDER BY at DESC LIMIT ?",
             (character_id, limit))]
 
+    # --- Codex (v7, ordem 11): por conta ------------------------------------------------------
+    def _codex(self):
+        if not hasattr(self, "_codex_tables"):
+            from . import codex as codex_module
+            self._codex_tables = codex_module.Codex(self.cat)
+        return self._codex_tables
+
+    def set_codex_progress(self, mission_id, done=None, progress=None, source=None, seen_at=None):
+        """O progresso de uma missao do Codex: `done` 0/1 e `progress` = contagens por item na ordem
+        do `req` (lista de inteiros ou `None` por posicao = nao lido). Um campo a `None` **nao apaga**
+        o que la estava (uma captura parcial); `progress=[]` afirma «sem contagens». Uma missao
+        concluida sem contagens fica com as quantidades pedidas (o ecra mostra 1.400/1.400)."""
+        mission = self._codex().mission(str(mission_id or ""))
+        if mission is None:
+            raise VaultError("missao do Codex desconhecida: %r" % mission_id)
+        _check_source(source)
+        if done is not None:
+            if isinstance(done, bool):
+                done = int(done)
+            if done not in (0, 1):
+                raise VaultError("done tem de ser 0/1/NULL, nao %r" % done)
+        if progress is not None:
+            if not isinstance(progress, (list, tuple)):
+                raise VaultError("progress tem de ser uma lista (contagens na ordem do req)")
+            if len(progress) > len(mission["req"]):
+                raise VaultError("a missao %s pede %d itens, nao %d" % (mission_id, len(mission["req"]), len(progress)))
+            for i, v in enumerate(progress):
+                if v is None:
+                    continue
+                if isinstance(v, bool) or not isinstance(v, int) or v < 0:
+                    raise VaultError("contagem de %r tem de ser inteiro >= 0, nao %r" % (mission["req"][i]["item"], v))
+                if v > mission["req"][i]["qty"]:
+                    raise VaultError("%r: %d entregues mas a missao so pede %d" % (mission["req"][i]["item"], v, mission["req"][i]["qty"]))
+            progress = list(progress)
+        if done == 1 and progress is None:
+            progress = [r["qty"] for r in mission["req"]]
+        row = self.conn.execute("SELECT done, progress_json FROM codex_progress WHERE mission_id = ?", (mission_id,)).fetchone()
+        if row is None and done is None:
+            done = 1 if progress and len(progress) == len(mission["req"]) and all(
+                v is not None and v >= r["qty"] for v, r in zip(progress, mission["req"])) else 0
+        with self.conn:
+            if row is None:
+                self.conn.execute(
+                    "INSERT INTO codex_progress (mission_id, done, progress_json, source, seen_at, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (mission_id, done, None if progress is None else json.dumps(progress), source, seen_at, now_iso()))
+            else:
+                self.conn.execute(
+                    "UPDATE codex_progress SET done = COALESCE(?, done), progress_json = COALESCE(?, progress_json), "
+                    "source = COALESCE(?, source), seen_at = COALESCE(?, seen_at), updated_at = ? WHERE mission_id = ?",
+                    (done, None if progress is None else json.dumps(progress), source, seen_at, now_iso(), mission_id))
+        return mission_id
+
+    def forget_codex_progress(self, mission_id):
+        """A missao volta a «desconhecida» (a linha sai)."""
+        with self.conn:
+            self.conn.execute("DELETE FROM codex_progress WHERE mission_id = ?", (mission_id,))
+
+    def codex_progress(self):
+        """{mission_id: {done, progress (lista ou None), source, seen_at, updated_at}}."""
+        out = {}
+        for r in self.conn.execute("SELECT * FROM codex_progress ORDER BY mission_id"):
+            d = dict(r)
+            d["progress"] = json.loads(d["progress_json"]) if d["progress_json"] else None
+            out[d["mission_id"]] = d
+        return out
+
 
 def check(conn, cat):
     """Problemas na BD face ao catalogo (lista vazia = tudo bem). Apanha o que
@@ -685,4 +765,14 @@ def check(conn, cat):
                "WHERE r.hunt IS NOT NULL"):
         if not cat.has_hunt(r["hunt"]):
             problems.append("%s: leitura com hunt %r desconhecida" % (r["name"], r["hunt"]))
+    rows = q("SELECT mission_id, progress_json FROM codex_progress").fetchall()
+    if rows:
+        from . import codex as codex_module
+        cx = codex_module.Codex(cat)
+        for r in rows:
+            m = cx.mission(r["mission_id"])
+            if m is None:
+                problems.append("codex: missao %r desconhecida" % r["mission_id"])
+            elif r["progress_json"] and len(json.loads(r["progress_json"])) > len(m["req"]):
+                problems.append("codex: %s com mais contagens do que itens" % r["mission_id"])
     return problems
