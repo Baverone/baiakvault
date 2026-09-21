@@ -1648,7 +1648,10 @@ def _effect_value(node, stage, elements=()):
 
 def _stat_signature(node):
     """Os stats de um no, para saber quando dois ranks dao «o mesmo»: so entao a conta por
-    stat os compara (ordem 9c). Berserk Mastery (atkPct+critDmg) nao e o mesmo que Fury (atkPct)."""
+    stat os compara (ordem 9c). Berserk Mastery (atkPct+critDmg) nao e o mesmo que Fury (atkPct).
+    `elementDmgPct` holy e physical ficam na mesma assinatura de proposito (ordem 10): o modelo
+    linear compara-os exactamente pelos marginais de cada elemento — separa-los entregava-os ao
+    simulador ruidoso e o paladin 284 caia de 2 126 para 1 880 DPS."""
     return tuple(sorted((node.get("efeito_por_rank") or {}).keys()))
 
 
@@ -1754,6 +1757,19 @@ def stat_model(cat, vocation, level, tree, eq, target, hunt_rot, boss_rot, heal,
     return model
 
 
+def _merge_model(old, new):
+    """O modelo refrescado: um stat que passa a medir <= 0 e ruido da grelha (um stat de dano nunca
+    tira DPS) e fica com o valor anterior — senao, dentro da mesma assinatura, «-0,6/8» ganhava a
+    «-0,5/5» e o rank caro entrava antes do barato (visto no knight 300 sem Avatar)."""
+    out = dict(new)
+    for k, v in old.items():
+        if k == "elementDmgPct":
+            out[k] = {el: (x if x > 0 else old[k].get(el, 0.0)) for el, x in new[k].items()}
+        elif not k.startswith("_") and isinstance(v, (int, float)) and new.get(k, 0.0) <= 0.0:
+            out[k] = v
+    return out
+
+
 def model_rank_value(node, model):
     """O que um rank de `node` vale no modelo linear (fraccao de DPS): a soma dos stats
     do `efeito_por_rank` x marginal; o que nao esta no modelo (HP, armor, leech, mana,
@@ -1802,7 +1818,7 @@ def _rank_candidates(node_by_id, adj, state, budget, spent_state, value_of, skip
     return groups
 
 
-def _stage_damage(node_by_id, adj, tree, budget, buy, score_fn, model_fn, skip=(), min_gain=0.0):
+def _stage_damage(node_by_id, adj, tree, budget, buy, score_fn, model_fn, skip=(), min_gain=0.0, history=None):
     """A etapa «damage» (ordem 10): todos os pontos restantes no que rende mais DPS. A
     regra da 9c sobre TODOS os nos: dentro da mesma assinatura de stats decide o modelo
     linear por ponto (exacto, com o caminho que faltar no custo); entre assinaturas
@@ -1816,6 +1832,10 @@ def _stage_damage(node_by_id, adj, tree, budget, buy, score_fn, model_fn, skip=(
     spent = sum(F.tree_total_cost(node_by_id[k], v) for k, v in tree.items())
     model = model_fn(tree)
     next_refresh = spent + PRIORITY_MODEL_REFRESH
+    # `history` [(pontos gastos a partir dos quais vigora, modelo)]: o teste de propriedade repete
+    # os passos com o modelo que estava em vigor em cada compra
+    if history is not None:
+        history.append((spent, model))
     # fila preguicosa entre assinaturas: o ganho medido de uma assinatura fica valido enquanto o
     # melhor rank dela (no, custo) e o tamanho do pacote nao mudarem; a do vencedor mede-se de novo
     # a cada compra e todas a cada refresh do modelo (sem isto eram G simulacoes por rank comprado)
@@ -1823,9 +1843,11 @@ def _stage_damage(node_by_id, adj, tree, budget, buy, score_fn, model_fn, skip=(
     paths = {}
     while True:
         if spent >= next_refresh:
-            model = model_fn(tree)
+            model = _merge_model(model, model_fn(tree))
             next_refresh = spent + PRIORITY_MODEL_REFRESH
             gains.clear()
+            if history is not None:
+                history.append((spent, model))
         groups = _rank_candidates(node_by_id, adj, tree, budget, spent, lambda n: model_rank_value(n, model), skip=skip,
                                   path_cache=paths)
         if not groups:
@@ -1865,7 +1887,13 @@ def _stage_damage(node_by_id, adj, tree, budget, buy, score_fn, model_fn, skip=(
                     best = (gain, nid, path, c, key)
             gain, nid, path, c, key = best
             if gain <= min_gain:
-                return model
+                # o simulador nao ve ganho em nenhum pacote (a metrica «dano» tem patamares: a
+                # sobrevivencia e a grelha de 2 s), mas o modelo ainda ve dano por comprar: fica o
+                # melhor rank do modelo — so se para quando nem o modelo ve nada
+                key, (value, nid, path, c) = max(groups.items(), key=lambda kv: kv[1][0])
+                if value <= min_gain:
+                    return model
+                gain = value
         for p in path:
             buy(p, True)
         buy(nid, False, gain)   # o ganho por ponto (modelo, ou simulador quando ele decidiu) fica no passo
@@ -2178,8 +2206,10 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
             info["stat_model"] = model_start
             info["stat_report"] = priority_stat_report(cat, vocation, level, tree, model_start, elements, eq=eq)
             skip = {AVATAR_NODE[vocation]} if not info["avatar"] else set()
+            info["stat_models"] = []
             _stage_damage(node_by_id, adj, tree, budget,
-                          lambda nid, is_link, gain=0.0: buy(nid, "damage", is_link=is_link, gain=gain), score_tree, model_at, skip=skip)
+                          lambda nid, is_link, gain=0.0: buy(nid, "damage", is_link=is_link, gain=gain), score_tree, model_at,
+                          skip=skip, history=info["stat_models"])
             # o que ficou (nada a render > 0 no simulador): o «ponto que sobrou» do guloso de sempre, e a poda
             tree, st = _refill(cat, vocation, "damage", level, tree, eq, target, hunt_rot, boss_rot, heal)
             for s in st:
@@ -2326,7 +2356,8 @@ def priority_stat_report_finish(cat, vocation, report, tree, steps, info):
         if ranked[0]["key"] != "critDmg" and (len(ranked) < 2 or ranked[1]["key"] != "critDmg"):
             why = ("dano critico a partir dos ~%d pontos, porque %s" % (n_cd, why) if n_cd is not None
                    else "dano critico nao entrou nesta build, porque %s" % why)
-        report["verdict"] = "; ".join(parts + [why]) + "."
+        # os numeros em portugues (virgula); o unico ponto do texto e o decimal
+        report["verdict"] = "; ".join(parts + [why]).replace(".", ",") + "."
         report["ranked"] = [r["key"] for r in ranked]
     return report
 

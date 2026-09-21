@@ -90,7 +90,7 @@ def same_stat_violations(cat, vocation, plan, stages=STAT_STAGES_9, value=None):
     value = value or (lambda node, stage: builds._effect_value(node, stage, elements))
 
     def signature(nid):
-        return tuple(sorted((node_by_id[nid].get("efeito_por_rank") or {}).keys()))
+        return builds._stat_signature(node_by_id[nid])
 
     def per_point(nid, ranks, stage):
         node = node_by_id[nid]
@@ -102,35 +102,39 @@ def same_stat_violations(cat, vocation, plan, stages=STAT_STAGES_9, value=None):
         c = sum(F.tree_rank_cost(node_by_id[p], ranks.get(p, 0)) for p in path) + F.tree_rank_cost(node, ranks.get(nid, 0))
         return value(node, stage) / c, c
 
-    def is_purchase(st):
+    def is_path(st):
+        # na 9c um rank de caminho e o de categoria diferente da etapa (ou marcado `link`); na
+        # ordem 10 so o marcado `link` — um no sem valor no modelo comprado pelo simulador e uma compra
         if getattr(st, "link", False):
-            return False
-        return category.get(st.node_id) == st.stage if by_category else value(node_by_id[st.node_id], st.stage) > 0
+            return True
+        return by_category and category.get(st.node_id) != st.stage
 
+    slack = 1.0001
     out = []
     ranks = {}
     before_path, path_cost = None, 0    # o estado antes dos ranks de caminho da compra em curso
     for st in plan["steps"]:
         stage = st.stage
-        if stage in stages and is_purchase(st):
+        if stage in stages and not is_path(st):
             start = before_path if before_path is not None else dict(ranks)
             cost = path_cost + st.cost
-            mine = value(node_by_id[st.node_id], stage) / cost
             spent = builds._spent(cat, start)
+            value.spent = spent   # o `value` da ordem 10 escolhe por aqui o modelo em vigor
+            mine = value(node_by_id[st.node_id], stage) / cost
             for nid in node_by_id:
-                if (by_category and category[nid] != stage) or nid == st.node_id or signature(nid) != signature(st.node_id):
+                if mine <= 0 or (by_category and category[nid] != stage) or nid == st.node_id or signature(nid) != signature(st.node_id):
                     continue
                 pp = per_point(nid, start, stage)
                 if pp is None or spent + pp[1] > budget:
                     continue
-                if pp[0] > mine * 1.0001:
+                if pp[0] > mine * slack:
                     out.append("%s %d %s: %s rank %d (%d pts, %.4f/pt) com %s rank %d a %.4f/pt por %d pts" % (
                         vocation, plan["level"], stage, node_by_id[st.node_id]["nome"], st.rank, cost, mine,
                         node_by_id[nid]["nome"], start.get(nid, 0) + 1, pp[0], pp[1]))
                     break
             before_path, path_cost = None, 0
         elif stage in stages:
-            # um rank de caminho (categoria diferente, ou marcado `link`): o custo e da compra seguinte
+            # um rank de caminho: o custo e da compra seguinte
             if before_path is None:
                 before_path = dict(ranks)
             path_cost += st.cost
@@ -145,10 +149,17 @@ def damage_stage_violations(cat, vocation, plan):
     (`priority.stat_model`), nenhum rank comprado rende menos por ponto do que outro rank com
     os mesmos stats que estava ligado e a caber. Os ranks de caminho e os que o modelo nao ve
     (valor 0: HP, notables especiais…) nao se comparam — sao do simulador."""
-    model = plan["priority"].get("stat_model")
-    if not model:
+    history = plan["priority"].get("stat_models")
+    if not history:
         return ["%s %d: sem modelo" % (vocation, plan["level"])]
-    return same_stat_violations(cat, vocation, plan, stages=("damage",), value=lambda node, stage: builds.model_rank_value(node, model))
+
+    def value(node, stage):
+        # o modelo em vigor na compra: o ultimo cujo «a partir de N pontos» <= pontos gastos antes dela
+        spent = value.spent if value.spent is not None else 0
+        model = max((m for m in history if m[0] <= spent), key=lambda m: m[0], default=history[0])[1]
+        return builds.model_rank_value(node, model)
+    value.spent = None
+    return same_stat_violations(cat, vocation, plan, stages=("damage",), value=value)
 
 
 def exp_loot_violations(cat, vocation, plan):
@@ -379,7 +390,12 @@ class PriorityBuilds(unittest.TestCase):
             self.assertTrue(verdict.startswith("depois do Avatar rende mais " + ranked[0]["label"].lower()), (voc, verdict))
             self.assertIn("dano critico so vale a chance", verdict, voc)
             pts = rep["points_by_stat"]
-            self.assertEqual(sum(pts.values()), b["priority"]["stage_points"]["damage"], voc)
+            # os pontos por stat sao os dos passos da etapa (a poda no fim pode tirar ranks: `pruned`)
+            damage_steps = sum(st.cost for st in b["steps"] if st.stage == "damage")
+            self.assertEqual(sum(pts.values()), damage_steps, voc)
+            pruned_pts = sum(F.tree_total_cost(self.cat.node_by_id[n], a) - F.tree_total_cost(self.cat.node_by_id[n], c)
+                             for n, a, c in b["priority"]["pruned"])
+            self.assertEqual(damage_steps - pruned_pts, b["priority"]["stage_points"]["damage"], voc)
             self.assertEqual(sum(o["cost"] for o in rep["order"]), pts["attack"] + pts["critChance"] + pts["critDmg"] + pts["rest"] + pts["link"], voc)
             # o modelo e o do DPS: fraccoes pequenas (nao a metrica com a sobrevivencia)
             model = b["priority"]["stat_model"]

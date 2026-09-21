@@ -268,7 +268,9 @@ def render_level_section(cat, b, root, extra=""):
                    % (h.fmt(m.get("death_at")), h.fmt(m.get("boss_death_at"))))
     if b["goal"] in ("best", "damage", B.PRIORITY_GOAL):
         out.append(_constraints_block(m, b["goal"]))
-    out.append(_tree_block(cat, b))
+    # a pagina da build tem 8 niveis: a ordem de compra da etapa 2 (que a tabela da arvore ja
+    # mostra com o papel) fica so na pagina do personagem, senao a do knight passa dos 256 KiB
+    out.append(_tree_block(cat, b, stage_order=False))
     out.append(_equipment_block(cat, b, root))
     out.append(_helper_block(cat, b, root))
     out.append(extra)
@@ -385,7 +387,7 @@ def _pct_signed(x, decimals=1):
     return ("%+.*f%%" % (decimals, x)).replace(".", ",")
 
 
-def priority_block(cat, b, root="../", with_avatar_code=True):
+def priority_block(cat, b, root="../", with_avatar_code=True, stage_order=True):
     """O que so a build «prioridades» tem: os totais por categoria, o Avatar (sim/nao
     e a que nivel cabe, com a build desse nivel e o codigo), os pontos que sobraram e
     para onde foram, as categorias que a vocacao nao tem, e o que a build «dano» do
@@ -457,7 +459,7 @@ def priority_block(cat, b, root="../", with_avatar_code=True):
                    "se Atk, se Chance Critico, se Dano Critico.» Depois do Avatar todos os pontos vao ao que rende mais DPS "
                    "medido no simulador com a rotacao/arma fixadas — o mesmo stat pela conta por ponto, stats diferentes pelo "
                    "simulador em pacotes do mesmo tamanho (ordem 9c); Exp e Loot ja nao sao prioridade.</p>")
-        out.append(stat_report_block(cat, b))
+        out.append(stat_report_block(cat, b, stage_order=stage_order))
     elif not have.get("exp") and not have.get("loot"):
         out.append('<p class="mudo">Esta vocacao nao tem nos de Exp nem de Loot na arvore do cliente: as etapas 2 e 3 '
                    "ficam vazias e passa-se ao Crit.</p>")
@@ -500,7 +502,7 @@ def priority_block(cat, b, root="../", with_avatar_code=True):
 STAT_LINE_LABEL = {"attack": "Ataque", "critChance": "Chance de critico", "critDmg": "Dano critico", None: "resto"}
 
 
-def stat_report_block(cat, b):
+def stat_report_block(cat, b, stage_order=True):
     """«Depois do Avatar: o que rende mais» (ordem 10): a tabela Ataque / Chance de critico /
     Dano critico com o que +1 % rende no simulador, o melhor rank disponivel agora e o que a
     build acabou por comprar; o veredicto gerado da conta; a ordem de compra da etapa 2 com o
@@ -528,7 +530,7 @@ def stat_report_block(cat, b):
                % (pts.get("attack", 0), pts.get("critChance", 0), pts.get("critDmg", 0), pts.get("rest", 0), pts.get("link", 0),
                   _n(rep["dps_base"]), B.PRIORITY_MODEL_REFRESH))
     order = rep.get("order") or []
-    if order:
+    if order and stage_order:
         rows = [["%d" % i, h.esc(o["name"]), "%d" % o["rank"], "%d" % o["cost"],
                  h.esc(("so ligacao" if o["link"] and o["stat"] is None else STAT_LINE_LABEL.get(o["stat"], "resto"))), _n(o["cumulative"])]
                 for i, o in enumerate(order, 1)]
@@ -691,7 +693,7 @@ def _fire_note(cat, tree):
             % h.esc(", ".join(names)))
 
 
-def _tree_block(cat, b, root="../", with_code=True):
+def _tree_block(cat, b, root="../", with_code=True, stage_order=True):
     steps = b.get("order") or b["steps"]
     fill = b["fill_steps"]
     roles = b.get("roles") or {}
@@ -742,7 +744,7 @@ def _tree_block(cat, b, root="../", with_code=True):
     out.append(_validation_line(cat, b))
     out.append(_fire_note(cat, b["tree"]))
     if priority:
-        out.append(priority_block(cat, b, root))   # com o codigo do nivel do Avatar, se ainda nao cabe
+        out.append(priority_block(cat, b, root, stage_order=stage_order))   # com o codigo do nivel do Avatar, se ainda nao cabe
     if b.get("pruned"):
         out.append('<p class="mudo">Podados no fim (rendiam ~0 na metrica e a arvore continua ligada sem eles; os pontos '
                    "voltaram a gastar-se): %s.</p>" % h.esc("; ".join(
