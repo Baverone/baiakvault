@@ -90,6 +90,15 @@ class EditMode(unittest.TestCase):
         status, _, _ = self.server.request("POST", "/editar/teste-knight/personagem", {"level": "999", "token": "errado"})
         self.assertEqual(status, 403)
 
+    def test_restart_route_needs_the_token(self):
+        """Ordem 9: POST /reiniciar sem token e 403 e o servidor continua de pe (o caminho com
+        token faz `os._exit` e nao se testa aqui: matava o processo da suite)."""
+        status, body, _ = self.server.request("POST", "/reiniciar", {"token": "errado"})
+        self.assertEqual(status, 403)
+        self.assertIn("token", body)
+        status, body, _ = self.server.request("GET", "/saude")
+        self.assertEqual(status, 200)
+
     def test_valid_post_writes_and_rebuilds(self):
         before = self.cfg.rebuilds
         status, body, location = self.server.request(

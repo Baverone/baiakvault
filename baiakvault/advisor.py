@@ -48,6 +48,10 @@ BESTIARY_SCORE = 0.25
 BESTIARY_NEAR_SHARE = 0.3    # «perto de fechar» = faltam <= 30 % da meta
 MAX_SUGGESTIONS = 7
 MAX_MISSING = 2
+# «prioridades» (21/09/2026): o proximo no da ordem por etapas e o Avatar fora de alcance nao se
+# medem por ganho — levam uma pontuacao fixa para ficarem no topo da lista com o que e medido
+PRIORITY_STEP_SCORE = 10.0
+AVATAR_STEP_SCORE = 5.0
 
 SOURCE_SIM = "formulas do cliente + simulador do BaiakVault"
 SOURCE_CATALOG = "catalogo (bundle do cliente)"
@@ -305,8 +309,8 @@ def priority_tree_suggestions(cat, state, target, equipment, rotation, plan, cur
             "etapa «%s» das tuas prioridades (a proxima da ordem de compra); no simulador com o teu equipamento "
             "em %s: %s no DPS (informacao, nao e o criterio); tens %d ponto%s por gastar"
             % (stage, cat.hunt_by_id[target.hunt_id]["nome"], _fmt_pct(gain), left, "" if left == 1 else "s"),
-            "%d ponto%s" % (cost, "" if cost == 1 else "s"), SOURCE_SIM, max(MIN_GAIN_PCT, gain) if fits else MIN_GAIN_PCT,
-            node=nxt.node_id, rank=rank, via=path, points_left=left, stage=nxt.stage))
+            "%d ponto%s" % (cost, "" if cost == 1 else "s"), SOURCE_SIM, PRIORITY_STEP_SCORE if fits else PRIORITY_STEP_SCORE * 0.5,
+            node=nxt.node_id, rank=rank, via=path, points_left=left, stage=nxt.stage, gain_pct=gain))
     return out + avatar_suggestion(cat, state, plan)
 
 
@@ -330,7 +334,7 @@ def avatar_suggestion(cat, state, plan):
             % (lv, level, lv),
             "%s gold ao importar (cliente fD: 1000 + 200 x pontos gastos nessa altura; com os %d de agora seriam %s)"
             % (_thousands(treecode.import_cost(lv)), spent_now, _thousands(treecode.import_cost(spent_now))),
-            SOURCE_SIM, MIN_GAIN_PCT * 0.5, level_at=lv, code=code))
+            SOURCE_SIM, AVATAR_STEP_SCORE, level_at=lv, code=code))
     return out
 
 

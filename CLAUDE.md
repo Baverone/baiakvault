@@ -462,7 +462,20 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   caminho por nivel): ~3 s por build, ~10 s com o `avatar_plan`; cache em
   `Planner._priority`. **Limite conhecido**: o guloso preguicoso dentro de uma categoria
   pode preferir um rank caro a dois baratos com mais efeito por ponto (paladin: Hawkeye 2
-  em vez de Keen Aim 2 + Precision 2) — e o ganho medido, nao o stat, que decide.
+  em vez de Keen Aim 2 + Precision 2) — e o ganho medido, nao o stat, que decide. A arma
+  que entra nos «elementos» e a fixada ou, sem ela, a que o optimizador escolhe (a wand do
+  sorcerer no modelo e de morte: «death» entraria na etapa 7; o druid leva «earth» da wand)
+  — ele fixa a arma em `/editar` se quiser outra. O advisor da ao proximo no da ordem e ao
+  «no nivel X: importar a build com o Avatar» pontuacoes fixas (`PRIORITY_STEP_SCORE`,
+  `AVATAR_STEP_SCORE`) para ficarem no topo com o que e medido.
+- **21/09/2026 (ordem 9)** — **Reiniciar o `serve`**: o processo do 8774 fica de pe o dia
+  todo com o codigo com que arrancou (depois de um merge, e a versao antiga; e se a BD
+  subir de esquema, o `db.connect` dele rebenta com «a BD esta na versao 6 e o codigo so
+  conhece ate 5»). O mtgvault mata por porto com `taskkill`; a allowlist do ai-pc nega-o,
+  por isso o proprio serve tem `POST /reiniciar` (so de 127.0.0.1, com o token de
+  `data/serve.token`): responde e faz `os._exit(0)`; o vigia `baiakvault-serve` relanca
+  em <= 5 min (`scripts/reiniciar_serve.py` faz o pedido). **O serve que estava de pe a
+  21/09 e anterior a rota** — precisa de uma paragem manual ou de um reboot.
 
 ## Fontes
 

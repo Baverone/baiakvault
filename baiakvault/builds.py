@@ -866,6 +866,7 @@ class Planner:
         self._paths = {}       # (voc, goal, hunt ou None) -> (ranks, steps)
         self._ally = {}        # (hunt, checkpoint) -> pressao do pack sobre o knight «best»
         self._priority = {}    # (voc, nivel, hunt, fixed) -> a build «prioridades» (ordem 9)
+        self._plans = {}       # (voc, goal, nivel, hunt, fixed) -> a build montada (ordem 9)
         self.timings = {}
 
     # contexto por nivel: usa o checkpoint (nivel representativo) mais alto <= nivel
@@ -1045,6 +1046,11 @@ class Planner:
             return self.plan_priority(vocation, level, hunt_id, fixed_rotation, fixed_weapon)
         cat = self.cat
         fixed = self.fixed_key(fixed_rotation, fixed_weapon)
+        # a build montada (fill, melhoria local, poda) custa ~1,2 s e a «prioridades» pede a «dano»
+        # do mesmo nivel: guarda-se (ordem 9); os dicionarios sao so de leitura para quem os pede
+        cache_key = (vocation, goal, level, hunt_id, fixed)
+        if cache_key in self._plans:
+            return self._plans[cache_key]
         budget = F.tree_budget(level)
         target = self.target_for(vocation, goal, level, hunt_id, strict=True)   # a hunt dele, mesmo abaixo do minimo
         candidates = [self._candidate(vocation, goal, goal, level, hunt_id, fixed, target)]
@@ -1113,7 +1119,7 @@ class Planner:
                 break
         order = purchase_order(cat, vocation, tree, steps + fill_steps + refill_steps)
         roles = node_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal, fill_steps + refill_steps)
-        return {
+        self._plans[cache_key] = out = {
             "vocation": vocation, "goal": goal, "level": level, "hunt": target.hunt_id, "target": target,
             "profile": prof, "tree": tree, "steps": steps, "fill_steps": fill_steps, "improved": improved,
             "pruned": pruned, "refill_steps": refill_steps, "order": order, "roles": roles,
@@ -1132,6 +1138,7 @@ class Planner:
             "helper": helper_config(prof, target, hunt_rot, boss_rot, heal, metrics, hunt_sim, boss_sim),
             "gold_cap": self.gold_cap,
         }
+        return out
 
     def plan_priority(self, vocation, level, hunt_id=None, fixed_rotation=None, fixed_weapon=None):
         """A build «prioridades do Andre» (21/09/2026): a arvore por `priority_tree` ao

@@ -101,14 +101,15 @@ class Optimizer(unittest.TestCase):
         cls.cat = helpers.real_catalog()
         cls.pl, cls.plans = planner()
 
-    def test_all_104_builds_in_time(self):
+    def test_all_144_builds_in_time(self):
         self.assertEqual(len(self.plans), len(builds.BUILDS) * len(builds.LEVELS))
-        self.assertEqual(len(self.plans), 104)
+        self.assertEqual(len(self.plans), 144)   # 18 builds x 8 niveis desde a ordem 9 (5 «prioridades»)
         # 16/09/2026 (ordem 6): a «best» corre o simulador 3x por avaliacao (pack, boss, pack
         # inteiro) e testa as poupancas; o tecto subiu de 10 s para 60 s. Ordem 8: cada plano
         # avalia tambem o outro caminho, poda rank a rank e mede o papel de cada no (~1,2 s por
-        # plano): o tecto passa a 240 s
-        self.assertLess(helpers.PLAN_SECONDS, 240.0, "13 builds x 8 niveis levaram %.1f s" % helpers.PLAN_SECONDS)
+        # plano): o tecto passa a 240 s. Ordem 9: as 40 «prioridades» constroem-se do zero por
+        # nivel (~3 s cada, mais a build do nivel do Avatar abaixo dele): tecto 420 s
+        self.assertLess(helpers.PLAN_SECONDS, 420.0, "18 builds x 8 niveis levaram %.1f s" % helpers.PLAN_SECONDS)
 
     def test_every_tree_passes_the_client_rules_and_the_order_is_clickable(self):
         """Ordem 8, ponto 3: toda a arvore que o optimizador devolve passa O3e (ligada a
@@ -138,6 +139,12 @@ class Optimizer(unittest.TestCase):
             # cada no tem papel: «so ligacao» segura o ramo (tira-lo desliga a arvore); «ponto que
             # sobrou» rende ~0 e nada depende dele; «dano» rende; «tactica» e o Battle Tactics
             self.assertEqual(set(b["roles"]), set(tree), key)
+            if b["goal"] == builds.PRIORITY_GOAL:
+                # na «prioridades» o papel e a etapa (ordem 9): os papeis medidos so na etapa 8 — test_priority
+                for nid, (role, gain) in b["roles"].items():
+                    self.assertIn(role, (builds.ROLE_DAMAGE, builds.ROLE_LINK, builds.ROLE_TACTICS, builds.ROLE_LEFTOVER)
+                                  + tuple(builds.PRIORITY_ORDER[:-1]), key)
+                continue
             for nid, (role, gain) in b["roles"].items():
                 self.assertIn(role, (builds.ROLE_DAMAGE, builds.ROLE_LINK, builds.ROLE_TACTICS, builds.ROLE_LEFTOVER), key)
                 without = {k: v for k, v in tree.items() if k != nid}
@@ -194,6 +201,8 @@ class Optimizer(unittest.TestCase):
         """Ordem 8, ponto 5: o plano avalia o prefixo do caminho da «best» com a metrica
         de dano e fica com o melhor — nunca pior do que so o proprio caminho."""
         for key, b in self.plans.items():
+            if b["goal"] == builds.PRIORITY_GOAL:
+                continue   # sem caminho por nivel: constroi-se do zero por etapas (ordem 9)
             scores = b["path_scores"]
             self.assertIn(b["path_goal"], scores, key)
             self.assertGreaterEqual(b["score"], max(scores.values()) * 0.97, (key, b["score"], scores))
