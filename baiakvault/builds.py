@@ -649,9 +649,9 @@ def unlock_path(node, ranks, adj, node_by_id, exclude=()):
 
 
 class TreeStep:
-    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point", "saving", "stage")
+    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point", "saving", "stage", "link")
 
-    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point, saving=None, stage=None):
+    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point, saving=None, stage=None, link=False):
         self.node_id, self.rank, self.cost = node_id, rank, cost
         self.cumulative, self.level, self.score, self.gain_per_point = cumulative, level, score, gain_per_point
         # so no passo que fecha uma poupanca longa: {"wait", "from_level", "gain_pct",
@@ -660,6 +660,8 @@ class TreeStep:
         self.saving = saving
         # a etapa das prioridades (PRIORITY_ORDER) em que o rank entrou; None nas outras builds
         self.stage = stage
+        # so nas prioridades: o rank entrou como caminho de desbloqueio de outro (o custo e desse)
+        self.link = link
 
 
 def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target_at, start_ranks=None,
@@ -1861,7 +1863,7 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
         node = node_by_id[nid]
         c = F.tree_rank_cost(node, tree.get(nid, 0))
         tree[nid] = tree.get(nid, 0) + 1
-        steps.append(TreeStep(nid, tree[nid], c, spent(), level, 0.0, 0.0, stage=stage))
+        steps.append(TreeStep(nid, tree[nid], c, spent(), level, 0.0, 0.0, stage=stage, link=is_link))
         if is_link and tree[nid] == 1 and category[nid] != stage:
             link.add(nid)
 

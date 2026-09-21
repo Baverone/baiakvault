@@ -641,8 +641,12 @@ def _tree_block(cat, b, root="../", with_code=True):
                    "papel: a etapa a que o no pertence; <b>so ligacao</b> quando so entrou como caminho (rank 1) para "
                    "chegar a um no de uma etapa acima; na etapa 8 os papeis de sempre (<b>dano</b> com o ganho medido, "
                    "<b>tactica</b>, <b>ponto que sobrou</b>). Dentro de cada etapa a ordem e por rendimento por ponto: "
-                   "Exp e Loot pelo proprio efeito por ponto; Crit, Ataque, Dano critico e Elemento pelo ganho de DPS por "
-                   "ponto medido no simulador com a rotacao desta build.</p>")
+                   "Exp e Loot pelo proprio efeito por ponto; em Crit, Ataque, Dano critico e Elemento os ranks que dao o "
+                   "<b>mesmo stat</b> compram-se pelo efeito por ponto exacto (rank n de um small custa custo × n, mais o "
+                   "caminho que faltar) sem simulador, e o simulador so decide entre stats diferentes da mesma etapa "
+                   "(atk % vs dano de magia %, um notable que traz outra coisa), medidos em pacotes do mesmo tamanho "
+                   "(ordem 9c, 21/09/2026)." + ("" if B.PRIORITY_GREEDY_BY_STAT else " <b>Regra desligada</b> "
+                   "(PRIORITY_GREEDY_BY_STAT): pelo ganho de DPS por ponto medido no simulador.") + "</p>")
         out.append(h.table(["etapa", "no", "rank", "ate ao nivel", "papel"], rows, numeric=(3,)))
     else:
         out.append('<p class="mudo">Ordem de compra a subir de nivel (o numero e o nivel em que se chega la, '

@@ -512,6 +512,24 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   Um no da rota com categoria mostra a categoria como papel (nao «so ligacao»).
   `validacao.md` §1d conta as rotas e a mais barata a mao (programacao dinamica so com o
   `arvore.json`). Custo: build de um personagem abaixo do Avatar ~2,5 s, os outros 3-10 s.
+- **21/09/2026 (ordem 9c)** — **Dentro de uma categoria, o mesmo stat decide-se pela conta por
+  stat, nao pelo simulador** (`builds.PRIORITY_GREEDY_BY_STAT = True`; `_stage_by_effect(score_fn=)`).
+  Causa encontrada (`ai-pc\work\baiakvault\_guloso_9c.py`): as etapas 4-7 usavam o guloso preguicoso
+  de `optimize_tree(only=)`, que mede cada rank na grelha de 60 s do simulador — o MESMO +1,5 % de
+  ataque (ou +1 % de crit) saia de -0,03 % a +0,15 % por ponto conforme o estado (Cold Precision 4
+  media negativo; Sharpened Steel 7 media 2,5x o rank 6), e a fila preguicosa ainda guardava
+  ganhos velhos; o custo `custo x n` estava certo. Regra: em Crit/Ataque/Dano critico/Elemento os
+  ranks com a mesma assinatura de stats (`_stat_signature`: as chaves do `efeito_por_rank`)
+  compram-se por efeito por ponto exacto (com o caminho que faltar no custo; empate -> o mais
+  barato -> o id); o simulador so decide entre os melhores ranks de assinaturas diferentes
+  (atkPct vs spellDmgPct; Combat Mastery atk+armor vs Fury) e mede **pacotes do mesmo tamanho**
+  (o rank mais caro contra ranks do mesmo stat dos outros ate igualar o custo — +1,5 % contra 50
+  pontos era ruido outra vez), empate ate `PRIORITY_STAT_SIM_TIE` = 2 % -> o mais barato. Cada
+  `TreeStep` das prioridades leva `link` (entrou como caminho). Exp/Loot como estavam; a ordem das
+  categorias, as rotas da 9b e o Lord of Destruction do sorcerer nao se tocaram. Knight 548: ataque
+  37,5 % -> 40,0 % com 63 pontos em vez de 67 (DPS 3 635 -> 3 675). Teste de propriedade
+  (`test_priority.same_stat_violations`, 5 + 8 niveis + paladin 319: chumbava antes no knight) e
+  arvore a mao com custos 1 e 3.
 
 ## Fontes
 

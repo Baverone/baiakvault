@@ -29,7 +29,9 @@ O que ja la esta (v0.1):
   prioridades, nao a mais barata — a pagina mostra as duas; se ainda nao cabe,
   diz a que nivel cabe, a rota por ordem de clique para ir ja pondo pontos e os
   dois planos ate la, sem respec ou com respec ao chegar, com os numeros e o
-  recomendado, e da a build e o codigo desse nivel), com a ordem de compra por
+  recomendado, e da a build e o codigo desse nivel; dentro de cada etapa os
+  ranks do mesmo stat compram-se pelo efeito por ponto exacto, e o simulador
+  so decide entre stats diferentes), com a ordem de compra por
   etapas, os totais por
   categoria e, ao lado em numero, o que a build de **dano** daria a mais; a
   build de dano de cada vocacao (o maior DPS do ciclo = XP/h, sem tecto de
