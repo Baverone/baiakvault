@@ -398,6 +398,70 @@ def avatar_routes_by_hand(tree_json):
 AVATAR_SECONDS_BY_HAND = (15, "cliente: desc dos nos Avatar «entrar na forma avatar por 15s (crita sempre …)»")
 
 
+def exp_loot_by_hand(tree_json, vocation, level, tree):
+    """§1f (ordem 10b): so com o `arvore.json` cru, para uma arvore {id: rank} ao nivel: o +% exp
+    e o +% loot somados (`efeito_por_rank` x rank), os pontos gastos nos nos de Exp e nos de Loot
+    (cliente `z3e`: small = custo x r x (r+1)/2, notable = custo), os pontos por gastar (nivel -
+    gastos) e o custo do rank de Exp/Loot mais barato que ainda se podia comprar (o proximo rank
+    do no mais o caminho de nos por comprar ate um no comprado, a ligacao pelo `requer` nos dois
+    sentidos — Dijkstra proprio). «Esgotada» = nao ha rank nenhum ou o mais barato nao cabe no
+    que sobra: e a regra «Exp e Loot antes de um ponto ir ao dano». Nao importa `builds.py`."""
+    import heapq
+    t = next(t for t in tree_json["arvores"] if t["vocacao"] == vocation)
+    nodes = {n["id"]: n for n in t["nos"]}
+    adj = {nid: set() for nid in nodes}
+    for n in t["nos"]:
+        for req in n.get("requer") or []:
+            adj[n["id"]].add(req)
+            adj[req].add(n["id"])
+
+    def total_cost(n, r):
+        r = max(0, min(r, n.get("rank_maximo") or 1))
+        return n["custo_por_rank"] * r * (r + 1) // 2 if n.get("tipo") == "small" else (n["custo_por_rank"] if r else 0)
+
+    def next_cost(n, r):
+        return n["custo_por_rank"] * (r + 1) if n.get("tipo") == "small" else n["custo_por_rank"]
+
+    spent = sum(total_cost(nodes[nid], r) for nid, r in tree.items() if nid in nodes)
+    left = level - spent
+    out = {"spent": spent, "unspent": left}
+    # `dist` = o que custa chegar a cada no: 0 se ja esta comprado; senao o rank 1 dele mais os ranks 1 dos
+    # nos por comprar pelo caminho ate a arvore comprada (um no de tier 0 liga-se sozinho, cliente O3e)
+    bought = {nid for nid, r in tree.items() if r}
+    dist, heap = {}, []
+    for nid, n in nodes.items():
+        if nid in bought or n.get("tier", 0) == 0:
+            dist[nid] = 0 if nid in bought else next_cost(n, 0)
+            heapq.heappush(heap, (dist[nid], nid))
+    while heap:
+        d, nid = heapq.heappop(heap)
+        if d > dist.get(nid, float("inf")):
+            continue
+        for v in adj[nid]:
+            nd = d + (0 if v in bought else next_cost(nodes[v], 0))
+            if nd < dist.get(v, float("inf")):
+                dist[v] = nd
+                heapq.heappush(heap, (nd, v))
+    for stat, key in (("expPct", "exp"), ("lootPct", "loot")):
+        pct = points = 0.0
+        cheapest = None
+        for nid, n in nodes.items():
+            val = (n.get("efeito_por_rank") or {}).get(stat)
+            if not isinstance(val, (int, float)):
+                continue
+            r = tree.get(nid, 0)
+            pct += val * r
+            points += total_cost(n, r)
+            if r < (n.get("rank_maximo") or 1) and nid in dist:
+                # comprado: so o proximo rank; por comprar: `dist` ja traz o rank 1 dele e o caminho
+                c = next_cost(n, r) if nid in bought else dist[nid]
+                cheapest = c if cheapest is None else min(cheapest, c)
+        out[key] = {"pct": pct, "points": int(points), "next_cost": cheapest,
+                    "exhausted": cheapest is None or cheapest > left, "has_nodes": any(
+                        isinstance((n.get("efeito_por_rank") or {}).get(stat), (int, float)) for n in nodes.values())}
+    return out
+
+
 def crit_marginals_by_hand(cat, vocation, level, tree, equipment, c=None):
     """§1e (ordem 10): o valor de +1 % de chance de critico e de +1 % de dano critico, a mao,
     so com os JSON e a formula do critico (guia: `1 + chance x (50 + critDmg)/10000`) e a do

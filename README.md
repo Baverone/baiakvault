@@ -22,18 +22,21 @@ O que ja la esta (v0.1):
   registado; ao lado, a build recomendada para a tua vocacao/objectivo/nivel.
   O que nao esta registado sai «?» e a lista diz o que falta preencher.
 - **Builds** — a build das **prioridades do Andre** de cada vocacao (a omissao
-  desde 21/09/2026): **Avatar › dano** (regra dele de 21/09/2026, 13:00: «Quero
-  Avatar, e depois quero que me indiques o que e melhor: se Atk, se Chance
-  Critico, se Dano Critico»). O Avatar e o notable de tier 11 pela rota que
-  deixa a build final com mais DPS (todas as rotas do tier 0 ate la, ordenadas
-  por um modelo linear medido no simulador e as melhores confirmadas nele — a
-  pagina mostra a escolhida e a mais barata; se ainda nao cabe, diz a que nivel
-  cabe, a rota por ordem de clique para ir ja pondo pontos e os dois planos ate
-  la, sem respec ou com respec ao chegar, com os numeros e o recomendado, e da
-  a build e o codigo desse nivel); depois **todos os pontos vao ao que rende
-  mais DPS** medido no simulador com a rotacao/arma fixadas (ranks do mesmo
-  stat pelo modelo por ponto exacto, stats diferentes pelo simulador em pacotes
-  do mesmo tamanho), e o bloco **«Depois do Avatar: o que rende mais»**
+  desde 21/09/2026): **Avatar › Exp › Loot › dano** (regra dele de 21/09/2026,
+  13:05: «No caso seria assim: Avatar, Exp, Loot, e tu decides o resto»). O
+  Avatar e o notable de tier 11 pela rota mais util pelas prioridades (todas as
+  rotas do tier 0 ate la, cada uma avaliada por Avatar, +% exp, +% loot e o DPS
+  de um modelo linear medido no simulador, as melhores confirmadas nele — a
+  pagina mostra a escolhida, a mais barata e a de maior DPS; se ainda nao cabe,
+  diz a que nivel cabe, a rota por ordem de clique para ir ja pondo pontos e os
+  dois planos ate la, sem respec ou com respec ao chegar, com os numeros e o
+  recomendado, e da a build e o codigo desse nivel); depois a **Exp** e o
+  **Loot** esgotam-se (todos os ranks que os pontos deixem, pelo efeito por
+  ponto; quem nao tem esses nos, como o knight, ve-o dito) e so entao **todos os
+  pontos vao ao que rende mais DPS** medido no simulador com a rotacao/arma
+  fixadas (ranks do mesmo stat pelo modelo por ponto exacto, stats diferentes
+  pelo simulador em pacotes do mesmo tamanho), e o bloco **«Depois do Avatar,
+  Exp e Loot: o que rende mais»**
   responde com numeros a Ataque vs Chance de critico vs Dano critico (o que
   +1 % rende, o melhor rank agora, o que a build comprou e o veredicto — o
   dano critico so vale a chance); com a ordem de compra por etapas, os totais

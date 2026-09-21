@@ -1,18 +1,24 @@
-"""Ordem 9 (21/09/2026): a build «prioridades do Andre»; desde a ordem 10 (21/09/2026 13:00)
-sao duas etapas — Avatar (rota escolhida pelo DPS) e «damage» (tudo o que rende mais DPS no
-simulador, o mesmo stat pela conta por ponto). A ordem da 9 (Avatar > Exp > Loot > Crit >
-Ataque > Dano critico > Elemento > resto) fica em `PRIORITY_ORDER_ORDEM_9` e testa-se so a
-estrutura por etapas.
+"""Ordem 9 (21/09/2026): a build «prioridades do Andre»; desde a ordem 10b (21/09/2026 13:05,
+«Avatar, Exp, Loot, e tu decides o resto») sao quatro etapas — Avatar (rota escolhida pelas
+prioridades: exp, loot, DPS do modelo), Exp e Loot pelo efeito por ponto (esgotadas antes da
+seguinte) e «damage» (tudo o que rende mais DPS no simulador, o mesmo stat pela conta por
+ponto — a etapa 2 da ordem 10). A ordem da 9 (Avatar > Exp > Loot > Crit > Ataque > Dano
+critico > Elemento > resto) fica em `PRIORITY_ORDER_ORDEM_9` e testa-se so a estrutura por
+etapas.
 
 (a) aos niveis que ele deu (Knight 548, Monk 336, Paladin 284, Druid 498, Sorcerer 481) o
     Avatar entra quando o caminho ligado mais barato + 300 cabe — o custo do caminho
     conta-se aqui SO com o `arvore.json` (Dijkstra proprio, sem o motor);
-(b) propriedade (ordem 10): depois do Avatar nenhum rank por comprar rende mais por ponto no
+(b) propriedade (10b): nenhum ponto foi ao dano enquanto havia um rank de Exp ou de Loot
+    compravel com o que sobrava (ligacao a parte), e dentro de Exp/Loot a regra da 9c (efeito
+    por ponto com o caminho no custo);
+(c) propriedade (ordem 10) na etapa «damage»: nenhum rank por comprar rende mais por ponto no
     modelo linear do que um rank comprado com os mesmos stats, e nenhum ponto foi a Exp/Loot
     excepto «so ligacao» ou «ponto que sobrou»;
-(c) a rota escolhida tem DPS >= a mais barata no simulador; (d) o bloco «o que rende mais»
-    tem as tres linhas > 0 e o veredicto comeca pelo stat de maior ganho por ponto;
-(e) `tree_check`, ordem clicavel, codigos BT1 de ida e volta; migracao v6; a omissao e
+(d) a rota escolhida tem exp/loot >= a de maior DPS e, a exp/loot iguais, DPS >=; e DPS >= a
+    mais barata quando esta tem o mesmo exp/loot; (e) o bloco «o que rende mais» tem as tres
+    linhas > 0 e o veredicto comeca pelo stat de maior ganho por ponto;
+(f) `tree_check`, ordem clicavel, codigos BT1 de ida e volta; migracao v6; a omissao e
     «priority» em todas as vocacoes.
 """
 import heapq
@@ -28,8 +34,9 @@ from baiakvault import builds, db, formulas as F, treecode
 # os niveis que o Andre deu a 21/09/2026 (os mesmos da vault.db); a hunt e a de referencia
 LEVELS = {"knight": 548, "monk": 336, "paladin": 284, "druid": 498, "sorcerer": 481}
 AVATAR_COST = 300
-# a ordem da 9 (para os testes da estrutura por etapas; a build usa builds.PRIORITY_ORDER = avatar, damage)
+# a ordem da 9 (para os testes da estrutura por etapas; a build usa builds.PRIORITY_ORDER = avatar, exp, loot, damage)
 ORDER_9 = ("avatar", "exp", "loot", "crit", "attack", "critdmg", "element", "rest")
+ORDER_10B = ("avatar", "exp", "loot", "damage")
 STAT_STAGES_9 = ("crit", "attack", "critdmg", "element")
 
 
@@ -75,9 +82,10 @@ def cheapest_avatar_level(vocation):
     return best + AVATAR_COST, avatar["id"]
 
 
-def same_stat_violations(cat, vocation, plan, stages=STAT_STAGES_9, value=None):
+def same_stat_violations(cat, vocation, plan, stages=STAT_STAGES_9, value=None, any_signature=False):
     """Repete os passos da build e, a cada rank comprado nas `stages` (ordem 9c: crit/attack/
-    critdmg/element; ordem 10: «damage»), procura um no com os mesmos stats (e, na 9c, da mesma
+    critdmg/element; ordem 10: «damage»; 10b: exp/loot com `any_signature`, porque nessas etapas
+    tudo se compara pelo efeito por ponto), procura um no com os mesmos stats (e, na 9c, da mesma
     categoria), ligado e a caber, cujo proximo rank rendesse mais por ponto (`value(node, stage)`
     / custo, caminho incluido; a omissao e o efeito da categoria). Os ranks de caminho somam-se
     ao custo do rank que os pediu. Lista de mensagens."""
@@ -90,7 +98,7 @@ def same_stat_violations(cat, vocation, plan, stages=STAT_STAGES_9, value=None):
     value = value or (lambda node, stage: builds._effect_value(node, stage, elements))
 
     def signature(nid):
-        return builds._stat_signature(node_by_id[nid])
+        return () if any_signature else builds._stat_signature(node_by_id[nid])
 
     def per_point(nid, ranks, stage):
         node = node_by_id[nid]
@@ -160,6 +168,42 @@ def damage_stage_violations(cat, vocation, plan):
         return builds.model_rank_value(node, model)
     value.spent = None
     return same_stat_violations(cat, vocation, plan, stages=("damage",), value=value)
+
+
+def exp_loot_before_damage_violations(cat, vocation, plan):
+    """Ordem 10b (b): repete os passos e, a cada rank da etapa «damage» (ligacao a parte), procura um
+    rank de Exp ou de Loot (no de categoria exp/loot, abaixo do maximo) ligado e a caber — com o
+    caminho de desbloqueio no custo — nos pontos que sobravam nesse momento. Um que houvesse era um
+    ponto ido ao dano antes de a Exp/Loot se esgotar. E a etapa «exp» tem de vir antes da «loot» e
+    as duas antes da «damage». Lista de mensagens."""
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
+    adj = builds._adjacency(cat, vocation)
+    info = plan["priority"]
+    category = info["category"]
+    budget = F.tree_budget(plan["level"])
+    out = []
+    ranks = {}
+    order = [st.stage for st in plan["steps"]]
+    idx = [ORDER_10B.index(s) for s in order if s in ORDER_10B]
+    if idx != sorted(idx):
+        out.append("%s %d: etapas fora de ordem: %s" % (vocation, plan["level"], order))
+    for st in plan["steps"]:
+        if st.stage == "damage" and not getattr(st, "link", False):
+            spent = builds._spent(cat, ranks)
+            for nid, node in node_by_id.items():
+                if category.get(nid) not in ("exp", "loot") or ranks.get(nid, 0) >= (node.get("rank_maximo") or 1):
+                    continue
+                path = builds.unlock_path(node, ranks, adj, node_by_id)
+                if path is None:
+                    continue
+                c = sum(F.tree_rank_cost(node_by_id[p], ranks.get(p, 0)) for p in path) + F.tree_rank_cost(node, ranks.get(nid, 0))
+                if spent + c <= budget:
+                    out.append("%s %d: %s rank %d (dano) comprado com %s rank %d (%s, %d pts) compravel nos %d que sobravam"
+                               % (vocation, plan["level"], node_by_id[st.node_id]["nome"], st.rank, node["nome"],
+                                  ranks.get(nid, 0) + 1, category[nid], c, budget - spent))
+                    break
+        ranks[st.node_id] = st.rank
+    return out
 
 
 def exp_loot_violations(cat, vocation, plan):
@@ -234,9 +278,10 @@ class PriorityBuilds(unittest.TestCase):
         self.assertFalse(self.plans["paladin"]["priority"]["avatar"])
 
     def test_route_is_at_least_as_good_as_the_cheapest(self):
-        """Ordem 10 (c): nos 5 ao nivel dele, a rota escolhida pelo DPS tem no simulador pelo
-        menos o DPS da mais barata (a mais barata entra sempre na confirmacao); o modelo linear
-        ordenou as rotas e a escolhida e uma das confirmadas. A mais barata e a do arvore.json."""
+        """Ordem 10b (d): nos 5 ao nivel dele, a rota escolhida tem (exp, loot) >= a de maior DPS
+        no modelo e >= a mais barata; a exp/loot iguais, o DPS no simulador >= (a mais barata e
+        a de maior DPS entram sempre na confirmacao); o modelo linear ordenou as rotas e a
+        escolhida e uma das confirmadas. A mais barata e a do arvore.json."""
         for voc, level in LEVELS.items():
             info = self.plans[voc]["priority"]
             rt = info["route"]
@@ -245,7 +290,25 @@ class PriorityBuilds(unittest.TestCase):
             self.assertTrue(rt["by_model"], voc)
             self.assertIsNotNone(rt["sim_score"], voc)
             self.assertIsNotNone(rt["cheapest_sim"], voc)
-            self.assertGreaterEqual(rt["sim_score"], rt["cheapest_sim"] * (1 - 1e-9), (voc, rt["route"], rt["cheapest_route"]))
+            self.assertEqual(rt["priority_stages"], ("exp", "loot"), voc)
+            v10b, cheap = rt["vector_10b"], rt["cheapest_vector_10b"]
+            self.assertIsNotNone(v10b, voc)
+            self.assertIsNotNone(cheap, voc)
+            self.assertEqual(len(v10b), 4, voc)
+            self.assertGreaterEqual(tuple(v10b[1:3]), tuple(cheap[1:3]), (voc, v10b, cheap))
+            if tuple(v10b[1:3]) == tuple(cheap[1:3]):
+                self.assertGreaterEqual(rt["sim_score"], rt["cheapest_sim"] * (1 - 1e-9), (voc, rt["route"], rt["cheapest_route"]))
+            dps_best = rt["dps_best"]
+            self.assertIsNotNone(dps_best, voc)
+            self.assertGreaterEqual(tuple(v10b[1:3]), tuple(dps_best["vector"][1:3]), (voc, v10b, dps_best))
+            self.assertEqual(dps_best["same_exp_loot"], tuple(v10b[1:3]) == tuple(dps_best["vector"][1:3]), voc)
+            self.assertEqual(dps_best["same"], dps_best["route"] == rt["route"], voc)
+            if dps_best["same_exp_loot"]:
+                self.assertIsNotNone(dps_best["sim_score"], voc)
+                self.assertGreaterEqual(rt["sim_score"], dps_best["sim_score"] * (1 - 1e-9), (voc, rt["route"], dps_best["route"]))
+            else:
+                # a rota de maior DPS no modelo tem menos exp/loot: a regra dele decide, e a pagina mostra-a
+                self.assertGreaterEqual(dps_best["model_score"], rt["model_score"] * (1 - 1e-9), voc)
             self.assertIsNotNone(rt["model_best_route"], voc)
             self.assertIsNotNone(rt["sim_check"], voc)
             self.assertGreaterEqual(rt["sim_ties"], 1, voc)
@@ -334,14 +397,15 @@ class PriorityBuilds(unittest.TestCase):
             self.assertIsNone(self.plans[voc]["avatar_plans"], voc)
 
     def test_stage_structure_and_the_order_9_constant(self):
-        """A estrutura por etapas ficou (ordem 10): a ordem em vigor e Avatar > Dano, a ordem da 9
-        esta inteira em `PRIORITY_ORDER_ORDEM_9` (para ele voltar a por Exp/Loot: uma linha), cada
-        etapa tem rotulo e os pontos por etapa de cada build somam o que esta gasto."""
-        self.assertEqual(builds.PRIORITY_ORDER, ("avatar", "damage"))
+        """A estrutura por etapas ficou (ordem 10b): a ordem em vigor e Avatar > Exp > Loot > Dano, a
+        ordem da 9 esta inteira em `PRIORITY_ORDER_ORDEM_9`, cada etapa tem rotulo e os pontos por
+        etapa de cada build somam o que esta gasto."""
+        self.assertEqual(builds.PRIORITY_ORDER, ORDER_10B)
         self.assertEqual(builds.PRIORITY_ORDER_ORDEM_9, ORDER_9)
         for stage in ORDER_9 + ("damage",):
             self.assertIn(stage, builds.PRIORITY_LABEL)
-        self.assertIn("dano", builds.PRIORITY_ASKED)
+        self.assertIn("Avatar › Exp › Loot › dano", builds.PRIORITY_ASKED)
+        self.assertEqual(builds.priority_stages_before_damage(), "Avatar, Exp e Loot")
         for voc, b in self.plans.items():
             info = b["priority"]
             self.assertEqual(tuple(info["stage_points"]), builds.PRIORITY_ORDER, voc)
@@ -351,31 +415,47 @@ class PriorityBuilds(unittest.TestCase):
             self.assertTrue(set(info["category"].values()) <= set(ORDER_9), voc)
 
     def test_same_stat_ranks_are_bought_by_effect_per_point(self):
-        """Ordem 9c na ordem 10 (b): nas 5 ao nivel dele, nos 8 niveis representativos e na build
-        do nivel do Avatar do paladin, na etapa «damage» nenhum passo compra um rank quando
-        havia, ligado e a caber, um rank de OUTRO no com os mesmos stats a render mais por ponto
-        no modelo linear (custo `custo x n` mais o caminho). E nenhum ponto foi a Exp/Loot
-        excepto como ligacao ou ponto que sobrou."""
+        """Ordem 10b (b) e (c): nas 5 ao nivel dele, nos 8 niveis representativos e na build do
+        nivel do Avatar do paladin — (b) nenhum ponto foi ao dano enquanto havia um rank de Exp ou
+        de Loot compravel com o que sobrava, e dentro de Exp/Loot nenhum passo compra um rank
+        quando havia outro da etapa a render mais efeito por ponto (9c, caminho no custo); (c) na
+        etapa «damage» nenhum passo compra um rank quando havia, ligado e a caber, um rank de
+        OUTRO no com os mesmos stats a render mais por ponto no modelo linear (custo `custo x n`
+        mais o caminho), e nenhum ponto foi a Exp/Loot excepto como ligacao ou ponto que sobrou."""
         _, all_plans = helpers.planner()
         plans = [(voc, b) for voc, b in self.plans.items()]
         plans += [(voc, b) for (voc, goal, _lv), b in all_plans.items() if goal == "priority"]
         plans += [(voc, b["avatar_plan"]) for voc, b in self.plans.items() if b.get("avatar_plan")]
         bad = []
+        n_exp_loot = 0
         for voc, b in plans:
+            bad.extend(exp_loot_before_damage_violations(self.cat, voc, b))
+            bad.extend(same_stat_violations(self.cat, voc, b, stages=("exp", "loot"), any_signature=True))
             bad.extend(damage_stage_violations(self.cat, voc, b))
             bad.extend(exp_loot_violations(self.cat, voc, b))
-            # a regra da 9c nas etapas por categoria continua a valer (vazia com a ordem 10: sem essas etapas)
+            # a regra da 9c nas etapas por categoria continua a valer (vazia com a ordem 10b: sem essas etapas)
             bad.extend(same_stat_violations(self.cat, voc, b))
+            n_exp_loot += sum(1 for st in b["steps"] if st.stage in ("exp", "loot"))
         self.assertEqual(bad, [], "\n".join(bad))
+        self.assertGreater(n_exp_loot, 0)   # a propriedade testou-se em passos reais de Exp/Loot
 
     def test_what_pays_more_block_has_numbers_and_a_consistent_verdict(self):
-        """Ordem 10 (d): o bloco «Depois do Avatar: o que rende mais» tem as tres linhas
-        (Ataque, Chance de critico, Dano critico) com +1 % > 0 no simulador e o melhor rank
+        """Ordem 10b (e): o bloco «Depois do Avatar, Exp e Loot: o que rende mais» tem as tres
+        linhas (Ataque, Chance de critico, Dano critico) com +1 % > 0 no simulador e o melhor rank
         compravel; o veredicto comeca pelo stat de maior ganho por ponto e explica o dano
-        critico pela chance; os pontos por stat somam os da etapa «damage»."""
+        critico pela chance; os pontos por stat somam os da etapa «damage»; o bloco mediu-se
+        sobre a arvore das etapas 1-3 (rota + Avatar + Exp + Loot), que tem os pontos dessas."""
         for voc, b in self.plans.items():
             rep = b["priority"]["stat_report"]
             self.assertIsNotNone(rep, voc)
+            info = b["priority"]
+            pre = info["pre_damage_tree"]
+            self.assertIsNotNone(pre, voc)
+            self.assertEqual(builds._spent(self.cat, pre), sum(info["stage_points"][s] for s in ("avatar", "exp", "loot")), voc)
+            for nid, r in pre.items():
+                self.assertGreaterEqual(b["tree"].get(nid, 0), r, (voc, nid))   # a poda nao tocou nas etapas 1-3
+            self.assertGreaterEqual(info["stage_points"]["exp"], 0, voc)
+            self.assertGreaterEqual(info["stage_points"]["loot"], 0, voc)
             self.assertEqual([r["key"] for r in rep["rows"]], ["attack", "critChance", "critDmg"], voc)
             for r in rep["rows"]:
                 self.assertGreater(r["per_unit"], 0.0, (voc, r["label"]))
@@ -387,7 +467,7 @@ class PriorityBuilds(unittest.TestCase):
             ranked = sorted(rep["rows"], key=lambda r: -r["best"]["gain_per_point"])
             self.assertEqual(rep["ranked"][0], ranked[0]["key"], voc)
             verdict = rep["verdict"]
-            self.assertTrue(verdict.startswith("depois do Avatar rende mais " + ranked[0]["label"].lower()), (voc, verdict))
+            self.assertTrue(verdict.startswith("depois do Avatar, Exp e Loot rende mais " + ranked[0]["label"].lower()), (voc, verdict))
             self.assertIn("dano critico so vale a chance", verdict, voc)
             pts = rep["points_by_stat"]
             # os pontos por stat sao os dos passos da etapa (a poda no fim pode tirar ranks: `pruned`)
@@ -424,6 +504,32 @@ class PriorityBuilds(unittest.TestCase):
             code = treecode.encode(self.cat, voc, level, b["tree"])
             self.assertTrue(code.startswith("BT1-%s%d-" % (treecode.VOCATION_LETTER[voc], level)))
             self.assertEqual(treecode.decode(self.cat, code), (voc, level, b["tree"]))
+
+    def test_exp_and_loot_are_bought_where_the_tree_has_them(self):
+        """Ordem 10b: ao nivel dele, quem tem nos de Exp/Loot compra-os todos antes do dano (druid e
+        paladin os dois, sorcerer so Exp); o knight nao tem nenhum e diz-se; e a conta a mao do
+        `validation.exp_loot_by_hand` (so arvore.json) bate nos totais e confirma que, antes do
+        dano, nenhum rank de Exp/Loot cabia no que sobrava."""
+        from baiakvault import validation
+        raw = json.loads((helpers.ROOT / "data" / "catalogo" / "arvore.json").read_text(encoding="utf-8"))
+        has = {"knight": (False, False), "druid": (True, True), "paladin": (True, True), "sorcerer": (True, False)}
+        for voc, b in self.plans.items():
+            info = b["priority"]
+            tot = info["totals"]
+            final = validation.exp_loot_by_hand(raw, voc, b["level"], b["tree"])
+            before = validation.exp_loot_by_hand(raw, voc, b["level"], info["pre_damage_tree"])
+            self.assertAlmostEqual(final["exp"]["pct"], tot["expPct"], places=6, msg=voc)
+            self.assertAlmostEqual(final["loot"]["pct"], tot["lootPct"], places=6, msg=voc)
+            self.assertTrue(before["exp"]["exhausted"], (voc, before))
+            self.assertTrue(before["loot"]["exhausted"], (voc, before))
+            if voc in has:
+                exp, loot = has[voc]
+                self.assertEqual(final["exp"]["has_nodes"], exp, voc)
+                self.assertEqual(final["loot"]["has_nodes"], loot, voc)
+                self.assertEqual(tot["expPct"] > 0, exp, voc)
+                self.assertEqual(tot["lootPct"] > 0, loot, voc)
+                self.assertEqual(info["stage_points"]["exp"] > 0, exp, voc)
+                self.assertEqual(info["stage_points"]["loot"] > 0, loot, voc)
 
     def test_priority_is_measured_like_damage_and_compared(self):
         for voc, b in self.plans.items():
@@ -507,6 +613,42 @@ class RouteChoiceOnAHandMadeTree(unittest.TestCase):
         ch = builds.choose_avatar_route(self.cat, "knight", 320, self.el, forced=("k_hp0", "k_hp1", "k_hp2"))
         self.assertTrue(ch["forced"])
         self.assertEqual((ch["route"], ch["cost"], ch["level"]), (["k_hp0", "k_hp1", "k_hp2"], 3, 303))
+
+    def test_with_the_model_exp_beats_dps_and_without_exp_in_the_order_dps_wins(self):
+        """Ordem 10b: com o modelo linear (a escolha da 10/10b), uma rota de tier 0 por nos de ataque
+        que o modelo adora perde para a rota de Exp (Exp > DPS no vector); com a ordem da 10
+        (Avatar, dano) a mesma escolha da a rota de ataque, e a de Exp fica em `dps_best`... ao
+        contrario: a rota de maior DPS e a de ataque e a pagina mostra-a ao lado."""
+        atk = [_node("k_atk0", "Atk 0", 0, {"atkPct": 5}), _node("k_atk1", "Atk 1", 1, {"atkPct": 5}, ["k_atk0"]),
+               _node("k_atk2", "Atk 2", 2, {"atkPct": 5}, ["k_atk1"])]
+        nodes = list(self.cat.tree_by_vocation["knight"]["nos"]) + atk
+        nodes[-4]["requer"] = ["k_hp2", "k_exp2", "k_atk2"]   # o Avatar liga tambem a rota de ataque
+        cat = types.SimpleNamespace(tree_by_vocation={"knight": {"vocacao": "knight", "nos": nodes}},
+                                    node_by_id={n["id"]: n for n in nodes})
+        model = {"_base": 100.0, "_dps": 100.0, "atkPct": 0.01, "spellDmgPct": 0.0, "critChance": 0.0, "critDmg": 0.0,
+                 "attackSpeedPct": 0.0, "elementDmgPct": {}}
+        # nivel 305: a rota de Exp (5) + Avatar gasta tudo (3 % exp); as outras deixam 2 pontos, que compram
+        # Exp 0 rank 1 (1 % exp) — e a Exp que decide, nao os 15 % de ataque que o modelo adora
+        ch = builds.choose_avatar_route(cat, "knight", 305, self.el, model=model)
+        self.assertEqual(ch["route"], ["k_exp0", "k_exp1", "k_exp2"])
+        self.assertEqual(ch["priority_stages"], ("exp", "loot"))
+        self.assertEqual(tuple(ch["vector_10b"][:3]), (1, 3.0, 0.0))
+        self.assertEqual(tuple(ch["cheapest_vector_10b"][:3]), (1, 1.0, 0.0))
+        self.assertEqual(ch["dps_best"]["route"], ["k_atk0", "k_atk1", "k_atk2"])
+        self.assertEqual(tuple(ch["dps_best"]["vector"][:3]), (1, 1.0, 0.0))
+        self.assertFalse(ch["dps_best"]["same"])
+        self.assertFalse(ch["dps_best"]["same_exp_loot"])
+        self.assertGreater(ch["dps_best"]["model_score"], ch["model_score"])
+        # a ordem da 10 (sem Exp/Loot): a rota de ataque ganha
+        old = builds.PRIORITY_ORDER
+        try:
+            builds.PRIORITY_ORDER = ("avatar", "damage")
+            ch10 = builds.choose_avatar_route(cat, "knight", 320, self.el, model=model)
+        finally:
+            builds.PRIORITY_ORDER = old
+        self.assertEqual(ch10["route"], ["k_atk0", "k_atk1", "k_atk2"])
+        self.assertEqual(ch10["priority_stages"], ())
+        self.assertTrue(ch10["dps_best"]["same"])
 
     def test_dominance_pruning_drops_routes_that_only_add_rest_nodes(self):
         category = {"k_hp0": "rest", "k_hp1": "rest", "k_exp0": "exp"}
