@@ -36,7 +36,8 @@ PRINT_NEIGHBOURS = 5
 
 VOCATION_LABEL = {"knight": "Knight (EK)", "monk": "Monk", "paladin": "Paladin (RP)",
                   "sorcerer": "Sorcerer (MS)", "druid": "Druid (ED)"}
-GOAL_LABEL = {"best": "melhor (equilibrada: aguenta e sustenta a mana)", "damage": "dano (DPS do ciclo = XP/h; o custo nao conta)",
+GOAL_LABEL = {"priority": builds_module.PRIORITY_ASKED,
+              "best": "melhor (equilibrada: aguenta e sustenta a mana)", "damage": "dano (DPS do ciclo = XP/h; o custo nao conta)",
               "tank": "tank (sobreviver)", "heal": "cura", "support": "support"}
 INDEX_WARNING = ("Os indices de XP e de loot sao a conta que o proprio jogo faz para ordenar "
                  "as hunts: <b>XP por ponto de vida a abater — eficiencia, nao XP/h</b>. Uma hunt "
@@ -103,13 +104,13 @@ def render_index(cat, characters, generated_at, advice_by_slug=None):
     default_goal = builds_module.DEFAULT_GOAL
     links = " · ".join('<a href="builds/%s-%s.html">%s</a>' % (voc, default_goal, h.esc(VOCATION_LABEL[voc]))
                        for voc, goal in builds_module.BUILDS if goal == default_goal)
-    parts.append('<ul><li><a href="builds/index.html">Builds</a> — a build de <b>dano</b> de cada vocacao (%s): '
-                 "o maior DPS do ciclo (= XP/h), sem tecto de gold — pocoes e runas a vontade nos mages e no "
-                 "paladin, a mana como limite no knight e no monk, sobreviver so como restricao minima "
-                 "(decisao do Andre, 16/09/2026) — por nivel: arvore por ordem de compra, equipamento BiS, "
-                 "rotacao do Helper com o gold/h e numeros do simulador; a build «melhor» (equilibrada) e as "
-                 'builds por objectivo (tank, cura, support) ficam la tambem; '
-                 '<a href="builds/validacao.html">validacao cruzada</a> com o guia</li>' % links)
+    parts.append('<ul><li><a href="builds/index.html">Builds</a> — a build das <b>prioridades do Andre</b> de cada '
+                 "vocacao (%s): a arvore pela ordem estrita Avatar › Exp › Loot › Crit › Ataque › Dano critico › "
+                 "Elemento › o que sobrar (decisao do Andre, 21/09/2026), com a build de <b>dano</b> (o maior DPS do "
+                 "ciclo = XP/h, sem tecto de gold — decisao de 16/09/2026) ao lado em numero — por nivel: arvore por "
+                 "ordem de compra e etapa, codigo para importar, equipamento BiS, rotacao do Helper com o gold/h e "
+                 "numeros do simulador; a build «melhor» (equilibrada) e as builds por objectivo (tank, cura, "
+                 'support) ficam la tambem; <a href="builds/validacao.html">validacao cruzada</a> com o guia</li>' % links)
     parts.append('<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
                  '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li></ul>'
                  % (len(cat.hunts), len(cat.charms)))
@@ -330,6 +331,17 @@ def _tree_diff_block(cat, character, plan, diff):
     return "".join(out)
 
 
+def _recommended_tree_block(cat, plan):
+    """A arvore recomendada ao nivel exacto dele, na moldura das builds (ordem de compra por
+    etapas, papeis, totais por categoria, Avatar, «contra a build de dano») — sem o codigo,
+    que vai no bloco a seguir com o custo de importar pelos pontos que a BD diz que ele tem."""
+    if not plan:
+        return ""
+    return ('<div class="cartao"><h4>A arvore recomendada ao teu nivel (%s, nivel %d, em %s)</h4>%s</div>'
+            % (h.esc(GOAL_LABEL.get(plan["goal"], plan["goal"])), plan["level"], h.esc(cat.hunt_by_id[plan["hunt"]]["nome"]),
+               pages_builds._tree_block(cat, plan, root="../", with_code=False)))
+
+
 def render_tree_section(cat, character, tree, plan, diff=None):
     out = ["<h3>Arvore</h3>"]
     level = character.get("level")
@@ -337,6 +349,7 @@ def render_tree_section(cat, character, tree, plan, diff=None):
         out.append('<p class="mudo">Sem nos registados — nao se sabe o que ja comprou. A forma exacta de a registar: '
                    "na arvore do jogo, <b>Exportar</b> (copia um codigo) e colar em "
                    "<code>http://127.0.0.1:8774/editar/%s</code>, seccao Arvore.</p>" % h.esc(character["slug"]))
+        out.append(_recommended_tree_block(cat, plan))
         out.append(_tree_diff_block(cat, character, plan, diff))
         return "".join(out)
     rows = []
@@ -364,6 +377,7 @@ def render_tree_section(cat, character, tree, plan, diff=None):
             "ligada a partir do tier 0" if chk["connected"] else "<b>nao ligada ao tier 0</b> (falta registar um no do caminho?)",
             "ranks ≤ maximo" if chk["max_rank_ok"] else "<b>rank acima do maximo</b>",
             h.fmt(chk["spent"]), h.fmt(chk["budget"]), "" if chk["ok"] else " — ⚠"))
+    out.append(_recommended_tree_block(cat, plan))
     out.append(_tree_diff_block(cat, character, plan, diff))
     return "".join(out)
 

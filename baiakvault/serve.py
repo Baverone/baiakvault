@@ -603,6 +603,16 @@ def make_handler(cfg):
             url = urllib.parse.urlparse(self.path)
             path = urllib.parse.unquote(url.path)
             fields = self._fields()
+            if path == "/reiniciar":
+                # ordem 9 (21/09/2026): o serve fica de pe o dia todo com o CODIGO com que arrancou;
+                # depois de um merge e preciso deita-lo abaixo para o vigia `baiakvault-serve` o
+                # relancar. Sem `taskkill` (a allowlist do ai-pc nega-o): com o token, responde e sai
+                # (`scripts/reiniciar_serve.py` faz o pedido). So do proprio PC.
+                if not self.local or not self._can_write(fields):
+                    return self._send("so do PC e com o token\n", 403, "text/plain; charset=utf-8")
+                self._send("a sair: o vigia relanca o serve\n", 200, "text/plain; charset=utf-8")
+                threading.Timer(0.5, lambda: os._exit(0)).start()
+                return None
             if not path.startswith("/editar"):
                 return self._send("nao existe\n", 404, "text/plain; charset=utf-8")
             if not self._can_write(fields):

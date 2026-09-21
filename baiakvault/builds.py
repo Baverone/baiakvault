@@ -746,6 +746,7 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
     parked = {}     # no -> ganho/ponto da alternativa: poupanca recusada neste estado, fora da fila ate se comprar algo
     no_test = set()  # nos que voltam a fila sem mais nada compravel: entram sem o teste (a alternativa e nada)
     last_rejected = {}   # no -> pontos gastos quando a poupanca foi recusada
+    dropped = set()      # so com `only`: os que nao cabiam, para re-avaliar a cada compra
     while heap or parked:
         if not heap:
             for pid, alt_pp in parked.items():
@@ -761,7 +762,12 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
         else:
             pkg = package(node)
             if pkg is None:
-                continue  # nao cabe no orcamento: sai da fila
+                # nao cabe no orcamento: sai da fila. Com `only` (uma etapa das prioridades, que
+                # tem de ESGOTAR a categoria) volta a fila a proxima compra: o caminho pode ficar
+                # mais barato quando um vizinho entra
+                if only is not None:
+                    dropped.add(nid)
+                continue
             gain, cost, purchases, s, level = pkg
             fresh[nid] = pkg
             if heap and gain < -heap[0][0]:
@@ -804,6 +810,9 @@ def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target
         for pid, alt_pp in parked.items():
             heapq.heappush(heap, (-alt_pp, pid))
         parked = {}
+        for pid in dropped:
+            heapq.heappush(heap, (-math.inf, pid))
+        dropped = set()
         heapq.heappush(heap, (-gain, nid))
     return ranks, steps
 

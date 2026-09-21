@@ -61,7 +61,7 @@ formulario local do proprio BaiakVault (ordem 2).
     docs/builds/validacao.md   GERADO pelo build (validation.py): nao se edita a mao
     scripts/actualizar_catalogo.py   recopia e valida o catalogo a partir do ai-pc
     scripts/_ler_charms_bundle.py    le o bundle local a procura de «charm» (foi com isto que se escreveu o charms.md)
-    tests/                 unittest, sem rede; fixtures: personagem.json (1), personagens.json (1 por vocacao), codigos.json (os 5 codigos de build do supervisor)
+    tests/                 unittest, sem rede; fixtures: personagem.json (1), personagens.json (1 por vocacao), codigos.json (os 5 codigos de build do supervisor); test_priority.py = as prioridades do Andre (ordem 9) e a migracao v6
     capturas/              Win+Shift+S do Andre (fora do git)
 
 ## Como correr
@@ -90,7 +90,7 @@ antigo. **O BaiakVault usa o 8774.** Nao se trocam.
 - Comentarios explicam porque, nao o que. Decisoes com data aqui.
 - Sem «None»/«nan»/«undefined» em pagina nenhuma (ha um teste a garantir).
 
-## Esquema da vault.db (v5)
+## Esquema da vault.db (v6)
 
 Chaves sao as dos catalogos e validam-se ao escrever (chave desconhecida =
 `VaultError`, nao insercao). `source` e 'manual' ou 'captura'; NULL onde nao
@@ -99,7 +99,7 @@ escreveu.
 
 | tabela | chave | o que guarda |
 |---|---|---|
-| `characters` | name (unico), slug | vocation, level, current_hunt (hunts.id), vip 0/1, goal (v2/v4: best/damage/tank/heal/support, so os da vocacao), notes; v5: fixed_rotation_json (lista ordenada de nomes de feiticos da vocacao, ate 4) e fixed_weapon (itens.nome) — o que ELE fixou; NULL = nao fixou |
+| `characters` | name (unico), slug | vocation, level, current_hunt (hunts.id), vip 0/1, goal (v2/v4: best/damage/tank/heal/support, so os da vocacao; v6: mais `priority`, a omissao de todas), notes; v5: fixed_rotation_json (lista ordenada de nomes de feiticos da vocacao, ate 4) e fixed_weapon (itens.nome) — o que ELE fixou; NULL = nao fixou |
 | `character_tree` | (character_id, node_key) | rank; node_key = arvore.id (ex. `k_fury`), tem de ser da vocacao do personagem, rank <= maximo |
 | `character_equipment` | (character_id, slot) | item_key = itens.nome em minusculas, item_name, upgrade_level, imbuements_json, attributes_json. Slots do catalogo + `backpack`/`ammo` |
 | `character_charms` | (character_id, charm_key) | tier 1..3, assigned_creature_key (bestiario.chave) |
@@ -425,6 +425,44 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   30 s o build com personagem; o teste de contagens do catalogo passava a construir um
   `Catalog` sem o bruto sobre o raw partilhado e deixava as runas sem `custo_gold` para
   os testes seguintes — corrigido no teste).
+
+- **21/09/2026 (ordem 9, decisao do Andre)** — **Niveis novos** dados por ele: Knight 548,
+  Monk 336, Paladin 284, Druid 498, Sorcerer 481 (gravados em `main` pelo `db.Vault`,
+  `source='manual'`, `seen_at` 2026-09-21, com uma `reading` por personagem na Livraria
+  FIRE — a primeira serie para o XP/h). **Objectivo `priority`** («Prioridades do Andre:
+  Avatar › Exp › Loot › Crit › Ataque › Dano critico › Elemento»), **omissao de todas as
+  vocacoes** (`builds.DEFAULT_GOAL`, primeiro em `db.GOALS_BY_VOCATION`, esquema **v6**
+  para o CHECK; os 5 continuam com `goal` NULL). Sobrepoe-se a omissao «dano» de 16/09
+  13:30 so na omissao: `damage`/`best`/`tank`/`heal`/`support` ficam para comparacao.
+  **Regras** (`builds.PRIORITY_ORDER`, `PRIORITY_STAT_CATEGORY`, `AVATAR_NODE` — para ele
+  afinar): uma etapa esgota-se (todos os ranks de todos os nos dela que os pontos deixem
+  comprar) antes da seguinte; um no pertence a categoria de MAIOR prioridade entre os seus
+  efeitos (Berserk Mastery -> Ataque, Lord of Destruction -> Crit, Guiding Presence -> Exp,
+  Rage of the Skies/Hell's Core/Divine Caldera -> Ataque, Twin Bursts -> Elemento);
+  `elementDmgPct` so conta nos elementos que a rotacao de hunt e a arma usam
+  (`priority_elements`: feiticos da rotacao + fisico/arma ou o elemento da wand), os outros
+  ficam no «resto». Etapa 1 = Avatar (tier 11, 300) + o caminho ligado mais barato
+  (`avatar_reach`, Dijkstra de `unlock_path` a partir do tier 0: knight 16, paladin 19,
+  sorcerer 16, druid 20, monk 19 pontos — **o Avatar cabe aos niveis 316/319/316/320/319**;
+  `validacao.md` §1c refaz a conta so com o `arvore.json`); se nao cabe, salta-se AGORA, a
+  pagina diz o nivel e mostra a build e o codigo desse nivel (`avatar_plan`), e o advisor
+  diz «no nivel X: importar a build com o Avatar (respec fD)» — nunca se poupa. Etapas 2-3
+  (Exp, Loot) pelo proprio efeito por ponto (com o caminho que faltar no custo; o simulador
+  nao mede XP nem loot); 4-7 pelo guloso de DPS de `optimize_tree` **restrito** aos nos da
+  categoria (`only=`), com contexto fixo ao nivel da pagina; 8 o `_refill` de sempre e a
+  poda **so aqui** (`prune_and_refill(protected=)` nao toca nas etapas 1-7). Os nos do
+  caminho de categoria mais baixa ficam a rank 1 «so ligacao». A build mede-se como a
+  «dano» (`metric_goal`), o equipamento optimiza-se para a arvore das prioridades e a
+  rotacao volta a escolher-se (a fixada fica); a pagina diz em numero o que a «dano» do
+  mesmo nivel daria a mais (knight 548 +27 % de DPS, paladin 284 +22 %, monk 336 +6 % —
+  e o preco das prioridades, mostrado, nunca imposto). Ao nivel dele: knight sem nos de
+  Exp/Loot (diz-se), crit 170 pontos, ataque 61; paladin 284 sem Avatar (cabe a 319), exp
+  58 (Hunter's Pace 10), loot 55 (Scavenger 10), crit 171; monk 336 com Avatar (319) e 17
+  pontos a sobrar (crit 15, Iron Fists 1, Flow 1). Cada nivel constroi-se do zero (sem
+  caminho por nivel): ~3 s por build, ~10 s com o `avatar_plan`; cache em
+  `Planner._priority`. **Limite conhecido**: o guloso preguicoso dentro de uma categoria
+  pode preferir um rank caro a dois baratos com mais efeito por ponto (paladin: Hawkeye 2
+  em vez de Keen Aim 2 + Precision 2) — e o ganho medido, nao o stat, que decide.
 
 ## Fontes
 

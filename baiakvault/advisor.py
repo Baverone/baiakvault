@@ -218,8 +218,11 @@ def tree_suggestions(cat, state, goal, target, equipment, rotation, plan, curren
     ranks = state["tree"]
     out = []
     if ranks is None:
-        return [_missing("a arvore (nenhum no registado)",
-                         "sem a arvore nao se sabe que no comprar a seguir — modo de edicao, seccao Arvore")]
+        out.append(_missing("a arvore (nenhum no registado)",
+                            "sem a arvore nao se sabe que no comprar a seguir — modo de edicao, seccao Arvore"))
+        if goal == B.PRIORITY_GOAL:
+            out += avatar_suggestion(cat, state, plan)   # nao depende da arvore dele: e o nivel em que o Avatar cabe
+        return out
     spent = _tree_spent(cat, ranks)
     budget = F.tree_budget(level)
     left = budget - spent
@@ -304,6 +307,15 @@ def priority_tree_suggestions(cat, state, target, equipment, rotation, plan, cur
             % (stage, cat.hunt_by_id[target.hunt_id]["nome"], _fmt_pct(gain), left, "" if left == 1 else "s"),
             "%d ponto%s" % (cost, "" if cost == 1 else "s"), SOURCE_SIM, max(MIN_GAIN_PCT, gain) if fits else MIN_GAIN_PCT,
             node=nxt.node_id, rank=rank, via=path, points_left=left, stage=nxt.stage))
+    return out + avatar_suggestion(cat, state, plan)
+
+
+def avatar_suggestion(cat, state, plan):
+    """«No nivel X: importar a build com o Avatar» quando o Avatar (1.a prioridade) ainda
+    nao cabe ao nivel dele — o passo la e um respec (fD), nao poupar pontos."""
+    voc, level = state["vocation"], state["level"]
+    ranks = state.get("tree") or {}
+    out = []
     info = plan.get("priority") or {}
     avatar_plan = plan.get("avatar_plan")
     if not info.get("avatar") and avatar_plan is not None:
