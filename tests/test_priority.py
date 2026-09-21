@@ -12,6 +12,8 @@ Ataque > Dano critico > Elemento > o resto, cada etapa esgotada antes da seguint
 import heapq
 import json
 import sqlite3
+import time
+import types
 import unittest
 
 import helpers
@@ -81,29 +83,136 @@ class PriorityBuilds(unittest.TestCase):
         self.assertEqual([v for v, g in builds.BUILDS if g == "priority"], ["knight", "druid", "sorcerer", "paladin", "monk"])
 
     def test_avatar_when_the_cheapest_path_plus_300_fits(self):
-        """(a) A conta e a do arvore.json; o motor tem de dar o mesmo nivel de alcance."""
+        """(a) A conta e a do arvore.json; o motor tem de dar o mesmo nivel de alcance da rota
+        mais barata, e o Avatar entra quando ela cabe (a rota escolhida so pode ser mais cara
+        se ainda couber — ordem 9b)."""
         for voc, level in LEVELS.items():
             reach, avatar_id = cheapest_avatar_level(voc)
             b = self.plans[voc]
             info = b["priority"]
-            self.assertEqual(info["avatar_level"], reach, voc)
+            rt = info["route"]
+            self.assertEqual(rt["cheapest_level"], reach, voc)
+            self.assertEqual(info["avatar_level"], rt["cost"] + AVATAR_COST, voc)
+            self.assertGreaterEqual(info["avatar_level"], reach, voc)
             fits = reach <= level
             self.assertEqual(info["avatar"], fits, (voc, level, reach))
             self.assertEqual(b["tree"].get(avatar_id, 0) == 1, fits, voc)
             if fits:
                 self.assertIsNone(b.get("avatar_plan"))
-                # o caminho do Avatar custa exactamente o que a conta diz
-                self.assertEqual(info["stage_points"]["avatar"], reach, voc)
+                self.assertLessEqual(info["avatar_level"], level, voc)
+                # a rota do Avatar custa exactamente o que o motor diz que custa
+                self.assertEqual(info["stage_points"]["avatar"], info["avatar_level"], voc)
             else:
                 ap = b["avatar_plan"]
                 self.assertIsNotNone(ap, voc)
-                self.assertEqual(ap["level"], reach)
+                self.assertLessEqual(info["avatar_level"], reach + builds.PRIORITY_ROUTE_MAX_DELAY, voc)
+                self.assertEqual(ap["level"], info["avatar_level"])
                 self.assertTrue(ap["priority"]["avatar"])
                 self.assertEqual(ap["tree"].get(avatar_id), 1)
+                # a build do nivel X leva a MESMA rota que se escolheu abaixo dele
+                self.assertTrue(ap["priority"]["route"]["forced"])
+                self.assertEqual(ap["priority"]["avatar_path"], info["avatar_path"])
+                # e a rota ja esta comprada agora (plano B), a rank >= 1
+                self.assertEqual(info["stage_points"]["avatar"], rt["cost"], voc)
+                for nid in info["avatar_path"]:
+                    self.assertGreaterEqual(b["tree"].get(nid, 0), 1, (voc, nid))
         # os que ele deu: knight, druid e sorcerer tem o Avatar; o paladin nao (284 < caminho + 300)
         for voc in ("knight", "druid", "sorcerer"):
             self.assertTrue(self.plans[voc]["priority"]["avatar"], voc)
         self.assertFalse(self.plans["paladin"]["priority"]["avatar"])
+
+    def test_route_is_at_least_as_good_as_the_cheapest(self):
+        """Ordem 9b (a): nos 5 ao nivel dele, a rota escolhida e pelo menos tao boa quanto a
+        mais barata no vector lexicografico das prioridades; a mais barata e a do arvore.json."""
+        for voc, level in LEVELS.items():
+            info = self.plans[voc]["priority"]
+            rt = info["route"]
+            reach, _ = cheapest_avatar_level(voc)
+            self.assertEqual(rt["cheapest_cost"] + AVATAR_COST, reach, voc)
+            self.assertIsNotNone(rt["vector"], voc)
+            self.assertIsNotNone(rt["cheapest_vector"], voc)
+            self.assertGreaterEqual(tuple(rt["vector"]), tuple(rt["cheapest_vector"]), (voc, rt["route"], rt["cheapest_route"]))
+            self.assertEqual(rt["vector"][0], 1, voc)   # avaliada com o Avatar
+            self.assertGreaterEqual(rt["cost"], rt["cheapest_cost"], voc)
+            self.assertFalse(rt["forced"], voc)
+            # a rota so sobe e comeca no tier 0
+            node_by_id = {n["id"]: n for n in self.cat.tree_by_vocation[voc]["nos"]}
+            self.assertEqual(node_by_id[rt["route"][0]]["tier"], 0, voc)
+            for a, b in zip(rt["route"], rt["route"][1:]):
+                self.assertIn(a, node_by_id[b].get("requer") or [], (voc, a, b))
+            self.assertIn(rt["route"][-1], node_by_id[builds.AVATAR_NODE[voc]]["requer"], voc)
+            # a rota sozinha e clicavel a partir do tier 0 e ligada
+            steps = [(nid, 1) for nid in rt["route"]]
+            self.assertIsNone(treecode.purchase_order_is_clickable(self.cat, voc, steps), voc)
+            self.assertTrue(treecode.is_connected(self.cat, voc, {nid: 1 for nid in rt["route"]}), voc)
+            # e a ordem de compra da build comeca pela rota, na etapa «avatar»
+            order = self.plans[voc]["order"]
+            self.assertEqual([st.node_id for st in order[:len(rt["route"])]], rt["route"], voc)
+            self.assertTrue(all(st.stage == "avatar" for st in order[:len(rt["route"])]), voc)
+
+    def test_routes_enumeration_count_and_time(self):
+        """Ordem 9b (c): as rotas por vocacao enumeram-se (centenas, abaixo do tecto de poda) em
+        bem menos de 2 s, e a escolha inteira por stat tambem; a contagem bate na conta a mao."""
+        from baiakvault import validation
+        by_hand = validation.avatar_routes_by_hand(json.loads(
+            (helpers.ROOT / "data" / "catalogo" / "arvore.json").read_text(encoding="utf-8")))
+        for voc in LEVELS:
+            t0 = time.perf_counter()
+            routes = builds.avatar_routes(self.cat, voc)
+            dt = time.perf_counter() - t0
+            self.assertLess(dt, 2.0, (voc, dt))
+            self.assertGreater(len(routes), 1, voc)
+            self.assertLessEqual(len(routes), builds.PRIORITY_ROUTE_MAX_ENUM, voc)
+            self.assertEqual((len(routes), min(c for c, _ in routes)), by_hand[voc], voc)
+            self.assertEqual(len({tuple(r) for _, r in routes}), len(routes), voc)   # sem repetidas
+            t0 = time.perf_counter()
+            ch = builds.choose_avatar_route(self.cat, voc, LEVELS[voc], frozenset({"physical"}))
+            dt = time.perf_counter() - t0
+            self.assertLess(dt, 2.0, (voc, dt))
+            self.assertEqual(ch["routes_total"], len(routes))
+            self.assertEqual(ch["routes_pruned"], 0)
+
+    def test_paladin_below_avatar_has_level_x_and_both_plans(self):
+        """Ordem 9b (B): o paladin 284 tem o nivel X, a rota com os ranks do nivel X e os planos
+        A e B com numeros; a build do plano B ao nivel X tem o Avatar e passa no tree_check."""
+        b = self.plans["paladin"]
+        info = b["priority"]
+        self.assertFalse(info["avatar"])
+        plans = b["avatar_plans"]
+        self.assertIsNotNone(plans)
+        lx = plans["level"]
+        self.assertEqual(lx, info["avatar_level"])
+        self.assertEqual(lx, plans["route_cost"] + AVATAR_COST)
+        self.assertGreaterEqual(lx, 319)   # a mais barata: 19 + 300
+        self.assertLessEqual(lx, 319 + builds.PRIORITY_ROUTE_MAX_DELAY)
+        self.assertEqual(plans["route"], info["avatar_path"])
+        ap = b["avatar_plan"]
+        self.assertEqual(ap["level"], lx)
+        self.assertEqual(ap["tree"].get("p_avatar_light"), 1)
+        self.assertTrue(builds.tree_check(self.cat, "paladin", lx, ap["tree"])["ok"])
+        for nid in plans["route"]:
+            self.assertEqual(plans["route_ranks"][nid], ap["tree"].get(nid, 0))
+            self.assertGreaterEqual(plans["route_ranks"][nid], 1)
+        # plano A: so a rota, sem gold, com (nivel - R) pontos parados; DPS medido e abaixo do B
+        a, pb = plans["a"], plans["b"]
+        self.assertEqual(a["gold"], 0)
+        self.assertEqual(a["unspent"], 284 - plans["route_cost"])
+        self.assertEqual(a["tree"], {nid: 1 for nid in plans["route"]})
+        self.assertGreater(a["dps"], 0)
+        self.assertGreater(pb["dps"], a["dps"])
+        self.assertEqual(pb["dps"], b["metrics"]["dps_cycle"])
+        self.assertEqual(pb["gold"], treecode.import_cost(lx))
+        self.assertEqual(pb["unspent"], 0)
+        self.assertEqual(plans["recommended"], "B")
+        # os dois codigos: o de agora e o do nivel X, os dois com a rota
+        now_code = treecode.encode(self.cat, "paladin", 284, b["tree"])
+        x_code = treecode.encode(self.cat, "paladin", lx, ap["tree"])
+        self.assertTrue(now_code.startswith("BT1-P284-"))
+        self.assertTrue(x_code.startswith("BT1-P%d-" % lx))
+        self.assertEqual(treecode.decode(self.cat, x_code), ("paladin", lx, ap["tree"]))
+        # os que chegam nao tem planos
+        for voc in ("knight", "druid", "sorcerer"):
+            self.assertIsNone(self.plans[voc]["avatar_plans"], voc)
 
     def test_higher_categories_are_exhausted_before_lower_ones(self):
         """(b) Para cada categoria, no estado da arvore no fim da etapa dela: nenhum rank
@@ -187,6 +296,62 @@ class PriorityBuilds(unittest.TestCase):
         sorc = {builds.priority_category(n, el) for n in self.cat.tree_by_vocation["sorcerer"]["nos"]}
         self.assertNotIn("loot", sorc)
         self.assertIn("exp", sorc)
+
+
+def _node(nid, nome, tier, efeito, requer=None, custo=1, tipo="small", rank_max=10):
+    return {"id": nid, "nome": nome, "tier": tier, "tipo": tipo, "custo_por_rank": custo, "rank_maximo": rank_max,
+            "requer": requer or [], "efeito_por_rank": efeito}
+
+
+class RouteChoiceOnAHandMadeTree(unittest.TestCase):
+    """Ordem 9b (b): uma arvore feita a mao em que a rota mais barata passa por HP e uma rota
+    2 pontos mais cara passa por Exp — o motor tem de escolher a segunda (e a mais barata
+    quando o tecto de atraso nao a deixa)."""
+
+    def setUp(self):
+        # tier 0: HP (1) e Exp (1); tier 1: HP (1) e Exp (2); tier 2: HP (1) e Exp (2); tier 3: o Avatar (300)
+        nodes = [_node("k_hp0", "HP 0", 0, {"hpPct": 1}), _node("k_exp0", "Exp 0", 0, {"expPct": 1}),
+                 _node("k_hp1", "HP 1", 1, {"hpPct": 1}, ["k_hp0"]), _node("k_exp1", "Exp 1", 1, {"expPct": 1}, ["k_exp0"], custo=2),
+                 _node("k_hp2", "HP 2", 2, {"hpPct": 1}, ["k_hp1"]), _node("k_exp2", "Exp 2", 2, {"expPct": 1}, ["k_exp1"], custo=2),
+                 _node("k_avatar_steel", "Avatar of Steel", 3, {"atkPct": 10}, ["k_hp2", "k_exp2"], custo=300, tipo="notable", rank_max=1)]
+        self.cat = types.SimpleNamespace(tree_by_vocation={"knight": {"vocacao": "knight", "nos": nodes}},
+                                         node_by_id={n["id"]: n for n in nodes})
+        self.el = frozenset({"physical"})
+
+    def test_routes_and_costs(self):
+        routes = builds.avatar_routes(self.cat, "knight")
+        self.assertEqual(sorted(routes), [(3, ["k_hp0", "k_hp1", "k_hp2"]), (5, ["k_exp0", "k_exp1", "k_exp2"])])
+
+    def test_the_useful_route_beats_the_cheapest_when_the_avatar_fits(self):
+        ch = builds.choose_avatar_route(self.cat, "knight", 320, self.el)
+        self.assertTrue(ch["fits"])
+        self.assertEqual(ch["route"], ["k_exp0", "k_exp1", "k_exp2"])
+        self.assertEqual((ch["cost"], ch["level"]), (5, 305))
+        self.assertEqual((ch["cheapest_cost"], ch["cheapest_level"], ch["cheapest_route"]), (3, 303, ["k_hp0", "k_hp1", "k_hp2"]))
+        self.assertGreater(tuple(ch["vector"]), tuple(ch["cheapest_vector"]))
+        self.assertGreater(ch["vector"][1], ch["cheapest_vector"][1])   # mais exp
+        self.assertEqual(ch["vector"][0], 1)
+
+    def test_below_the_avatar_the_delay_cap_decides(self):
+        ch = builds.choose_avatar_route(self.cat, "knight", 100, self.el)
+        self.assertFalse(ch["fits"])
+        self.assertEqual(ch["eval_level"], 303 + builds.PRIORITY_ROUTE_MAX_DELAY)
+        self.assertEqual(ch["route"], ["k_exp0", "k_exp1", "k_exp2"])   # atrasa 2 niveis, dentro do tecto de 5
+        self.assertEqual(ch["level"], 305)
+        ch1 = builds.choose_avatar_route(self.cat, "knight", 100, self.el, max_delay=1)
+        self.assertEqual(ch1["route"], ["k_hp0", "k_hp1", "k_hp2"])   # 2 > 1: fica a mais barata
+        self.assertEqual(ch1["level"], 303)
+
+    def test_a_forced_route_is_kept_and_marked(self):
+        ch = builds.choose_avatar_route(self.cat, "knight", 320, self.el, forced=("k_hp0", "k_hp1", "k_hp2"))
+        self.assertTrue(ch["forced"])
+        self.assertEqual((ch["route"], ch["cost"], ch["level"]), (["k_hp0", "k_hp1", "k_hp2"], 3, 303))
+
+    def test_dominance_pruning_drops_routes_that_only_add_rest_nodes(self):
+        category = {"k_hp0": "rest", "k_hp1": "rest", "k_exp0": "exp"}
+        keep, dropped = builds._dominated_routes([(2, ["k_hp0", "k_hp1"]), (1, ["k_hp0"]), (2, ["k_exp0", "k_hp1"])], category)
+        self.assertEqual(dropped, 1)
+        self.assertEqual(sorted(keep), [(1, ["k_hp0"]), (2, ["k_exp0", "k_hp1"])])
 
 
 class SchemaV6(unittest.TestCase):

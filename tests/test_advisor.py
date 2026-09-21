@@ -8,7 +8,7 @@ import re
 import unittest
 
 import helpers
-from baiakvault import advisor, builds, db, formulas as F
+from baiakvault import advisor, builds, db, formulas as F, treecode
 
 FORBIDDEN = re.compile(r"\b(None|nan|NaN|undefined|null)\b")
 
@@ -116,8 +116,18 @@ class Advisor(unittest.TestCase):
         self.assertIn(tree[0]["stage"], ("avatar", "exp", "loot", "crit", "attack", "critdmg", "element", "rest"))
         respec = [s for s in druid["suggestions"] if s["kind"] == "respec" and "Avatar of Nature" in s["action"]]
         self.assertTrue(respec, druid["suggestions"])
-        self.assertEqual(respec[0]["level_at"], 320)
-        self.assertTrue(respec[0]["code"].startswith("BT1-D320-"))
+        # ordem 9b: a 1.a linha e o Avatar ao nivel X com o plano B; X = rota mais util + 300, a mais
+        # barata do druid da 320 e a escolhida nao atrasa mais de PRIORITY_ROUTE_MAX_DELAY
+        self.assertIs(druid["suggestions"][0], respec[0])
+        lv = respec[0]["level_at"]
+        self.assertIn(lv, range(320, 320 + builds.PRIORITY_ROUTE_MAX_DELAY + 1))
+        self.assertTrue(respec[0]["code"].startswith("BT1-D%d-" % lv))
+        self.assertIn("plano B", respec[0]["action"])
+        self.assertIn("Plano A", respec[0]["why"])
+        self.assertIn("ordem de clique", respec[0]["why"])
+        self.assertEqual(len(respec[0]["route"]), len(respec[0]["plans"]["route"]))
+        self.assertEqual(respec[0]["plans"]["a"]["gold"], 0)
+        self.assertEqual(respec[0]["plans"]["b"]["gold"], treecode.import_cost(lv))
         knight = self.advice["knight"]
         self.assertEqual(knight["goal"], "tank")
         self.assertFalse(knight["goal_defaulted"])

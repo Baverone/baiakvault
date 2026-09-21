@@ -51,7 +51,7 @@ MAX_MISSING = 2
 # «prioridades» (21/09/2026): o proximo no da ordem por etapas e o Avatar fora de alcance nao se
 # medem por ganho — levam uma pontuacao fixa para ficarem no topo da lista com o que e medido
 PRIORITY_STEP_SCORE = 10.0
-AVATAR_STEP_SCORE = 5.0
+AVATAR_STEP_SCORE = 20.0   # acima de PRIORITY_STEP_SCORE: abaixo do nivel do Avatar e a 1.a linha (ordem 9b)
 
 SOURCE_SIM = "formulas do cliente + simulador do BaiakVault"
 SOURCE_CATALOG = "catalogo (bundle do cliente)"
@@ -315,27 +315,49 @@ def priority_tree_suggestions(cat, state, target, equipment, rotation, plan, cur
 
 
 def avatar_suggestion(cat, state, plan):
-    """«No nivel X: importar a build com o Avatar» quando o Avatar (1.a prioridade) ainda
-    nao cabe ao nivel dele — o passo la e um respec (fD), nao poupar pontos."""
+    """«Avatar ao nivel X: plano B» quando o Avatar (1.a prioridade) ainda nao cabe ao
+    nivel dele (ordem 9b): a 1.a linha do proximo passo, com a rota por ordem de clique
+    para ele ir ja pondo pontos la e os dois planos com numeros — A (so a rota, guardar
+    o resto, sem gold) e B (gastar tudo pela ordem e importar ao nivel X; recomendado:
+    o gold nao conta para ele, decisao de 16/09/2026)."""
     voc, level = state["vocation"], state["level"]
     ranks = state.get("tree") or {}
     out = []
     info = plan.get("priority") or {}
     avatar_plan = plan.get("avatar_plan")
-    if not info.get("avatar") and avatar_plan is not None:
+    plans = plan.get("avatar_plans")
+    if not info.get("avatar") and avatar_plan is not None and plans is not None:
         lv = avatar_plan["level"]
         spent_now = _tree_spent(cat, ranks)
         code = treecode.encode(cat, voc, lv, avatar_plan["tree"])
+        route_text = " → ".join("%s %d" % (_node_name(cat, nid), plans["route_ranks"].get(nid) or 1) for nid in plans["route"])
+        missing = [nid for nid in plans["route"] if (ranks.get(nid, 0) or 0) < 1]
+        cheaper = ""
+        if plans["cheapest_level"] < lv:
+            cheaper = (" (a rota mais barata dava o Avatar ao nivel %d, mas passa por nos que nao rendem nas prioridades)"
+                       % plans["cheapest_level"])
+        a_vs_b = (plans["a"]["dps"] / plans["b"]["dps"] - 1) * 100 if plans["b"]["dps"] else None
         out.append(_suggestion(
-            "respec", "No nivel %d: importar a build com o %s (respec)" % (lv, _node_name(cat, B.AVATAR_NODE[voc])),
-            "o Avatar e a 1.a prioridade mas o caminho mais barato + 300 pontos so cabe ao nivel %d (tens %d); "
-            "ate la as outras prioridades seguem, e no nivel %d importa-se o codigo da build desse nivel — nao se "
-            "deixam pontos por gastar a poupar (o gold do respec nao conta, decisao de 16/09/2026)"
-            % (lv, level, lv),
-            "%s gold ao importar (cliente fD: 1000 + 200 x pontos gastos nessa altura; com os %d de agora seriam %s)"
-            % (_thousands(treecode.import_cost(lv)), spent_now, _thousands(treecode.import_cost(spent_now))),
-            SOURCE_SIM, AVATAR_STEP_SCORE, level_at=lv, code=code))
+            "respec", "%s ao nivel %d: plano B — gastar agora pela ordem e importar a build com o Avatar ao nivel %d (respec)"
+            % (_node_name(cat, B.AVATAR_NODE[voc]), lv, lv),
+            "o Avatar e a 1.a prioridade e a rota mais util (%d pontos) + 300 so cabe ao nivel %d (tens %d)%s. "
+            "Rota, por ordem de clique, para ires ja pondo pontos la (com o rank que tera ao nivel %d): %s%s. "
+            "Plano A (sem respec): agora so a rota e guardar o resto — 0 gold, mas ate ao nivel %d andas com %d pontos "
+            "por gastar e %s de DPS (%s vs %s no simulador). Plano B (recomendado): gasta tudo pela ordem e ao nivel %d "
+            "importa o codigo da build desse nivel; escolhe o A so se preferires nao pagar o respec"
+            % (plans["route_cost"], lv, level, cheaper, lv, route_text,
+               (" — ainda te faltam %d dos %d nos da rota" % (len(missing), len(plans["route"]))) if ranks and missing else "",
+               lv, plans["a"]["unspent"], _fmt_pct(a_vs_b) if a_vs_b is not None else "?",
+               _fmt_number(plans["a"]["dps"]), _fmt_number(plans["b"]["dps"]), lv),
+            "plano B: %s gold ao importar (cliente fD: 1000 + 200 x %d pontos gastos nessa altura; com os %d de agora seriam %s); "
+            "plano A: 0 gold"
+            % (_thousands(plans["b"]["gold"]), plans["b"]["gold_points"], spent_now, _thousands(treecode.import_cost(spent_now))),
+            SOURCE_SIM, AVATAR_STEP_SCORE, level_at=lv, code=code, route=list(plans["route"]), plans=plans))
     return out
+
+
+def _fmt_number(x):
+    return _thousands(x) if x is not None else "?"
 
 
 def _thousands(n):

@@ -369,6 +369,32 @@ def avatar_reach_by_hand(tree_json):
     return out
 
 
+def avatar_routes_by_hand(tree_json):
+    """{vocacao: (numero de rotas que so sobem do tier 0 ate ao Avatar, custo da mais barata a
+    rank 1)} — ordem 9b. Uma rota so sobe: cada passo vai de um no para um que o `requer`
+    (contagem por programacao dinamica sobre o `arvore.json` cru, por tier crescente; o custo
+    da mais barata pelo mesmo caminho). Nao importa `builds.py`."""
+    out = {}
+    for tree in tree_json["arvores"]:
+        nodes = {n["id"]: n for n in tree["nos"]}
+        avatar = next(n for n in tree["nos"] if n.get("tier") == AVATAR_TIER)
+        # (rotas ate ao no inclusive, custo mais barato ate ao no inclusive), por ordem de tier
+        ways, cheap = {}, {}
+        for n in sorted(tree["nos"], key=lambda n: (n.get("tier", 0), n["id"])):
+            nid = n["id"]
+            if nid == avatar["id"]:
+                continue
+            reqs = [r for r in (n.get("requer") or []) if r in ways]
+            if n.get("tier", 0) == 0:
+                ways[nid], cheap[nid] = 1, n["custo_por_rank"]
+            elif reqs:
+                ways[nid] = sum(ways[r] for r in reqs)
+                cheap[nid] = min(cheap[r] for r in reqs) + n["custo_por_rank"]
+        reqs = [r for r in (avatar.get("requer") or []) if r in ways]
+        out[tree["vocacao"]] = (sum(ways[r] for r in reqs), min(cheap[r] for r in reqs) if reqs else None)
+    return out
+
+
 # --- 2. a curva do guia --------------------------------------------------------------------------
 GUIDE_CURVE = (7.012, 0.948, "guiabaiakidle.com/_astro/character-planner.D0n3Vxn3.js — `F=7.012,I=.948` (lido a 2026-09-16)")
 
