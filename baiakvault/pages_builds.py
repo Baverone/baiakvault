@@ -1496,10 +1496,13 @@ def validation_markdown(cat, plans, rows=None, rows_rune=None, sorcerer_plan=Non
             "chance efectiva/10000 / M. Tolerancia %s %%." % _md_num(CRIT_HAND_TOLERANCE_PCT, 0), ""]
     if sorcerer_plan is not None:
         crit_rows, hand = crit_marginals_rows(cat, sorcerer_plan)
-        out += ["Sorcerer nivel %d, rotacao %s, arvore «rota + Avatar» (%d nos): chance da arvore + itens %s %%, dano critico %s %%, "
+        pre = sorcerer_plan["priority"].get("pre_damage_tree") or {}
+        out += ["Sorcerer nivel %d, rotacao %s, arvore das etapas antes do dano «rota + Avatar + Exp + Loot» (%d nos, %d pontos): "
+                "chance da arvore + itens %s %%, dano critico %s %%, "
                 "attack speed %s %%, Avatar %s %% por golpe → uptime %s %%, chance efectiva %s %%, multiplicador %s." % (
                     sorcerer_plan["level"], ", ".join(sl.spell["nome"] for sl in sorcerer_plan["rotation"]),
-                    len(sorcerer_plan["priority"]["avatar_path"]) + (1 if sorcerer_plan["priority"]["avatar"] else 0),
+                    len(pre) if pre else len(sorcerer_plan["priority"]["avatar_path"]) + (1 if sorcerer_plan["priority"]["avatar"] else 0),
+                    B._spent(cat, pre) if pre else 0,
                     _md_num(hand["chance"], 1), _md_num(hand["crit_dmg"], 1), _md_num(hand["attack_speed"], 1), _md_num(hand["avatar_p"], 1),
                     _md_num(hand["uptime"] * 100, 1), _md_num(hand["effective_chance"], 1), _md_num(hand["multiplier"], 4)),
                 "", "| o que | a mao | simulador | diferenca | ok |", "|---|---|---|---|---|"]
