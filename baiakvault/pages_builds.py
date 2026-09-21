@@ -398,16 +398,18 @@ def priority_block(cat, b, root="../", with_avatar_code=True):
     node_by_id = {n["id"]: n for n in cat.tree_by_vocation[voc]["nos"]}
     avatar = node_by_id[B.AVATAR_NODE[voc]]
     out = ['<div class="cartao"><h4>As prioridades do Andre nesta arvore (nivel %d)</h4>' % level]
+    rt = info.get("route") or {}
+    route_names = ", ".join(_node_name(cat, p) for p in info["avatar_path"])
     if info["avatar"]:
-        avatar_text = ("<b>sim</b> — %s com o caminho mais barato (%s: %d pontos + 300); cabe a partir do nivel %d"
-                       % (h.esc(avatar["nome"]), h.esc(", ".join(_node_name(cat, p) for p in info["avatar_path"])),
-                          (info["avatar_level"] or 300) - 300, info["avatar_level"] or 0))
+        avatar_text = ("<b>sim</b> — %s pela rota mais util (%s: %d pontos + 300); cabe a partir do nivel %d"
+                       % (h.esc(avatar["nome"]), h.esc(route_names), (info["avatar_level"] or 300) - 300, info["avatar_level"] or 0))
     else:
-        avatar_text = ("<b>nao</b> — %s <b>cabe ao nivel %s</b> (caminho mais barato %s pontos + 300 &gt; %d): "
-                       "esta etapa salta-se agora e as restantes seguem; no nivel %s o passo e importar a build desse "
-                       "nivel (respec pelo cliente fD = 1000 + 200 x pontos gastos — o gold nao conta, decisao de 16/09/2026)"
-                       % (h.esc(avatar["nome"]), _n(info["avatar_level"]), _n((info["avatar_level"] or 300) - 300), level,
+        avatar_text = ("<b>nao</b> — %s <b>cabe ao nivel %s</b> (rota mais util %s pontos + 300 &gt; %d): a rota compra-se "
+                       "ja (%s) e as restantes etapas seguem com o que sobra; ao nivel %s o passo e importar a build desse "
+                       "nivel — os dois planos ate la estao abaixo"
+                       % (h.esc(avatar["nome"]), _n(info["avatar_level"]), _n(rt.get("cost")), level, h.esc(route_names),
                           _n(info["avatar_level"])))
+    avatar_text += route_line(cat, rt)
     rows = [("1. Avatar", avatar_text)]
     have = {}
     for nid, node in node_by_id.items():
@@ -450,6 +452,9 @@ def priority_block(cat, b, root="../", with_avatar_code=True):
                       (_pct_signed(gold_diff) if gold_diff is not None else ("0 nas duas" if not dm["gold_per_hour"] else h.UNKNOWN)),
                       h.kk(dm["gold_per_hour"]), h.kk(pm["gold_per_hour"]), root, slug(voc, "damage"), level))
     ap = b.get("avatar_plan")
+    plans = b.get("avatar_plans")
+    if ap is not None and plans is not None:
+        out.append(avatar_plans_block(cat, b, plans, avatar))
     if ap is not None:
         ap_info = ap["priority"]
         out.append('<h4>A build com o %s, ao nivel %d</h4>' % (h.esc(avatar["nome"]), ap["level"]))
@@ -468,6 +473,97 @@ def priority_block(cat, b, root="../", with_avatar_code=True):
                                   "codigo-%s-%d-avatar" % (slug(voc, b["goal"]), level),
                                   spent_label="e o codigo a importar quando chegares ao nivel %d" % ap["level"]))
     out.append("</div>")
+    return "".join(out)
+
+
+VECTOR_LABEL = ("Avatar", "exp", "loot", "crit", "atk+magia", "dano crit.", "elemento util", "pontos p/ resto")
+
+
+def _vector_diff(chosen, cheapest):
+    """A diferenca entre dois vectores de prioridades, so nas componentes que mudam."""
+    if not chosen or not cheapest:
+        return h.UNKNOWN
+    bits = []
+    for label, a, c in zip(VECTOR_LABEL, chosen, cheapest):
+        if abs(a - c) < 1e-9:
+            continue
+        if label == "Avatar":
+            bits.append("Avatar %s" % ("sim" if a else "nao"))
+        elif label == "pontos p/ resto":
+            bits.append("%s %+d" % (label, int(round(a - c))))
+        else:
+            bits.append("%s %s" % (label, _pct_signed(a - c)))
+    return ", ".join(bits) if bits else "iguais"
+
+
+def route_line(cat, rt):
+    """A linha «rota escolhida vs a mais barata» (ordem 9b): custo das duas, o nivel do
+    Avatar de cada uma e o que se ganhou no vector das prioridades (contas por stat, ao
+    nivel de avaliacao); quantas rotas se enumeraram."""
+    if not rt:
+        return ""
+    same = rt["route"] == rt["cheapest_route"]
+    if same:
+        text = ("<br><small class=\"mudo\">Rota: a mais util e a mais barata sao a mesma (%d pontos; %d rotas que so sobem "
+                "enumeradas, %d avaliadas ao nivel %d%s).</small>"
+                % (rt["cost"], rt["routes_total"], rt["routes_candidates"], rt["eval_level"],
+                   " — a rota da build do nivel do Avatar, escolhida abaixo dele" if rt.get("forced") else ""))
+    else:
+        text = ("<br><small class=\"mudo\">Rota escolhida <b>%d pontos</b> (Avatar ao nivel %d) contra a mais barata "
+                "<b>%d pontos</b> (%s; Avatar ao nivel %d): no vector das prioridades a escolhida ganha %s — contas por stat "
+                "ao nivel %d, sem simulador; %d rotas que so sobem enumeradas, %d avaliadas%s%s.</small>"
+                % (rt["cost"], rt["level"], rt["cheapest_cost"], h.esc(", ".join(_node_name(cat, p) for p in rt["cheapest_route"])),
+                   rt["cheapest_level"], h.esc(_vector_diff(rt["vector"], rt["cheapest_vector"])), rt["eval_level"],
+                   rt["routes_total"], rt["routes_candidates"],
+                   (", %d podadas por dominancia" % rt["routes_pruned"]) if rt.get("routes_pruned") else "",
+                   (", %d empatadas e o simulador desempatou" % rt["ties"]) if rt.get("sim_ties") else ""))
+    return text
+
+
+def avatar_plans_block(cat, b, plans, avatar):
+    """Abaixo do nivel do Avatar (ordem 9b): o nivel X, a rota por ordem de clique com o
+    rank que tera ao nivel X, e os planos A (sem respec) e B (gastar agora e importar ao
+    nivel X), com os numeros do simulador e o recomendado."""
+    level = b["level"]
+    lx = plans["level"]
+    out = ['<h4>%s ao nivel %d: a rota para ires ja pondo pontos, e os dois planos</h4>' % (h.esc(avatar["nome"]), lx)]
+    cheaper = ""
+    if plans["cheapest_level"] < lx:
+        cheaper = (" A rota mais barata (%d pontos) dava o Avatar ao nivel %d, mas passa por nos que nao rendem nada nas "
+                   "prioridades; a escolhida atrasa-o %d nivel%s (tecto: %d)."
+                   % (plans["cheapest_cost"], plans["cheapest_level"], lx - plans["cheapest_level"],
+                      "" if lx - plans["cheapest_level"] == 1 else "eis", B.PRIORITY_ROUTE_MAX_DELAY))
+    out.append("<p>O Avatar cabe <b>ao nivel %d</b> = rota mais util (%d pontos a rank 1) + 300.%s</p>"
+               % (lx, plans["route_cost"], h.esc(cheaper)))
+    rows = []
+    for i, nid in enumerate(plans["route"], 1):
+        node = cat.node_by_id.get(nid) or {}
+        r = plans["route_ranks"].get(nid) or 1
+        link = r == 1 and b["priority"]["category"].get(nid, "rest") == "rest"
+        rows.append(["%d" % i, h.esc(node.get("nome") or nid), "%s" % _n(node.get("tier")), "%d" % (b["tree"].get(nid) or 0),
+                     "%d%s" % (r, " (so ligacao)" if link else ""),
+                     h.esc(B.PRIORITY_LABEL.get(b["priority"]["category"].get(nid, "rest"), "—") if not link else "—")])
+    out.append("<p>Rota por ordem de clique (cada no com o rank que tera na build do nivel %d; «rank agora» e o da build "
+               "desta pagina, o plano B):</p>" % lx)
+    out.append(h.table(["#", "no", "tier", "rank agora", "rank ao nivel %d" % lx, "rende em"], rows, numeric=(0, 2, 3)))
+    a, pb = plans["a"], plans["b"]
+    a_vs_b = (a["dps"] / pb["dps"] - 1) * 100 if pb["dps"] else None
+    rows = [
+        ["Plano A — sem respec", "so a rota (%d pontos) e guardar o resto; ao nivel %d o Avatar de uma vez (300); depois as etapas 2-8"
+         % (plans["route_cost"], lx),
+         "0 gold", "%d pontos por gastar ate ao nivel %d" % (a["unspent"], lx),
+         "%s (%s vs %s do plano B)" % (_pct_signed(a_vs_b) if a_vs_b is not None else h.UNKNOWN, _n(a["dps"]), _n(pb["dps"]))],
+        ["Plano B — gastar agora e respec ao nivel %d (recomendado)" % lx,
+         "agora tudo pela ordem (rota primeiro, depois as etapas 2-8: e a build desta pagina); ao nivel %d importar o codigo "
+         "da build com o Avatar" % lx,
+         "%s gold ao importar (fD = 1000 + 200 x %d pontos gastos nessa altura)" % (h.kk(pb["gold"]), pb["gold_points"]),
+         "0 por gastar", "a build desta pagina: %s de DPS do ciclo" % _n(pb["dps"])],
+    ]
+    out.append(h.table(["plano", "o que fazer", "gold", "pontos", "DPS agora (nivel %d, simulador)" % level], rows))
+    out.append('<p><b>Recomendado: o plano B</b> — o gold nao conta para ele (decisao de 16/09/2026) e o plano A deixa-o '
+               "%d niveis com %d pontos parados (%s de DPS). Basta escolher o A se preferires nao pagar o respec. "
+               "As duas builds (agora, ao nivel %d, e ao nivel %d) tem codigo com «Copiar» nesta pagina.</p>"
+               % (lx - level, a["unspent"], _pct_signed(a_vs_b) if a_vs_b is not None else h.UNKNOWN, level, lx))
     return "".join(out)
 
 
@@ -1204,6 +1300,27 @@ def validation_markdown(cat, plans, rows=None, rows_rune=None):
         out.append("| %s | %s | %s | %s / %s | %s | %s |" % (
             VOCATION_LABEL[voc], _md_num(cost, 0), _md_num(reach, 0), _md_num(m_cost - 300 if m_cost is not None else None, 0),
             _md_num(m_reach, 0), "sim" if (reach == m_reach) else "**NAO**", ", ".join(path)))
+    out += ["", "## 1d. As rotas ate ao Avatar: quantas sao e a mais barata, a mao, por vocacao (ordem 9b, 21/09/2026)", "",
+            "Desde a correccao do Andre (21/09/2026) a rota ate ao Avatar e a mais util pelas prioridades, nao a mais "
+            "barata: o motor enumera todas as rotas que so sobem (cada passo vai de um no para um que o `requer`) e avalia "
+            "cada uma. A conta a mao (`validation.avatar_routes_by_hand`) conta as rotas por programacao dinamica sobre o "
+            "`arvore.json` cru, por tier crescente, e o custo da mais barata pelo mesmo caminho — sem importar o motor; "
+            "ao lado o que o motor (`builds.avatar_routes`) deu, e a rota que ele escolheu ao nivel de cada build dele.", "",
+            "| vocacao | rotas (a mao) | mais barata (a mao) | motor: rotas / mais barata | ok | escolhida na build de nivel 500 (pontos, Avatar ao nivel) |",
+            "|---|---|---|---|---|---|"]
+    by_hand_routes = validation.avatar_routes_by_hand(cat.raw["arvore"])
+    for voc in ("knight", "paladin", "sorcerer", "druid", "monk"):
+        n_hand, cheap_hand = by_hand_routes[voc]
+        routes = B.avatar_routes(cat, voc)
+        n_motor, cheap_motor = len(routes), min(c for c, _ in routes)
+        chosen = "?"
+        b500 = plans.get((voc, B.PRIORITY_GOAL, 500))
+        rt = (b500.get("priority") or {}).get("route") if b500 else None
+        if rt:
+            chosen = "%d pontos, Avatar ao nivel %d (%s)" % (rt["cost"], rt["level"], ", ".join(_node_name(cat, p) for p in rt["route"]))
+        out.append("| %s | %d | %d | %d / %d | %s | %s |" % (
+            VOCATION_LABEL[voc], n_hand, cheap_hand, n_motor, cheap_motor,
+            "sim" if (n_hand == n_motor and cheap_hand == cheap_motor) else "**NAO**", chosen))
     out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
             "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
             "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (

@@ -73,6 +73,14 @@ PRIORITY_STAT_CATEGORY = {"expPct": "exp", "lootPct": "loot", "critChance": "cri
                           "spellDmgPct": "attack", "critDmg": "critdmg", "elementDmgPct": "element"}
 AVATAR_NODE = {"knight": "k_avatar_steel", "paladin": "p_avatar_light", "sorcerer": "s_avatar_storm",
                "druid": "d_avatar_nature", "monk": "m_avatar_balance"}
+# A rota ate ao Avatar (correccao do Andre, 21/09/2026, ordem 9b): NAO e a mais barata, e a que
+# deixa a build final melhor pela ordem das prioridades — os nos da rota compram-se de qualquer
+# maneira, e se passarem por Exp/Loot/Crit ja rendem. Enumeram-se todas as rotas que so sobem
+# (`avatar_routes`), cada uma avalia-se pelo vector lexicografico (`route_vector`, contas por stat)
+# e fica a melhor; empate -> a mais barata -> a de menos nos.
+PRIORITY_ROUTE_MAX_DELAY = 5     # abaixo do Avatar: a rota escolhida nao o atrasa mais de N niveis face a mais barata
+PRIORITY_ROUTE_MAX_ENUM = 2000   # acima disto poda-se por dominancia antes de avaliar (regista-se em `routes_pruned`)
+PRIORITY_ROUTE_SIM_TIES = 8      # rotas empatadas no vector por stat que o simulador desempata (as demais: mais barata)
 # Tecto de gold/h dos supplies (pocoes em regime + runas) na escolha da rotacao: existe como
 # parametro (`Planner(gold_cap=…)`, `choose_rotation(gold_cap=…)`) mas a omissao e SEM tecto
 # — «nao importa o custo» (Andre, 16/09/2026 13:30).
@@ -1140,17 +1148,20 @@ class Planner:
         }
         return out
 
-    def plan_priority(self, vocation, level, hunt_id=None, fixed_rotation=None, fixed_weapon=None):
+    def plan_priority(self, vocation, level, hunt_id=None, fixed_rotation=None, fixed_weapon=None, route=None):
         """A build «prioridades do Andre» (21/09/2026): a arvore por `priority_tree` ao
         nivel exacto, a partir do equipamento e da rotacao da build «dano» do mesmo
         nivel (que fica ao lado, em numero — e a comparacao que a pagina mostra); depois
         o equipamento optimiza-se para a arvore das prioridades e a rotacao volta a
         escolher-se (a fixada por ele fica). Sem caminho por nivel: cada nivel constroi-se
-        do zero, e a ordem de compra sai por etapas."""
+        do zero, e a ordem de compra sai por etapas. Abaixo do nivel do Avatar (ordem 9b)
+        a build leva a rota ja comprada (plano B) e `avatar_plans` compara os planos A
+        (so a rota, guardar o resto, sem gold) e B (gastar tudo e importar ao nivel X);
+        `route` forca a rota (e o que a build do nivel X recebe)."""
         cat = self.cat
         goal = PRIORITY_GOAL
         fixed = self.fixed_key(fixed_rotation, fixed_weapon)
-        cache_key = (vocation, level, hunt_id, fixed)
+        cache_key = (vocation, level, hunt_id, fixed, tuple(route) if route else None)
         if cache_key in self._priority:
             return self._priority[cache_key]
         budget = F.tree_budget(level)
@@ -1158,7 +1169,13 @@ class Planner:
         target = damage["target"]
         eq, hunt_rot, boss_rot, heal = damage["equipment"], damage["rotation"], damage["boss_rotation"], damage["heal"]
         elements = priority_elements(damage["profile"], hunt_rot)
-        tree, steps, info = priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, elements)
+
+        def score_fn(trial):
+            # desempate entre rotas com o mesmo vector: o DPS medido, no contexto da build «dano»
+            return _score_tree(cat, vocation, "damage", level, trial, eq, target, hunt_rot, boss_rot, heal)
+
+        tree, steps, info = priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, elements,
+                                          route=route, score_fn=score_fn)
         # o equipamento para ESTA arvore (a da «dano» serviu de contexto para a construir)
         eq, alts, _ = optimize_equipment(cat, vocation, level, goal, tree, target, gold_cap=self.gold_cap,
                                          fixed_weapon=self._fixed_weapon_item(fixed))
@@ -1175,10 +1192,13 @@ class Planner:
         order = purchase_order(cat, vocation, tree, steps)
         roles = priority_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_rot, heal, steps, info)
         spent = _spent(cat, tree)
-        # o Avatar fora de alcance: a build do nivel em que cabe, com o codigo (a mesma hunt e o que ele fixou)
-        avatar_plan = None
+        # o Avatar fora de alcance: a build do nivel em que cabe, com a MESMA rota e o codigo (a mesma
+        # hunt e o que ele fixou), e os dois planos ate la (ordem 9b)
+        avatar_plan = avatar_plans = None
         if not info["avatar"] and info["avatar_level"] is not None and info["avatar_level"] > level:
-            avatar_plan = self.plan_priority(vocation, info["avatar_level"], hunt_id, fixed_rotation, fixed_weapon)
+            avatar_plan = self.plan_priority(vocation, info["avatar_level"], hunt_id, fixed_rotation, fixed_weapon,
+                                             route=tuple(info["avatar_path"]))
+            avatar_plans = self.avatar_plans(vocation, level, info, avatar_plan, prof, eq, target, hunt_rot, boss_rot, heal, metrics)
         self._priority[cache_key] = out = {
             "vocation": vocation, "goal": goal, "level": level, "hunt": target.hunt_id, "target": target,
             "profile": prof, "tree": tree, "steps": steps, "fill_steps": [], "improved": [],
@@ -1196,9 +1216,35 @@ class Planner:
             "helper": helper_config(prof, target, hunt_rot, boss_rot, heal, metrics, hunt_sim, boss_sim),
             "gold_cap": self.gold_cap,
             # o que e so da «prioridades»
-            "priority": info, "damage_plan": damage, "avatar_plan": avatar_plan,
+            "priority": info, "damage_plan": damage, "avatar_plan": avatar_plan, "avatar_plans": avatar_plans,
         }
         return out
+
+    def avatar_plans(self, vocation, level, info, avatar_plan, prof, eq, target, hunt_rot, boss_rot, heal, metrics_b):
+        """Os dois planos ate ao nivel X em que o Avatar cabe (ordem 9b), com numeros:
+        A — sem respec: agora so a rota (R pontos) e guardar o resto; ao nivel X o Avatar
+        de uma vez; sem gold, mas ate la anda com (nivel - R) pontos por gastar (o DPS
+        mede-se no simulador com a rota so, o mesmo equipamento e rotacao do plano B).
+        B — gastar agora pela ordem (a build desta pagina) e ao nivel X importar a build
+        com o Avatar (fD = 1000 + 200 x pontos gastos nessa altura, com tudo gasto = X).
+        Recomendado por omissao o B: o gold nao conta para ele (16/09/2026) e o A deixa-o
+        dezenas de niveis mais fraco."""
+        cat = self.cat
+        route = list(info["avatar_path"])
+        cost = info["route"]["cost"]
+        level_x = info["avatar_level"]
+        tree_a = {nid: 1 for nid in route}
+        prof_a = sim.Profile(cat, vocation, level, tree_a, eq)
+        metrics_a = evaluate(prof_a, target, hunt_rot, boss_rot, heal)
+        dps_a, dps_b = metrics_a["dps_cycle"], metrics_b["dps_cycle"]
+        return {"level": level_x, "route": route, "route_cost": cost,
+                "route_ranks": {nid: avatar_plan["tree"].get(nid, 0) for nid in route},
+                "cheapest_level": info["route"]["cheapest_level"], "cheapest_cost": info["route"]["cheapest_cost"],
+                "a": {"dps": dps_a, "unspent": F.tree_budget(level) - cost, "gold": 0, "tree": tree_a, "metrics": metrics_a},
+                "b": {"dps": dps_b, "unspent": F.tree_budget(level) - _spent(cat, prof.tree), "gold": treecode.import_cost(F.tree_budget(level_x)),
+                      "gold_points": F.tree_budget(level_x), "metrics": metrics_b},
+                "dps_diff_pct": (dps_b / dps_a - 1) * 100 if dps_a else None,
+                "recommended": "B"}
 
 
 def _spent(cat, tree):
@@ -1554,19 +1600,191 @@ def avatar_reach(cat, vocation, tree=None):
     return cost, path, cost
 
 
-def _effect_value(node, stage):
+def _effect_value(node, stage, elements=()):
+    """O efeito de um rank na categoria: a soma dos stats dela (`atkPct` + `spellDmgPct`
+    no Ataque); no Elemento so os `elements` (os da rotacao e da arma)."""
     per = node.get("efeito_por_rank") or {}
-    return sum(float(v) for k, v in per.items() if PRIORITY_STAT_CATEGORY.get(k) == stage and isinstance(v, (int, float)))
+    total = 0.0
+    for k, v in per.items():
+        if PRIORITY_STAT_CATEGORY.get(k) != stage:
+            continue
+        if k == "elementDmgPct":
+            total += sum(float(x) for el, x in (v or {}).items() if el in elements and isinstance(x, (int, float)))
+        elif isinstance(v, (int, float)):
+            total += float(v)
+    return total
 
 
-def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, elements):
+def _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, buy):
+    """Uma etapa pelo efeito por ponto (com o caminho que faltar no custo), ate nao caber
+    mais nenhum rank da categoria. `buy(nid, is_link)` poe um rank e regista o passo."""
+    spent = sum(F.tree_total_cost(node_by_id[k], v) for k, v in tree.items())
+    while True:
+        best = None
+        for nid, node in node_by_id.items():
+            if category[nid] != stage or tree.get(nid, 0) >= (node.get("rank_maximo") or 1):
+                continue
+            path = unlock_path(node, tree, adj, node_by_id)
+            if path is None:
+                continue
+            c = sum(F.tree_rank_cost(node_by_id[p], tree.get(p, 0)) for p in path) + F.tree_rank_cost(node, tree.get(nid, 0))
+            if spent + c > budget:
+                continue
+            value = _effect_value(node, stage, elements) / c
+            if best is None or value > best[0]:
+                best = (value, nid, path, c)
+        if best is None:
+            return
+        _, nid, path, c = best
+        for p in path:
+            buy(p, True)
+        buy(nid, False)
+        spent += c
+
+
+# --- a rota ate ao Avatar (ordem 9b, 21/09/2026) ---------------------------------------------------
+def avatar_routes(cat, vocation):
+    """Todas as rotas ligadas do tier 0 ate ao Avatar que so sobem (cada passo vai de um
+    no para um que o `requer`), por ordem de clique, com o custo a rank 1 (sem os 300 do
+    Avatar). Um desvio para baixo nunca faz falta: um no vizinho da rota compra-se na
+    etapa dele sem custo de ligacao. Lista de (custo, [ids]) — centenas por vocacao."""
+    tree = cat.tree_by_vocation[vocation]
+    node_by_id = {n["id"]: n for n in tree["nos"]}
+    up = {nid: [] for nid in node_by_id}
+    for n in tree["nos"]:
+        for req in n.get("requer") or []:
+            up[req].append(n["id"])
+    avatar = AVATAR_NODE[vocation]
+    routes = []
+
+    def walk(nid, path, cost):
+        for v in up[nid]:
+            if v == avatar:
+                routes.append((cost, list(path)))
+            elif up[v]:
+                path.append(v)
+                walk(v, path, cost + F.tree_rank_cost(node_by_id[v], 0))
+                path.pop()
+
+    for nid, n in node_by_id.items():
+        if n.get("tier", 0) == 0 and nid != avatar:
+            walk(nid, [nid], F.tree_rank_cost(n, 0))
+    return routes
+
+
+def route_vector(cat, vocation, level, route, category, elements, with_avatar=True):
+    """O vector lexicografico de uma rota ao nivel (as prioridades por ordem): (Avatar 1/0,
+    +% exp, +% loot, +% crit, +% atk+spell, +% dano critico, +% elemento util, pontos que
+    sobram para o resto). Contas por stat, SEM simulador: a rota a rank 1 (+ o Avatar),
+    depois as etapas 2-7 pelo efeito por ponto com o caminho que faltar — e o que deixa
+    avaliar centenas de rotas; a build da rota escolhida faz-se depois com o simulador
+    (`priority_tree`). Devolve (vector, arvore) ou None se a rota nao cabe."""
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
+    adj = _adjacency(cat, vocation)
+    budget = F.tree_budget(level)
+    tree = {}
+
+    def buy(nid, is_link=False):
+        tree[nid] = tree.get(nid, 0) + 1
+
+    for p in route:
+        buy(p)
+    if with_avatar:
+        buy(AVATAR_NODE[vocation])
+    if _spent(cat, tree) > budget:
+        return None
+    for stage in ("exp", "loot", "crit", "attack", "critdmg", "element"):
+        _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, buy)
+    tot = priority_totals(cat, vocation, tree, elements)
+    vector = (1 if with_avatar else 0, tot["expPct"], tot["lootPct"], tot["critChance"], tot["atkPct"] + tot["spellDmgPct"],
+              tot["critDmg"], sum(tot["element"].values()), budget - _spent(cat, tree))
+    return vector, tree
+
+
+def _dominated_routes(routes, category):
+    """Poda por dominancia: uma rota que so acrescenta nos sem categoria a outra (os
+    mesmos nos de categoria ou menos, e custa o mesmo ou mais) nunca ganha. Devolve
+    (rotas que ficam, quantas sairam)."""
+    keyed = [(c, r, frozenset(n for n in r if category.get(n, "rest") != "rest")) for c, r in routes]
+    keep = []
+    for i, (c, r, cats) in enumerate(keyed):
+        dominated = any(j != i and c2 <= c and cats2 >= cats and (c2 < c or cats2 > cats or j < i)
+                        for j, (c2, r2, cats2) in enumerate(keyed))
+        if not dominated:
+            keep.append((c, r))
+    return keep, len(routes) - len(keep)
+
+
+def choose_avatar_route(cat, vocation, level, elements, score_fn=None, max_delay=PRIORITY_ROUTE_MAX_DELAY, forced=None):
+    """A rota ate ao Avatar mais util pelas prioridades (ordem 9b). Ao nivel em que o
+    Avatar cabe: todas as rotas que cabem no orcamento, avaliadas a esse nivel. Abaixo:
+    so as que nao o atrasam mais de `max_delay` niveis face a mais barata, avaliadas
+    todas ao mesmo nivel (mais barata + 300 + max_delay) — o nivel do Avatar passa a
+    ser o custo da escolhida + 300. Empate no vector -> `score_fn(arvore)` (o simulador,
+    nas primeiras PRIORITY_ROUTE_SIM_TIES) -> a mais barata -> a de menos nos. `forced`
+    salta a escolha (a build do nivel do Avatar leva a rota escolhida abaixo dele).
+    Devolve um dicionario com a escolhida, a mais barata e os numeros da enumeracao."""
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
+    category = {nid: priority_category(n, elements, vocation) for nid, n in node_by_id.items()}
+    avatar_cost = F.tree_rank_cost(node_by_id[AVATAR_NODE[vocation]], 0)
+    routes = avatar_routes(cat, vocation)
+    if not routes:
+        return None
+    cheapest_cost = min(c for c, _ in routes)
+    cheapest = min((r for r in routes if r[0] == cheapest_cost), key=lambda r: len(r[1]))
+    budget = F.tree_budget(level)
+    fits = cheapest_cost + avatar_cost <= budget
+    if fits:
+        eval_level = level
+        cands = [(c, r) for c, r in routes if c + avatar_cost <= budget]
+    else:
+        eval_level = cheapest_cost + avatar_cost + max_delay
+        cands = [(c, r) for c, r in routes if c <= cheapest_cost + max_delay]
+    pruned = ties = sim_ties = 0
+    if forced is not None:
+        route = list(forced)
+        cost = sum(F.tree_rank_cost(node_by_id[p], 0) for p in route)
+        vec = route_vector(cat, vocation, eval_level, route, category, elements)
+        vector = vec[0] if vec else None
+    else:
+        if len(cands) > PRIORITY_ROUTE_MAX_ENUM:
+            cands, pruned = _dominated_routes(cands, category)
+        scored = []
+        for c, r in cands:
+            got = route_vector(cat, vocation, eval_level, r, category, elements)
+            if got is not None:
+                scored.append((got[0], -c, -len(r), r, got[1]))
+        best_vec = max(s[0] for s in scored)
+        tied = [s for s in scored if s[0] == best_vec]
+        ties = len(tied)
+        sim_scores = {}
+        if ties > 1 and score_fn is not None:
+            tied.sort(key=lambda s: (s[1], s[2]), reverse=True)
+            for s in tied[:PRIORITY_ROUTE_SIM_TIES]:
+                sim_scores[id(s)] = score_fn(s[4])
+            sim_ties = len(sim_scores)
+        winner = max(tied, key=lambda s: (sim_scores.get(id(s), -math.inf), s[1], s[2]))
+        route, cost, vector = list(winner[3]), -winner[1], winner[0]
+    cheapest_vec = route_vector(cat, vocation, eval_level, cheapest[1], category, elements)
+    return {"route": route, "cost": cost, "level": cost + avatar_cost, "vector": vector, "forced": forced is not None,
+            "cheapest_route": list(cheapest[1]), "cheapest_cost": cheapest_cost, "cheapest_level": cheapest_cost + avatar_cost,
+            "cheapest_vector": cheapest_vec[0] if cheapest_vec else None,
+            "fits": fits, "eval_level": eval_level, "routes_total": len(routes), "routes_candidates": len(cands),
+            "routes_pruned": pruned, "ties": ties, "sim_ties": sim_ties, "max_delay": max_delay}
+
+
+def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, elements, route=None, score_fn=None):
     """A arvore pelas prioridades do Andre (21/09/2026), etapa a etapa (`PRIORITY_ORDER`):
-    1 Avatar + caminho mais barato (salta-se se nao couber; diz-se a que nivel cabe);
-    2 Exp e 3 Loot pelo efeito por ponto (com o caminho que faltar no custo); 4-7 pelo
-    guloso de DPS restrito a categoria; 8 o resto pelo guloso de DPS e a poda so aqui.
-    Devolve (arvore, passos com etapa, info) — info: avatar (bool), avatar_level,
-    avatar_path, category {no: categoria}, link {no bought only as caminho}, stage
-    points por etapa, pruned, totals por stat."""
+    1 a rota mais util ate ao Avatar (`choose_avatar_route`, ordem 9b) + o Avatar — se o
+    Avatar nao couber, compra-se a rota na mesma (e o plano B: gastar agora e importar
+    a build com o Avatar ao nivel em que cabe) e diz-se o nivel; 2 Exp e 3 Loot pelo
+    efeito por ponto (com o caminho que faltar no custo); 4-7 pelo guloso de DPS
+    restrito a categoria; 8 o resto pelo guloso de DPS e a poda so aqui. `route` forca
+    a rota (a build do nivel do Avatar usa a mesma que se escolheu abaixo dele).
+    Devolve (arvore, passos com etapa, info) — info: avatar (bool), avatar_level (o da
+    rota escolhida), avatar_path (= a rota), route {...} (a escolha e a mais barata),
+    category {no: categoria}, link {no comprado so como caminho}, stage_points por
+    etapa, pruned, totals por stat."""
     node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
     adj = _adjacency(cat, vocation)
     budget = F.tree_budget(level)
@@ -1575,7 +1793,7 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
     steps = []
     link = set()
     info = {"avatar": False, "avatar_level": None, "avatar_path": [], "category": category, "elements": sorted(elements),
-            "stage_points": {}, "pruned": [], "link": link}
+            "stage_points": {}, "pruned": [], "link": link, "route": None}
 
     def spent():
         return _spent(cat, tree)
@@ -1588,39 +1806,23 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
         if is_link and tree[nid] == 1 and category[nid] != stage:
             link.add(nid)
 
-    # 1. o Avatar e o caminho ligado mais barato ate la
-    cost, path, reach = avatar_reach(cat, vocation)
-    info["avatar_level"], info["avatar_path"] = reach, path
-    if cost is not None and cost <= budget:
-        for p in path:
+    # 1. a rota mais util ate ao Avatar, e o Avatar se couber
+    choice = choose_avatar_route(cat, vocation, level, elements, score_fn=score_fn, forced=route)
+    if choice is not None:
+        info["route"] = choice
+        info["avatar_level"], info["avatar_path"] = choice["level"], list(choice["route"])
+        for p in choice["route"]:
             buy(p, "avatar", is_link=True)
-        buy(AVATAR_NODE[vocation], "avatar")
-        info["avatar"] = True
+        if choice["level"] <= budget:
+            buy(AVATAR_NODE[vocation], "avatar")
+            info["avatar"] = True
     info["stage_points"]["avatar"] = spent()
 
     # 2-3. Exp e Loot pelo efeito por ponto (o caminho que faltar conta no custo)
     for stage in ("exp", "loot"):
         before = spent()
-        while True:
-            best = None
-            for nid, node in node_by_id.items():
-                if category[nid] != stage or tree.get(nid, 0) >= (node.get("rank_maximo") or 1):
-                    continue
-                path = unlock_path(node, tree, adj, node_by_id)
-                if path is None:
-                    continue
-                c = sum(F.tree_rank_cost(node_by_id[p], tree.get(p, 0)) for p in path) + F.tree_rank_cost(node, tree.get(nid, 0))
-                if spent() + c > budget:
-                    continue
-                value = _effect_value(node, stage) / c
-                if best is None or value > best[0]:
-                    best = (value, nid, path)
-            if best is None:
-                break
-            _, nid, path = best
-            for p in path:
-                buy(p, stage, is_link=True)
-            buy(nid, stage)
+        _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements,
+                         lambda nid, is_link, stage=stage: buy(nid, stage, is_link=is_link))
         info["stage_points"][stage] = spent() - before
 
     # 4-7. pelo ganho de DPS por ponto medido no simulador, restrito aos nos da categoria
@@ -1690,11 +1892,14 @@ def priority_roles(cat, vocation, goal, level, tree, eq, target, hunt_rot, boss_
     for nid in tree:
         stage = stage_of.get(nid, "rest")
         role, gain = measured.get(nid, (ROLE_LEFTOVER, None))
-        if nid in info["link"] and tree[nid] == 1:
+        c = info["category"].get(nid, "rest")
+        if nid in info["link"] and c != "rest":
+            # entrou como caminho (da rota ou de outra etapa) mas e de uma categoria: ja rende nela
+            roles[nid] = (c, gain)
+        elif nid in info["link"] and tree[nid] == 1:
             roles[nid] = (ROLE_LINK, gain)
         elif nid in info["link"]:
-            # entrou como caminho, mas a propria categoria comprou-lhe mais ranks depois
-            roles[nid] = (info["category"].get(nid, "rest") if info["category"].get(nid) != "rest" else role, gain)
+            roles[nid] = (role, gain)
         elif stage == "rest" or nid in rest_nodes:
             roles[nid] = (role, gain)
         else:

@@ -441,7 +441,8 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   Rage of the Skies/Hell's Core/Divine Caldera -> Ataque, Twin Bursts -> Elemento);
   `elementDmgPct` so conta nos elementos que a rotacao de hunt e a arma usam
   (`priority_elements`: feiticos da rotacao + fisico/arma ou o elemento da wand), os outros
-  ficam no «resto». Etapa 1 = Avatar (tier 11, 300) + o caminho ligado mais barato
+  ficam no «resto». Etapa 1 = Avatar (tier 11, 300) + o caminho ligado mais barato (**sobreposto
+  pela 9b**: passou a ser a rota mais util, ver abaixo)
   (`avatar_reach`, Dijkstra de `unlock_path` a partir do tier 0: knight 16, paladin 19,
   sorcerer 16, druid 20, monk 19 pontos — **o Avatar cabe aos niveis 316/319/316/320/319**;
   `validacao.md` §1c refaz a conta so com o `arvore.json`); se nao cabe, salta-se AGORA, a
@@ -476,6 +477,41 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   `data/serve.token`): responde e faz `os._exit(0)`; o vigia `baiakvault-serve` relanca
   em <= 5 min (`scripts/reiniciar_serve.py` faz o pedido). **O serve que estava de pe a
   21/09 e anterior a rota** — precisa de uma paragem manual ou de um reboot.
+- **21/09/2026 (ordem 9b, correccao do Andre a ordem 9)** — «Nao precisa ser o caminho mais
+  barato ate Avatar, se ate la conseguires ja dar pontos as outras coisas. Os que ainda nao
+  chegam, diz-me a que level vao la chegar e da-me a rota para ir ja colocando pontos la.»
+  **A rota ate ao Avatar e a mais util pelas prioridades, nao a mais barata**
+  (`builds.avatar_routes` / `route_vector` / `choose_avatar_route`, constantes
+  `PRIORITY_ROUTE_*`): enumeram-se todas as rotas **que so sobem** (cada passo de um no para
+  um que o `requer`; knight 299, paladin 304, sorcerer 513, druid 820, monk 908 — um desvio
+  para baixo nunca faz falta porque um no vizinho da rota compra-se na etapa dele sem custo
+  de ligacao; os caminhos simples com a adjacencia nos dois sentidos sao milhoes e
+  ziguezagueiam), cada uma avalia-se pelo **vector lexicografico** (Avatar, +% exp, +% loot,
+  +% crit, +% atk+magia, +% dano critico, +% elemento util, pontos que sobram para o resto)
+  com **contas por stat, sem simulador** (a rota a rank 1 + Avatar + etapas 2-7 pelo efeito
+  por ponto; e o que deixa avaliar centenas de rotas em < 0,2 s) e fica a melhor; empate ->
+  o simulador desempata (ate 8 rotas) -> a mais barata -> a de menos nos. A build da rota
+  escolhida faz-se depois com o simulador como na 9 (os totais da pagina sao os reais; o
+  vector «escolhida vs mais barata» e o por stat, e diz-se). Efeito ao nivel dele: knight
+  3 426 -> 4 198 DPS (rota Fury/Sharp/…/Carnage, 19 pts, em vez de Plating/…/Colossus 16),
+  sorcerer 1 918 -> 2 875, druid 2 103 -> 2 230. Poda por dominancia
+  (`_dominated_routes`) so acima de 2 000 rotas (nunca foi precisa). **Abaixo do nivel do
+  Avatar** as rotas avaliam-se todas ao mesmo nivel (mais barata + 300 + 5) e so as que nao
+  atrasam o Avatar mais de `PRIORITY_ROUTE_MAX_DELAY = 5` niveis; o nivel X = rota escolhida
+  + 300 (`info["avatar_level"]`; a mais barata em `info["route"]["cheapest_level"]`;
+  `avatar_reach` continua a dar a mais barata para a validacao 1c). A build «agora» **compra
+  a rota** (rank 1, etapa «avatar») e as etapas 2-8 seguem com o que sobra (= plano B); a
+  build do nivel X leva a **mesma rota forcada** (`plan_priority(route=)`, senao a esse nivel
+  a mais barata ganhava por deixar pontos para a Exp). `avatar_plans`: **plano A** (so a rota,
+  guardar o resto, 0 gold, DPS medido com a rota so e o equipamento/rotacao do B) vs
+  **plano B** (gastar tudo pela ordem e importar ao nivel X, fD com X pontos gastos);
+  **recomendado o B** (gold nao conta, 16/09). Paladin 284: X = 319 (a escolhida custa 19
+  como a mais barata mas passa por Aim em vez de Might: +0,5 % crit), plano A 1 230 vs B
+  1 349 DPS, 64 800 gold ao importar. O advisor poe «Avatar ao nivel X: plano B» na 1.a
+  linha (`AVATAR_STEP_SCORE = 20 > PRIORITY_STEP_SCORE`) com a rota por ordem de clique.
+  Um no da rota com categoria mostra a categoria como papel (nao «so ligacao»).
+  `validacao.md` §1d conta as rotas e a mais barata a mao (programacao dinamica so com o
+  `arvore.json`). Custo: build de um personagem abaixo do Avatar ~2,5 s, os outros 3-10 s.
 
 ## Fontes
 

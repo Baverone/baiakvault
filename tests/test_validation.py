@@ -89,8 +89,11 @@ class HandVsEngine(unittest.TestCase):
         self.assertEqual(md.count("| x"), 144)   # 18 builds x 8 niveis (ordem 9: + 5 «prioridades»)
         # ordem 9: a seccao 1c — o caminho do Avatar a mao, e o motor a bater nas 5
         self.assertIn("## 1c.", md)
-        self.assertEqual(md.count("| sim |"), 5)
+        # ordem 9b: a seccao 1d — as rotas contadas a mao e a mais barata, o motor a bater nas 5 (+ 5 «sim»)
+        self.assertIn("## 1d.", md)
+        self.assertEqual(md.count("| sim |"), 10)
         self.assertNotIn("**NAO**", md)
+        self.assertEqual(len(re.findall(r"\| \d+ / \d+ \| sim \| \d+ pontos, Avatar ao nivel \d+ \(", md)), 5)
         self.assertAlmostEqual(validation.guide_dps(100), 7.012 * 100 ** 0.948, places=6)
         self.assertIsNone(FORBIDDEN.search(md))
         html = pages_builds.render_validation(md, "2026-09-16 12:00:00")

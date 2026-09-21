@@ -24,9 +24,13 @@ O que ja la esta (v0.1):
 - **Builds** — a build das **prioridades do Andre** de cada vocacao (a omissao
   desde 21/09/2026): a arvore segue a ordem estrita **Avatar › Exp › Loot ›
   Crit › Ataque › Dano critico › Elemento › o que sobrar**, cada etapa esgotada
-  antes da seguinte (o Avatar e o notable de tier 11 com o caminho ligado mais
-  barato; se ainda nao cabe, a pagina diz a que nivel cabe e da a build e o
-  codigo desse nivel), com a ordem de compra por etapas, os totais por
+  antes da seguinte (o Avatar e o notable de tier 11 pela **rota mais util**:
+  entre todas as rotas do tier 0 ate la fica a que deixa a build melhor pelas
+  prioridades, nao a mais barata — a pagina mostra as duas; se ainda nao cabe,
+  diz a que nivel cabe, a rota por ordem de clique para ir ja pondo pontos e os
+  dois planos ate la, sem respec ou com respec ao chegar, com os numeros e o
+  recomendado, e da a build e o codigo desse nivel), com a ordem de compra por
+  etapas, os totais por
   categoria e, ao lado em numero, o que a build de **dano** daria a mais; a
   build de dano de cada vocacao (o maior DPS do ciclo = XP/h, sem tecto de
   gold — pocoes e runas a vontade nos mages e no paladin, a mana como limite no
