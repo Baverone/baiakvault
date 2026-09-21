@@ -105,7 +105,10 @@ def _drop_sources(cat, item, root):
 def render_index(cat, plans, generated_at):
     root = "../"
     parts = ["<h1>Builds</h1>",
-             '<p class="mudo">Primeiro a build de <b>dano</b> de cada vocacao — a omissao desde 16/09/2026 '
+             '<p class="mudo">Primeiro a build das <b>prioridades do Andre</b> de cada vocacao — a omissao desde '
+             "21/09/2026: a arvore segue a ordem estrita Avatar › Exp › Loot › Crit › Ataque › Dano critico › "
+             "Elemento › o que sobrar, cada etapa esgotada antes da seguinte, e a pagina diz quanto a build de dano "
+             "daria a mais. Depois a build de <b>dano</b> de cada vocacao — a omissao de 16/09/2026 "
              "(decisao do Andre: «quero dano, nao importa o custo, importa e o dano e a XP»): o maior DPS "
              "do ciclo na hunt de referencia (e XP/h), com pocoes de mana e runas a vontade nos mages e no "
              "paladin (o custo sai em gold/h, sem tecto), o knight e o monk limitados pela mana que o leech "
@@ -117,9 +120,13 @@ def render_index(cat, plans, generated_at):
              "sao as do cliente do jogo; o resto vem do guia ou e convencao nossa, e esta marcado (ver a "
              'seccao «Fontes» de cada build e a <a href="validacao.html">validacao cruzada</a>).</p>']
     first_best = next(b for b in B.BUILDS if b[1] == "best")
-    first_other = next(b for b in B.BUILDS if b[1] not in (B.DEFAULT_GOAL, "best"))
+    first_damage = next(b for b in B.BUILDS if b[1] == "damage")
+    first_other = next(b for b in B.BUILDS if b[1] not in (B.PRIORITY_GOAL, "damage", "best"))
+    parts.append('<h2 class="separador">As prioridades do Andre (omissao desde 21/09/2026)</h2>')
     for voc, goal in B.BUILDS:
         s = slug(voc, goal)
+        if (voc, goal) == first_damage:
+            parts.append('<h2 class="separador">A build de «dano» (DPS puro) de cada vocacao</h2>')
         if (voc, goal) == first_best:
             parts.append('<h2 class="separador">A build «melhor» (equilibrada) de cada vocacao</h2>')
         if (voc, goal) == first_other:
@@ -203,6 +210,12 @@ def _metric_text(goal):
         "tank": "EHP com o pack em cima x sustain (leech ate cobrir a pressao) x DPS^0,3",
         "heal": "cura/s sustentavel em 60 s (propria + metade da aliada) x DPS^0,3",
         "support": "cura/s sustentavel em 60 s (propria + metade da aliada) x DPS^0,3",
+        "priority": "a arvore NAO se optimiza por uma metrica: segue a ordem estrita das prioridades do Andre "
+                    "(21/09/2026) — 1 Avatar (o notable de tier 11 + o caminho ligado mais barato), 2 Exp, 3 Loot, "
+                    "4 Critical Chance, 5 Ataque geral (atk % / dano de magia %), 6 Dano critico, 7 Elemento da rotacao "
+                    "e da arma, 8 o que sobrar pelo guloso de DPS — cada etapa esgota-se antes da seguinte. O "
+                    "equipamento, a rotacao e os numeros medem-se como na build «dano» (DPS do ciclo = XP/h), e a "
+                    "pagina diz quanto a build «dano» do mesmo nivel daria a mais",
     }[goal]
 
 
@@ -253,7 +266,7 @@ def render_level_section(cat, b, root, extra=""):
         out.append('<p class="aviso">⚠ No simulador o personagem morre (hunt aos %s s, boss aos %s s) — com esta '
                    "build a hunt de referencia e demasiado forte a solo; e o que o simulador diz, nao um erro da pagina.</p>"
                    % (h.fmt(m.get("death_at")), h.fmt(m.get("boss_death_at"))))
-    if b["goal"] in ("best", "damage"):
+    if b["goal"] in ("best", "damage", B.PRIORITY_GOAL):
         out.append(_constraints_block(m, b["goal"]))
     out.append(_tree_block(cat, b))
     out.append(_equipment_block(cat, b, root))
@@ -294,7 +307,8 @@ def _constraints_block(m, goal="best"):
                 _seconds(m["survive_pack_s"]), m.get("attackers_full") or 0, _n(m["full_hp_min"]))
         rows.append([CONSTRAINT_LABEL[key], "cumprida" if frac >= 1 else "<b>falha a %s</b>" % _pct(frac * 100, 0), detail])
     ok = all(f >= 1 for f in cons.values())
-    label = "«melhor»" if goal == "best" else "de «dano» (restricao minima: nao morrer)"
+    label = {"best": "«melhor»", "damage": "de «dano» (restricao minima: nao morrer)"}.get(
+        goal, "«prioridades» (medida como a de «dano»: nao morrer)")
     return ('<div class="cartao"><h4>Condicoes da build %s%s</h4>%s</div>'
             % (label, "" if ok else ' <span class="aviso">— nem todas cumpridas: a metrica da build (nao o DPS mostrado) '
                                     'esta cortada por isso; e o melhor que o optimizador encontrou a este nivel</span>',
@@ -357,6 +371,104 @@ if(navigator.clipboard){navigator.clipboard.writeText(v).then(ok,fb)}else{fb()}}
 </script>"""
 
 ROLE_LABEL = {B.ROLE_DAMAGE: "dano", B.ROLE_LINK: "so ligacao", B.ROLE_TACTICS: "tactica", B.ROLE_LEFTOVER: "ponto que sobrou"}
+ROLE_LABEL.update({k: v for k, v in B.PRIORITY_LABEL.items() if k != "rest"})
+STAGE_NUMBER = {stage: i + 1 for i, stage in enumerate(B.PRIORITY_ORDER)}
+
+
+def _stage_text(stage):
+    if stage is None:
+        return h.UNKNOWN
+    return "%d. %s" % (STAGE_NUMBER.get(stage, 0), B.PRIORITY_LABEL.get(stage, stage))
+
+
+def _pct_signed(x, decimals=1):
+    return ("%+.*f%%" % (decimals, x)).replace(".", ",")
+
+
+def priority_block(cat, b, root="../", with_avatar_code=True):
+    """O que so a build «prioridades» tem: os totais por categoria, o Avatar (sim/nao
+    e a que nivel cabe, com a build desse nivel e o codigo), os pontos que sobraram e
+    para onde foram, as categorias que a vocacao nao tem, e o que a build «dano» do
+    mesmo nivel daria a mais (informacao — nunca substitui a escolha dele)."""
+    info = b.get("priority")
+    if not info:
+        return ""
+    voc, level = b["vocation"], b["level"]
+    tot = info["totals"]
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[voc]["nos"]}
+    avatar = node_by_id[B.AVATAR_NODE[voc]]
+    out = ['<div class="cartao"><h4>As prioridades do Andre nesta arvore (nivel %d)</h4>' % level]
+    if info["avatar"]:
+        avatar_text = ("<b>sim</b> — %s com o caminho mais barato (%s: %d pontos + 300); cabe a partir do nivel %d"
+                       % (h.esc(avatar["nome"]), h.esc(", ".join(_node_name(cat, p) for p in info["avatar_path"])),
+                          (info["avatar_level"] or 300) - 300, info["avatar_level"] or 0))
+    else:
+        avatar_text = ("<b>nao</b> — %s <b>cabe ao nivel %s</b> (caminho mais barato %s pontos + 300 &gt; %d): "
+                       "esta etapa salta-se agora e as restantes seguem; no nivel %s o passo e importar a build desse "
+                       "nivel (respec pelo cliente fD = 1000 + 200 x pontos gastos — o gold nao conta, decisao de 16/09/2026)"
+                       % (h.esc(avatar["nome"]), _n(info["avatar_level"]), _n((info["avatar_level"] or 300) - 300), level,
+                          _n(info["avatar_level"])))
+    rows = [("1. Avatar", avatar_text)]
+    have = {}
+    for nid, node in node_by_id.items():
+        for stat in (node.get("efeito_por_rank") or {}):
+            c = B.PRIORITY_STAT_CATEGORY.get(stat)
+            if c:
+                have.setdefault(c, set()).add(node["nome"])
+    for stage, text in (("exp", "+%s exp" % _pct(tot["expPct"], 1)), ("loot", "+%s loot" % _pct(tot["lootPct"], 1)),
+                        ("crit", "+%s critical chance" % _pct(tot["critChance"], 1)),
+                        ("attack", "+%s atk / +%s dano de magia" % (_pct(tot["atkPct"], 1), _pct(tot["spellDmgPct"], 1))),
+                        ("critdmg", "+%s dano critico" % _pct(tot["critDmg"], 1)),
+                        ("element", ", ".join("+%s %s" % (_pct(v, 1), ELEMENT_LABEL.get(el, el)) for el, v in sorted(tot["element"].items()))
+                         or "nenhum no de elemento da rotacao/arma comprado")):
+        pts = info["stage_points"].get(stage, 0)
+        if stage in ("exp", "loot") and not have.get(stage):
+            text = "<b>a vocacao nao tem nos de %s</b> — nada a comprar nesta etapa" % B.PRIORITY_LABEL[stage]
+        elif stage == "element":
+            text += " <small class=\"mudo\">(elementos da rotacao e da arma: %s)</small>" % h.esc(
+                ", ".join(ELEMENT_LABEL.get(el, el) for el in info["elements"]))
+        rows.append((_stage_text(stage), "%s <small class=\"mudo\">— %s ponto%s nesta etapa</small>" % (text, _n(pts), "" if pts == 1 else "s")))
+    rest_pts = info["stage_points"].get("rest", 0)
+    rest_nodes = [(_node_name(cat, st.node_id), st.rank) for st in b.get("order") or [] if st.stage == "rest"]
+    rest_text = ("%s ponto%s: %s" % (_n(rest_pts), "" if rest_pts == 1 else "s",
+                                       h.esc(", ".join("%s %d" % (n, r) for n, r in rest_nodes[-12:])) or "—")
+                 if rest_pts else "0 pontos — as sete etapas gastaram tudo")
+    rows.append(("8. O que sobrar (guloso de DPS)", rest_text))
+    out.append(h.kv(rows))
+    if not have.get("exp") and not have.get("loot"):
+        out.append('<p class="mudo">Esta vocacao nao tem nos de Exp nem de Loot na arvore do cliente: as etapas 2 e 3 '
+                   "ficam vazias e passa-se ao Crit.</p>")
+    dmg = b.get("damage_plan")
+    if dmg:
+        pm, dm = b["metrics"], dmg["metrics"]
+        dps_diff = (dm["dps_cycle"] / pm["dps_cycle"] - 1) * 100 if pm["dps_cycle"] else None
+        gold_diff = ((dm["gold_per_hour"] / pm["gold_per_hour"] - 1) * 100) if pm["gold_per_hour"] else None
+        out.append('<p><b>Contra a build «dano» do mesmo nivel</b> (o maior DPS do simulador, sem prioridades): '
+                   "a build de dano daria <b>%s de DPS do ciclo</b> (%s vs %s = XP/h) e %s de gold/h (%s vs %s) — "
+                   'informacao, nunca substitui a escolha dele; <a href="%sbuilds/%s.html#n%d">ver a build de dano</a>.</p>'
+                   % (_pct_signed(dps_diff) if dps_diff is not None else h.UNKNOWN, _n(dm["dps_cycle"]), _n(pm["dps_cycle"]),
+                      (_pct_signed(gold_diff) if gold_diff is not None else ("0 nas duas" if not dm["gold_per_hour"] else h.UNKNOWN)),
+                      h.kk(dm["gold_per_hour"]), h.kk(pm["gold_per_hour"]), root, slug(voc, "damage"), level))
+    ap = b.get("avatar_plan")
+    if ap is not None:
+        ap_info = ap["priority"]
+        out.append('<h4>A build com o %s, ao nivel %d</h4>' % (h.esc(avatar["nome"]), ap["level"]))
+        out.append('<p class="mudo">Pontos por etapa: %s. Totais: +%s exp, +%s loot, +%s crit, +%s atk / +%s dano de magia, '
+                   "+%s dano critico.</p>" % (
+                       h.esc(", ".join("%s %d" % (B.PRIORITY_LABEL[s], p) for s, p in ap_info["stage_points"].items() if p)),
+                       _pct(ap_info["totals"]["expPct"], 1), _pct(ap_info["totals"]["lootPct"], 1), _pct(ap_info["totals"]["critChance"], 1),
+                       _pct(ap_info["totals"]["atkPct"], 1), _pct(ap_info["totals"]["spellDmgPct"], 1), _pct(ap_info["totals"]["critDmg"], 1)))
+        rows = []
+        for st in ap["order"]:
+            rows.append([_stage_text(st.stage), h.esc(_node_name(cat, st.node_id)), "%d" % st.rank, _n(st.cumulative)])
+        out.append("<details><summary>Ordem de compra ao nivel %d (%d passos)</summary>%s</details>"
+                   % (ap["level"], len(rows), h.table(["etapa", "no", "rank", "ate ao nivel"], rows, numeric=(2, 3))))
+        if with_avatar_code:
+            out.append(code_block(treecode.encode(cat, voc, ap["level"], ap["tree"]),
+                                  "codigo-%s-%d-avatar" % (slug(voc, b["goal"]), level),
+                                  spent_label="e o codigo a importar quando chegares ao nivel %d" % ap["level"]))
+    out.append("</div>")
+    return "".join(out)
 
 
 def code_block(code, ident, spent_now=None, spent_label=None):
@@ -399,35 +511,54 @@ def _fire_note(cat, tree):
             % h.esc(", ".join(names)))
 
 
-def _tree_block(cat, b):
+def _tree_block(cat, b, root="../", with_code=True):
     steps = b.get("order") or b["steps"]
     fill = b["fill_steps"]
     roles = b.get("roles") or {}
+    priority = b["goal"] == B.PRIORITY_GOAL
     out = ["<h3>Arvore — %s/%s pontos</h3>" % (_n(b["points_spent"]), _n(b["points_budget"]))]
     rows = []
-    # ordem de compra, comprimida: um no seguido ate ao rank em que muda
+    # ordem de compra, comprimida: um no seguido ate ao rank em que muda (na «prioridades» tambem
+    # so dentro da mesma etapa: o mesmo no pode entrar como caminho e subir de rank noutra etapa)
     order = []
     for st in steps:
-        if order and order[-1][0] == st.node_id:
-            order[-1] = (st.node_id, st.rank, order[-1][2], st.cumulative)
+        stage = getattr(st, "stage", None)
+        if order and order[-1][0] == st.node_id and order[-1][4] == stage:
+            order[-1] = (st.node_id, st.rank, order[-1][2], st.cumulative, stage)
         else:
-            order.append((st.node_id, st.rank, st.rank, st.cumulative))
-    for nid, r_to, r_from, cum in order:
+            order.append((st.node_id, st.rank, st.rank, st.cumulative, stage))
+    for nid, r_to, r_from, cum, stage in order:
         role, gain = roles.get(nid, (None, None))
         role_text = h.esc(ROLE_LABEL.get(role, "?"))
         if gain is not None and role == B.ROLE_DAMAGE:
             role_text += ' <small class="mudo">%s</small>' % ("+%.1f%%" % gain).replace(".", ",")
-        rows.append([h.esc(_node_name(cat, nid)),
-                     ("%d" % r_to) if r_from == r_to else "%d → %d" % (r_from, r_to),
-                     _n(cum), role_text])
-    out.append('<p class="mudo">Ordem de compra a subir de nivel (o numero e o nivel em que se chega la, '
-               "porque cada nivel da um ponto — cliente), <b>clicavel a mao</b>: cada no, quando entra, ja tem um "
-               "vizinho comprado (regra yD do cliente). O papel de cada no: <b>dano</b> (o que rende na metrica, com o "
-               "ganho de o ter), <b>so ligacao</b> (rende ~0 mas segura o ramo), <b>tactica</b> (Battle Tactics), "
-               "<b>ponto que sobrou</b> (gasto no fim, sem rank de dano que o aceitasse — vai para HP/absorcao).</p>")
-    out.append(h.table(["no", "rank", "ate ao nivel", "papel"], rows, numeric=(2,)))
+        row = [h.esc(_node_name(cat, nid)),
+               ("%d" % r_to) if r_from == r_to else "%d → %d" % (r_from, r_to),
+               _n(cum), role_text]
+        if priority:
+            row.insert(0, h.esc(_stage_text(stage)))
+        rows.append(row)
+    if priority:
+        out.append('<p class="mudo">Ordem de compra <b>por etapas</b> (Avatar → Exp → Loot → Crit → Ataque → Dano critico → '
+                   "Elemento → o resto), e a que ele clica no jogo; o numero e o nivel em que se chega la (cada nivel da um "
+                   "ponto — cliente). <b>Clicavel a mao</b>: cada no, quando entra, ja tem um vizinho comprado (regra yD). O "
+                   "papel: a etapa a que o no pertence; <b>so ligacao</b> quando so entrou como caminho (rank 1) para "
+                   "chegar a um no de uma etapa acima; na etapa 8 os papeis de sempre (<b>dano</b> com o ganho medido, "
+                   "<b>tactica</b>, <b>ponto que sobrou</b>). Dentro de cada etapa a ordem e por rendimento por ponto: "
+                   "Exp e Loot pelo proprio efeito por ponto; Crit, Ataque, Dano critico e Elemento pelo ganho de DPS por "
+                   "ponto medido no simulador com a rotacao desta build.</p>")
+        out.append(h.table(["etapa", "no", "rank", "ate ao nivel", "papel"], rows, numeric=(3,)))
+    else:
+        out.append('<p class="mudo">Ordem de compra a subir de nivel (o numero e o nivel em que se chega la, '
+                   "porque cada nivel da um ponto — cliente), <b>clicavel a mao</b>: cada no, quando entra, ja tem um "
+                   "vizinho comprado (regra yD do cliente). O papel de cada no: <b>dano</b> (o que rende na metrica, com o "
+                   "ganho de o ter), <b>so ligacao</b> (rende ~0 mas segura o ramo), <b>tactica</b> (Battle Tactics), "
+                   "<b>ponto que sobrou</b> (gasto no fim, sem rank de dano que o aceitasse — vai para HP/absorcao).</p>")
+        out.append(h.table(["no", "rank", "ate ao nivel", "papel"], rows, numeric=(2,)))
     out.append(_validation_line(cat, b))
     out.append(_fire_note(cat, b["tree"]))
+    if priority:
+        out.append(priority_block(cat, b, root))   # com o codigo do nivel do Avatar, se ainda nao cabe
     if b.get("pruned"):
         out.append('<p class="mudo">Podados no fim (rendiam ~0 na metrica e a arvore continua ligada sem eles; os pontos '
                    "voltaram a gastar-se): %s.</p>" % h.esc("; ".join(
@@ -438,10 +569,11 @@ def _tree_block(cat, b):
                    "guloso depende do caminho, e o plano avalia os dois).</small></p>" % (
                        h.esc(B.GOAL_LABEL.get(used, used)), _n(b["path_scores"].get(used), 1),
                        ", ".join(_n(v, 1) for k, v in b["path_scores"].items() if k != used)))
-    out.append(code_block(treecode.encode(cat, b["vocation"], b["level"], b["tree"]),
-                          "codigo-%s-%d" % (slug(b["vocation"], b["goal"]), b["level"]),
-                          spent_label="com os %d pontos desta arvore gastos seriam %s gold"
-                          % (b["points_spent"], h.kk(treecode.import_cost(b["points_spent"])))))
+    if with_code:
+        out.append(code_block(treecode.encode(cat, b["vocation"], b["level"], b["tree"]),
+                              "codigo-%s-%d" % (slug(b["vocation"], b["goal"]), b["level"]),
+                              spent_label="com os %d pontos desta arvore gastos seriam %s gold"
+                              % (b["points_spent"], h.kk(treecode.import_cost(b["points_spent"])))))
     savings = [st for st in steps if getattr(st, "saving", None)]
     if savings:
         out.append('<p class="mudo">Onde o caminho poupa em vez de comprar pequenos (so quando rende pelo menos '
@@ -1058,6 +1190,20 @@ def validation_markdown(cat, plans, rows=None, rows_rune=None):
     out.append("")
     out.append("**%s**" % ("Tudo dentro da tolerancia." if not bad_rune else
                            "%d numero(s) fora da tolerancia — o simulador e a conta a mao discordam; ver acima." % len(bad_rune)))
+    out += ["", "## 1c. O Avatar: o caminho ligado mais barato + 300, a mao, por vocacao (ordem 9, 21/09/2026)", "",
+            "A 1.a prioridade do Andre e o notable de tier 11. A conta a mao (`validation.avatar_reach_by_hand`) e um "
+            "Dijkstra proprio sobre o `arvore.json` cru — um rank por no, a ligacao e o `requer` nos dois sentidos "
+            "(cliente `MK`), a partir dos nos de tier 0 — sem importar o motor; ao lado o que o motor "
+            "(`builds.avatar_reach`) deu. O nivel em que cabe = caminho + 300, porque cada nivel da um ponto.", "",
+            "| vocacao | caminho a mao (pontos) | nivel em que cabe (a mao) | motor: pontos / nivel | ok | o caminho |",
+            "|---|---|---|---|---|---|"]
+    by_hand = validation.avatar_reach_by_hand(cat.raw["arvore"])
+    for voc in ("knight", "paladin", "sorcerer", "druid", "monk"):
+        cost, path, reach = by_hand[voc]
+        m_cost, m_path, m_reach = B.avatar_reach(cat, voc)
+        out.append("| %s | %s | %s | %s / %s | %s | %s |" % (
+            VOCATION_LABEL[voc], _md_num(cost, 0), _md_num(reach, 0), _md_num(m_cost - 300 if m_cost is not None else None, 0),
+            _md_num(m_reach, 0), "sim" if (reach == m_reach) else "**NAO**", ", ".join(path)))
     out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
             "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
             "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (

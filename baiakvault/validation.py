@@ -318,6 +318,57 @@ def compare(hand, engine, tolerance_pct=TOLERANCE_PCT, labels=None):
     return rows
 
 
+# --- 1c. o Avatar: o caminho ligado mais barato + 300, so com o arvore.json (ordem 9) ------------------
+AVATAR_TIER = 11
+
+
+def avatar_reach_by_hand(tree_json):
+    """{vocacao: (custo do caminho, [nomes do caminho], nivel em que o Avatar cabe)} — Dijkstra
+    proprio sobre o `arvore.json` cru: um rank por no (small custa `custo_por_rank` x 1, notable
+    `custo_por_rank`), a ligacao e o `requer` nos dois sentidos (cliente MK), a partir dos nos de
+    tier 0, ate um vizinho do notable de tier 11; o nivel = custo + o custo do Avatar, porque cada
+    nivel da um ponto. Nao importa `builds.py`."""
+    import heapq
+    out = {}
+    for tree in tree_json["arvores"]:
+        nodes = {n["id"]: n for n in tree["nos"]}
+        adj = {nid: set() for nid in nodes}
+        for n in tree["nos"]:
+            for req in n.get("requer") or []:
+                adj[n["id"]].add(req)
+                adj[req].add(n["id"])
+        avatar = next(n for n in tree["nos"] if n.get("tier") == AVATAR_TIER)
+        dist, prev, heap = {}, {}, []
+        for nid, n in nodes.items():
+            if n.get("tier", 0) == 0:
+                dist[nid] = n["custo_por_rank"]
+                heapq.heappush(heap, (dist[nid], nid))
+        best = None
+        while heap:
+            d, nid = heapq.heappop(heap)
+            if d > dist.get(nid, float("inf")):
+                continue
+            if avatar["id"] in adj[nid]:
+                if best is None or d < best[0]:
+                    best = (d, nid)
+                continue
+            for v in adj[nid]:
+                if v == avatar["id"]:
+                    continue
+                nd = d + nodes[v]["custo_por_rank"]
+                if nd < dist.get(v, float("inf")):
+                    dist[v], prev[v] = nd, nid
+                    heapq.heappush(heap, (nd, v))
+        path = []
+        cur = best[1] if best else None
+        while cur is not None:
+            path.append(nodes[cur]["nome"])
+            cur = prev.get(cur)
+        cost = best[0] if best else None
+        out[tree["vocacao"]] = (cost, list(reversed(path)), (cost + avatar["custo_por_rank"]) if cost is not None else None)
+    return out
+
+
 # --- 2. a curva do guia --------------------------------------------------------------------------
 GUIDE_CURVE = (7.012, 0.948, "guiabaiakidle.com/_astro/character-planner.D0n3Vxn3.js — `F=7.012,I=.948` (lido a 2026-09-16)")
 

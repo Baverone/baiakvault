@@ -21,10 +21,17 @@ O que ja la esta (v0.1):
   uma com o porque, o custo e a fonte, medidas no simulador com o que tens
   registado; ao lado, a build recomendada para a tua vocacao/objectivo/nivel.
   O que nao esta registado sai «?» e a lista diz o que falta preencher.
-- **Builds** — a build de **dano** de cada vocacao (a omissao: o maior DPS do
-  ciclo = XP/h, sem tecto de gold — pocoes e runas a vontade nos mages e no
-  paladin, a mana como limite no knight e no monk, sobreviver so como restricao
-  minima), a **melhor** (equilibrada) e as builds por objectivo, por nivel:
+- **Builds** — a build das **prioridades do Andre** de cada vocacao (a omissao
+  desde 21/09/2026): a arvore segue a ordem estrita **Avatar › Exp › Loot ›
+  Crit › Ataque › Dano critico › Elemento › o que sobrar**, cada etapa esgotada
+  antes da seguinte (o Avatar e o notable de tier 11 com o caminho ligado mais
+  barato; se ainda nao cabe, a pagina diz a que nivel cabe e da a build e o
+  codigo desse nivel), com a ordem de compra por etapas, os totais por
+  categoria e, ao lado em numero, o que a build de **dano** daria a mais; a
+  build de dano de cada vocacao (o maior DPS do ciclo = XP/h, sem tecto de
+  gold — pocoes e runas a vontade nos mages e no paladin, a mana como limite no
+  knight e no monk, sobreviver so como restricao minima), a **melhor**
+  (equilibrada) e as builds por objectivo, por nivel:
   arvore por ordem de compra, equipamento BiS, rotacao do Helper com o custo
   por lancamento e o **gold/h (pocoes + runas)**, cartao para copiar. E a
   **validacao cruzada** (`builds/validacao.html`): as contas de um perfil fixo
@@ -103,10 +110,14 @@ objectivo e nivel exacto, na tua hunt actual. Cada accao e medida no simulador
 metrica do objectivo (dano: DPS do ciclo; tank: EHP x sustain x DPS^0,3; cura e
 support: cura/s sustentavel x DPS^0,3). Ordem da lista: medido antes de nao
 medido, por ganho; respec vale metade (custa gold); charms e bestiario a seguir;
-o que falta preencher no fim. Objectivos por vocacao: knight tank|dano, druid
-cura|dano, sorcerer dano, paladin dano, monk support|dano — sem objectivo
-gravado usa-se o primeiro. Os numeros sao estimativas (as convencoes estao
-marcadas nas paginas das builds); nada foi medido na conta.
+o que falta preencher no fim. Objectivos por vocacao: **prioridades** (a
+omissao em todas, 21/09/2026), dano, melhor, e knight tank | druid cura | monk
+support — sem objectivo gravado usa-se o primeiro. Com «prioridades» o proximo
+no da arvore e o proximo da ordem de compra por etapas (nao o de maior ganho
+medido; o ganho vai ao lado como informacao) e, se o Avatar ainda nao cabe, a
+lista diz a que nivel cabe e que o passo la e importar a build desse nivel
+(respec). Os numeros sao estimativas (as convencoes estao marcadas nas paginas
+das builds); nada foi medido na conta.
 
 ## Como e que os charms por hunt sao escolhidos
 

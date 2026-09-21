@@ -107,8 +107,17 @@ class Advisor(unittest.TestCase):
     def test_defaults_and_measured_gains(self):
         druid = self.advice["druid"]
         self.assertTrue(druid["goal_defaulted"])
-        self.assertEqual(druid["goal"], "damage")   # omissao desde a ordem 7 (16/09/2026 13:30: «quero dano»)
+        self.assertEqual(druid["goal"], "priority")   # omissao desde a ordem 9 (21/09/2026: as prioridades do Andre)
         self.assertTrue(any("upgrade de arma desconhecido" in n for n in druid["notes"]), druid["notes"])
+        # com «prioridades» o proximo no e o da ordem por etapas, e o Avatar (a 320) ainda nao cabe a 150
+        tree = [s for s in druid["suggestions"] if s["kind"] == "tree"]
+        self.assertTrue(tree, druid["suggestions"])
+        self.assertIn("etapa", tree[0]["why"])
+        self.assertIn(tree[0]["stage"], ("avatar", "exp", "loot", "crit", "attack", "critdmg", "element", "rest"))
+        respec = [s for s in druid["suggestions"] if s["kind"] == "respec" and "Avatar of Nature" in s["action"]]
+        self.assertTrue(respec, druid["suggestions"])
+        self.assertEqual(respec[0]["level_at"], 320)
+        self.assertTrue(respec[0]["code"].startswith("BT1-D320-"))
         knight = self.advice["knight"]
         self.assertEqual(knight["goal"], "tank")
         self.assertFalse(knight["goal_defaulted"])
@@ -198,15 +207,16 @@ class Advisor(unittest.TestCase):
 
 
 class Goals(unittest.TestCase):
-    def test_default_goal_is_damage_and_the_old_ones_stay(self):
-        # omissao «damage» desde 16/09/2026 13:30 (ordem 7, «quero dano, nao importa o custo»);
-        # a «best» da ordem 6 e os objectivos da ordem 2 ficam
+    def test_default_goal_is_priority_and_the_old_ones_stay(self):
+        # omissao «priority» desde 21/09/2026 (ordem 9, as prioridades do Andre); a «damage» de
+        # 16/09/2026 13:30, a «best» da ordem 6 e os objectivos da ordem 2 ficam para comparacao
         for voc in ("knight", "druid", "monk", "sorcerer", "paladin"):
-            self.assertEqual(db.default_goal(voc), "damage")
+            self.assertEqual(db.default_goal(voc), "priority")
             self.assertIn("best", db.GOALS_BY_VOCATION[voc])
-        self.assertEqual(db.GOALS_BY_VOCATION["knight"][1:], ("best", "tank"))
-        self.assertEqual(db.GOALS_BY_VOCATION["druid"][1:], ("best", "heal"))
-        self.assertEqual(db.GOALS_BY_VOCATION["monk"][1:], ("best", "support"))
+            self.assertEqual(db.GOALS_BY_VOCATION[voc][1], "damage")
+        self.assertEqual(db.GOALS_BY_VOCATION["knight"][2:], ("best", "tank"))
+        self.assertEqual(db.GOALS_BY_VOCATION["druid"][2:], ("best", "heal"))
+        self.assertEqual(db.GOALS_BY_VOCATION["monk"][2:], ("best", "support"))
         self.assertIsNone(db.default_goal(None))
 
     def test_goal_must_belong_to_vocation(self):
@@ -219,7 +229,7 @@ class Goals(unittest.TestCase):
                 vault.upsert_character("K", goal="heal")
             # muda de vocacao: o objectivo antigo deixa de valer e cai para a omissao da nova
             vault.upsert_character("K", vocation="druid")
-            self.assertEqual(vault.character(cid)["goal"], "damage")
+            self.assertEqual(vault.character(cid)["goal"], "priority")
         finally:
             conn.close()
 

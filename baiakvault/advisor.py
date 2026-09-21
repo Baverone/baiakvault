@@ -28,13 +28,15 @@ from . import treecode
 
 METRIC_LABEL = {"best": "DPS do ciclo sustentavel (aguenta + mana; druid: cura o knight)",
                 "damage": "DPS do ciclo (= XP/h; knight/monk: o que a mana sustenta) x nao morrer", "tank": "EHP x sustain x DPS^0,3",
-                "heal": "cura/s sustentavel x DPS^0,3", "support": "cura/s sustentavel x DPS^0,3"}
+                "heal": "cura/s sustentavel x DPS^0,3", "support": "cura/s sustentavel x DPS^0,3",
+                # a «prioridades» mede-se como a «dano»; a ordem da arvore e que e outra (21/09/2026)
+                "priority": "DPS do ciclo (= XP/h; knight/monk: o que a mana sustenta) x nao morrer — so informacao: a arvore segue as prioridades"}
 SLOT_LABEL = {"weapon": "arma", "shield": "escudo", "helmet": "elmo", "armor": "armadura",
               "legs": "pernas", "boots": "botas", "amulet": "amuleto", "ring": "anel", "ammo": "municao",
               "backpack": "mochila"}
 # «best» maximiza o DPS (as condicoes sao restricoes): pede charms ofensivos como «damage»
-GOAL_CHARM_KIND = {"best": "offensive", "damage": "offensive", "tank": "defensive", "heal": "defensive",
-                   "support": "defensive"}
+GOAL_CHARM_KIND = {"priority": "offensive", "best": "offensive", "damage": "offensive", "tank": "defensive",
+                   "heal": "defensive", "support": "defensive"}
 CHARM_KIND_LABEL = {"offensive": "ofensivo", "defensive": "defensivo", "passive": "passivo"}
 # atributos da forja que o motor entende (somam-se aos do item, em %)
 FORGE_ATTRIBUTES = ("crit_chance", "crit_dano", "life_leech", "mana_leech")
@@ -46,6 +48,10 @@ BESTIARY_SCORE = 0.25
 BESTIARY_NEAR_SHARE = 0.3    # «perto de fechar» = faltam <= 30 % da meta
 MAX_SUGGESTIONS = 7
 MAX_MISSING = 2
+# «prioridades» (21/09/2026): o proximo no da ordem por etapas e o Avatar fora de alcance nao se
+# medem por ganho — levam uma pontuacao fixa para ficarem no topo da lista com o que e medido
+PRIORITY_STEP_SCORE = 10.0
+AVATAR_STEP_SCORE = 5.0
 
 SOURCE_SIM = "formulas do cliente + simulador do BaiakVault"
 SOURCE_CATALOG = "catalogo (bundle do cliente)"
@@ -216,15 +222,20 @@ def tree_suggestions(cat, state, goal, target, equipment, rotation, plan, curren
     ranks = state["tree"]
     out = []
     if ranks is None:
-        return [_missing("a arvore (nenhum no registado)",
-                         "sem a arvore nao se sabe que no comprar a seguir — modo de edicao, seccao Arvore")]
+        out.append(_missing("a arvore (nenhum no registado)",
+                            "sem a arvore nao se sabe que no comprar a seguir — modo de edicao, seccao Arvore"))
+        if goal == B.PRIORITY_GOAL:
+            out += avatar_suggestion(cat, state, plan)   # nao depende da arvore dele: e o nivel em que o Avatar cabe
+        return out
     spent = _tree_spent(cat, ranks)
     budget = F.tree_budget(level)
     left = budget - spent
     if left < 0:
         return [_missing("a arvore esta errada: os ranks registados custam %d pontos e o nivel %d so da %d"
                          % (spent, level, budget), "algum rank esta a mais — modo de edicao, seccao Arvore")]
-    if left > 0:
+    if goal == B.PRIORITY_GOAL:
+        out += priority_tree_suggestions(cat, state, target, equipment, rotation, plan, current_score, metric, left)
+    elif left > 0:
         top, _, _ = B.next_purchase(cat, voc, goal, level, ranks, equipment, target, rotation=rotation, top=3)
         for opt in top[:2]:
             if opt["gain_pct"] < MIN_GAIN_PCT:
@@ -262,6 +273,68 @@ def tree_suggestions(cat, state, goal, target, equipment, rotation, plan, curren
             % (_fmt_pct(gain), metric, diff_points),
             "%s gold (cliente fD: 1000 + 200 x %d pontos gastos agora)" % (_thousands(treecode.import_cost(spent)), spent),
             SOURCE_SIM, gain * RESPEC_SCORE_FACTOR, gain_pct=gain))
+    return out
+
+
+def priority_tree_suggestions(cat, state, target, equipment, rotation, plan, current_score, metric, left):
+    """No objectivo «prioridades» (21/09/2026) o proximo no e o proximo da ordem de compra
+    por etapas da build recomendada que ele ainda nao tem (nao o de maior ganho medido);
+    o ganho medido no simulador com o que ele tem vai ao lado, como informacao. Se o
+    Avatar nao cabe ao nivel dele, diz-se a que nivel cabe e que o passo la e importar a
+    build desse nivel (respec pelo `fD`; o gold nao conta — decisao dele de 16/09)."""
+    voc, level = state["vocation"], state["level"]
+    ranks = state["tree"] or {}
+    out = []
+    order = plan.get("order") or []
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[voc]["nos"]}
+    adj = B._adjacency(cat, voc)
+    nxt = next((st for st in order if (ranks.get(st.node_id, 0) or 0) < st.rank), None)
+    if nxt is not None:
+        node = node_by_id[nxt.node_id]
+        rank = (ranks.get(nxt.node_id, 0) or 0) + 1
+        path = B.unlock_path(node, ranks, adj, node_by_id) or []
+        trial = dict(ranks)
+        cost = 0
+        for pid in path + [nxt.node_id]:
+            cost += F.tree_rank_cost(node_by_id[pid], trial.get(pid, 0))
+            trial[pid] = trial.get(pid, 0) + 1
+        s, _ = _score_of(cat, voc, level, "damage", trial, equipment, target, rotation)
+        gain = _pct(s, current_score)
+        stage = B.PRIORITY_LABEL.get(nxt.stage, nxt.stage or "?")
+        via = " (antes: %s)" % " → ".join("%s 1" % _node_name(cat, v) for v in path) if path else ""
+        fits = cost <= left
+        out.append(_suggestion(
+            "tree", ("Comprar na arvore: %s rank %d%s" if fits else "Juntar pontos para a arvore: %s rank %d%s")
+            % (node["nome"], rank, via),
+            "etapa «%s» das tuas prioridades (a proxima da ordem de compra); no simulador com o teu equipamento "
+            "em %s: %s no DPS (informacao, nao e o criterio); tens %d ponto%s por gastar"
+            % (stage, cat.hunt_by_id[target.hunt_id]["nome"], _fmt_pct(gain), left, "" if left == 1 else "s"),
+            "%d ponto%s" % (cost, "" if cost == 1 else "s"), SOURCE_SIM, PRIORITY_STEP_SCORE if fits else PRIORITY_STEP_SCORE * 0.5,
+            node=nxt.node_id, rank=rank, via=path, points_left=left, stage=nxt.stage, gain_pct=gain))
+    return out + avatar_suggestion(cat, state, plan)
+
+
+def avatar_suggestion(cat, state, plan):
+    """«No nivel X: importar a build com o Avatar» quando o Avatar (1.a prioridade) ainda
+    nao cabe ao nivel dele — o passo la e um respec (fD), nao poupar pontos."""
+    voc, level = state["vocation"], state["level"]
+    ranks = state.get("tree") or {}
+    out = []
+    info = plan.get("priority") or {}
+    avatar_plan = plan.get("avatar_plan")
+    if not info.get("avatar") and avatar_plan is not None:
+        lv = avatar_plan["level"]
+        spent_now = _tree_spent(cat, ranks)
+        code = treecode.encode(cat, voc, lv, avatar_plan["tree"])
+        out.append(_suggestion(
+            "respec", "No nivel %d: importar a build com o %s (respec)" % (lv, _node_name(cat, B.AVATAR_NODE[voc])),
+            "o Avatar e a 1.a prioridade mas o caminho mais barato + 300 pontos so cabe ao nivel %d (tens %d); "
+            "ate la as outras prioridades seguem, e no nivel %d importa-se o codigo da build desse nivel — nao se "
+            "deixam pontos por gastar a poupar (o gold do respec nao conta, decisao de 16/09/2026)"
+            % (lv, level, lv),
+            "%s gold ao importar (cliente fD: 1000 + 200 x pontos gastos nessa altura; com os %d de agora seriam %s)"
+            % (_thousands(treecode.import_cost(lv)), spent_now, _thousands(treecode.import_cost(spent_now))),
+            SOURCE_SIM, AVATAR_STEP_SCORE, level_at=lv, code=code))
     return out
 
 
