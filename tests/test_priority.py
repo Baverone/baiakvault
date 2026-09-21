@@ -748,8 +748,9 @@ class SchemaV6(unittest.TestCase):
         conn.close()
         conn = db.connect(path)
         try:
-            self.assertEqual(db.schema_version(conn), 6)
-            self.assertEqual(db.SCHEMA_VERSION, 6)
+            # a v6 e um degrau: a BD chega a versao actual do codigo (7 desde a ordem 11)
+            self.assertEqual(db.schema_version(conn), db.SCHEMA_VERSION)
+            self.assertGreaterEqual(db.SCHEMA_VERSION, 6)
             vault = db.Vault(conn, helpers.real_catalog())
             got = [(c["id"], c["name"], c["slug"], c["vocation"], c["level"], c["current_hunt"], c["goal"],
                     c["fixed_rotation_json"], c["fixed_weapon"]) for c in vault.characters()]

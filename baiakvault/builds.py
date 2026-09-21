@@ -919,6 +919,7 @@ class Planner:
         self._ally = {}        # (hunt, checkpoint) -> pressao do pack sobre o knight «best»
         self._priority = {}    # (voc, nivel, hunt, fixed) -> a build «prioridades» (ordem 9)
         self._plans = {}       # (voc, goal, nivel, hunt, fixed) -> a build montada (ordem 9)
+        self._codex = {}       # o modelo por personagem e os kills/h da party por hunt (ordem 11; `pages_codex`)
         self.timings = {}
 
     # contexto por nivel: usa o checkpoint (nivel representativo) mais alto <= nivel

@@ -49,6 +49,8 @@ formulario local do proprio BaiakVault (ordem 2).
       pages_builds.py      paginas builds/, cartoes print/ e a validacao cruzada (markdown gerado)
       validation.py        contas a mao so com os JSON (NAO importa formulas/sim: e a verificacao independente), curva do guia, discordancias guia/cliente
       advisor.py           o «proximo passo» de um personagem (puro: catalogo + estado + Planner)
+      codex.py             o Codex do cliente a letra ($5e/Iq/O5e/qX/H5e/F5e/K5e/Wr/MX/t4e/S_): recompensas, numeracao, kills por Dominio (puro)
+      pages_codex.py       o valor de cada missao para a party (modelo linear da ordem 10), horas, XP perdida, o plano e as paginas codex/
       charms.py            charms por hunt: charm -> criatura com pontuacao, justificacao e mudancas (puro)
       pages_charms.py      guia dos 24 + «os teus charms», regras, seccoes das hunts/personagem/builds, cartoes print
       serve.py             docs/ + modo de edicao em /editar (unica porta de escrita)
@@ -90,7 +92,7 @@ antigo. **O BaiakVault usa o 8774.** Nao se trocam.
 - Comentarios explicam porque, nao o que. Decisoes com data aqui.
 - Sem «None»/«nan»/«undefined» em pagina nenhuma (ha um teste a garantir).
 
-## Esquema da vault.db (v6)
+## Esquema da vault.db (v7)
 
 Chaves sao as dos catalogos e validam-se ao escrever (chave desconhecida =
 `VaultError`, nao insercao). `source` e 'manual' ou 'captura'; NULL onde nao
@@ -106,6 +108,7 @@ escreveu.
 | `character_charm_points` | character_id | points_available, points_spent; v3: slot_limit (o Y de «X/Y monstros com charm»), expansion 0/1, echoes — leituras do ecra dos Charms; um campo a None nao apaga (`clear_charm_points_field` apaga) |
 | `character_bestiary` | (character_id, creature_key) | kills |
 | `readings` | id | historico: at, level, xp, gold, stamina (min), hunt — so se acrescenta, para o XP/h futuro |
+| `codex_progress` | mission_id (v7, **por conta**) | done 0/1, progress_json = contagens por item na ordem do `req` da missao (`codex.Codex.missions()` valida o id e as quantidades), source, seen_at; um campo a None nao apaga (`forget_codex_progress` apaga) |
 
 Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
 `schema.sql` inteiro. Acrescenta-se ao fim, nunca se mexe nas anteriores.
@@ -609,6 +612,49 @@ Migracoes: `db.MIGRATIONS` e uma lista de scripts por versao; a v1 e o
   Exp/Loot (`same_stat_violations(any_signature=True)`). O advisor diz no passo de Exp/Loot «+X %
   exp por rank (Y %/pt)». Custo: build de um personagem 2,5-7 s (a rota do druid avalia as 411
   rotas com as etapas Exp/Loot em ~1 s gracas ao `path_cache` no `_stage_by_effect`).
+- **21/09/2026 (ordem 11, pedido do Andre 14:00: «investiga os Codex e da-me um planeamento de
+  ordenacao»)** — **A recompensa de cada missao do Codex calcula-se no cliente**, deterministica, a
+  partir do id da cadeia (o `ac.json` dizia «esta no ecra»: errado; registado em
+  `ai-pc\knowledge\baiakidle\dados\duvidas.md`). `codex.py` transcreve a letra: `$5e` FNV-1a de 32 bits
+  -> triplo de stats (`N5e` 4 utilitarios para hunts < 150, `_5e` 6 ofensivos >= 150, `P5e(el)` bosses
+  com elemento, `ND` 4 sem); `O5e` normaliza: 174 entradas (95 bosses peso 1 + 79 hunts peso
+  1 + minLevel/100), `Lq[stat] = B5e[stat] / soma(peso x (3 - i))`; `qX(key, step)` = para i ate
+  min(step, 2) o stat i vale round(Lq x peso x 1000)/1000 — o degrau II repete o stat do I (fechar
+  I+II+III = tri[0] x3 + tri[1] x2 + tri[2] x1); o II pede 5x a lista, o III 15x (`j5e`); sets
+  (`W5e`, 41) = base x `G5e[tier]` x 0,175 (armas 0,35; spellDmgPct ainda x 0,5), cada peca x1 ao tier
+  de raridade (Comum/Incomum/Raro/Epico = `_n[0..3]`); numeracao `MX` = posicao em `Wr()` (hunts na
+  ordem do `hunts.json` x 3 degraus, bosses na ordem do `ac.json`, sets x 4): **#130 = Livraria FIRE I,
+  #131 = II — confirmados na captura dele de 21/09 14:10** («Dano de magia +0,654%», «+0,654% · Ataque
+  +0,233%», formato `_D` 3 casas com virgula). **Gold dos degraus** `SX.stepGold` = 0 / 50 M / 500 M /
+  1 000 M (tier Epico dos sets): **o II confirmado pelo Andre a 21/09/2026 14:15 (custou-lhe 50 M)**;
+  III e Epico ficam «omissao do cliente, coerente com o II» (o servidor pode mudar por `codexconfig`).
+  Regra `t4e`: um item forjado (tier >= 1) nunca serve uma hunt nem um boss (so `tier` exacto nos sets,
+  `anyTier`/`minTier`/`minUp` onde o req os tem); **nao ha regra nenhuma sobre «of destruction» no
+  bundle**. `onslaught` = «+x % chance de fatal» — o cliente nao diz quanto vale um fatal (combate no
+  servidor): vale 0 no dano, com nota. **Custo em kills** (`Codex.kills_needed`): quota de cada monstro
+  pelo `peso` (uniforme a null) x chance/100 000 x **(1+max)/2** (convencao ⚠ `DROP_COUNT_MEAN`,
+  **calibrada com a captura**: nos itens exclusivos da Livraria FIRE — talon, purple tome, burnt scroll,
+  flask, soul orb — os contadores do II implicam os mesmos ~38-44 k kills a ±10 %; com «1 por drop»
+  divergiam 3x; dead brain, slime heart, poisonous slime e clay lump vinham com stock de fora); item sem
+  drop conhecido = «?» e fora do gargalo. Livraria FIRE I = 44 213 kills (purple tome); ao II faltam
+  ~2 900 purple tomes = 183 k kills. **Valor de uma missao** (`pages_codex`): o modelo linear da ordem
+  10 (`builds.stat_model`) sobre a build «prioridades» de cada um dos 5 ao nivel dele com a
+  rotacao/arma fixadas, media ponderada pelo DPS = variacao do DPS da party; `elementDmgPct` so nos
+  elementos da rotacao/arma; absorb/HP/mana/leech/defesa/armor/velocidade/cura valem 0 e saem como
+  «sobrevivencia/utilidade». **Bonus por conta: por confirmar** (a pagina diz). **Horas** = kills / kills/h
+  da party na hunt (DPS dos 5 com a SUA build contra o pack dessa hunt no simulador, sem refazer a
+  build por hunt; 57 + 1 boss por ciclo), so para hunts com nivel minimo <= o mais alto (548);
+  **XP perdida** = horas x (XP/h da melhor hunt ao alcance − XP/h dessa), tudo do simulador — que diz
+  que **Asuras rende mais XP/h a party do que a Livraria FIRE (54 M vs 42 M)**: e o modelo, sem
+  sobrevivencia, nao foi medido na conta. Ordenacao final por **valor de DPS por hora**. Esquema **v7**
+  `codex_progress` (por conta) pelo `Vault.set_codex_progress`, `/editar` com o formulario (numero do
+  ecra ou id, contagens coladas «599/3.500»), `#130` concluido e `#131` com os contadores dele ja em
+  `main` (`source='captura'`). Paginas `codex/index.html` (plano (a)-(f) + ordenacao geral),
+  `codex/missoes.html` (as 686 com filtro por categoria/stat em JS vanilla), `print/codex-plano.html`;
+  `validacao.md` **§1g** com os tres numeros para ele comparar no ecra e o gold dos degraus. O modelo e
+  os kills/h ficam em `Planner._codex`. Slots do AC: assume-se 1 (free) e diz-se o que muda com 2/10.
+  **A `baiakvault-leitura` ainda nao reconhece uma captura do Codex** (fica para a proxima; o painel diz
+  «HUNTS» e «Dominio: … I/II/III» com contadores por item).
 
 ## Fontes
 

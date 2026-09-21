@@ -10,6 +10,7 @@ import math
 import re
 
 from . import builds as B
+from . import codex as codex_module
 from . import formulas as F
 from . import html as h
 from . import sim
@@ -1542,6 +1543,23 @@ def validation_markdown(cat, plans, rows=None, rows_rune=None, sorcerer_plan=Non
             ("%d" % final["loot"]["points"]) if has["loot"] else "sem nos de Loot",
             _md_num(before["unspent"], 0), (_md_num(min(nxt), 0) + " pontos") if nxt else "nenhum por comprar",
             "sim" if exhausted else "**NAO**", "sim" if (exp_ok and loot_ok and exhausted) else "**NAO**"))
+    # ordem 11 (21/09/2026): o Codex — os numeros que o cliente calcula (`qX`) tal como o ecra os mostra
+    # (`S_`/`_D`: 3 casas, virgula), para ele comparar; os dois primeiros ja bateram na captura de 21/09
+    cx = codex_module.Codex(cat)
+    out += ["", "## 1g. O Codex: tres numeros para comparar no ecra (ordem 11, 21/09/2026)", "",
+            "A recompensa de cada missao calcula-se no cliente (`qX`: FNV-1a do id da cadeia -> triplo de stats; "
+            "`Lq[stat] = B5e[stat] / soma(peso x (3 - i))` sobre as %d entradas; valor = round(Lq x peso x 1000)/1000). "
+            "Formato do ecra (`_D`): 3 casas decimais, virgula. **#130 e #131 confirmados na captura do Andre de 21/09/2026.**"
+            % len(cx.entries), "",
+            "| # | missao | o que a pagina diz | confirmado no ecra |", "|---|---|---|---|"]
+    for mid, seen in (("hunt-livrariafire-cave", "sim (21/09/2026)"), ("hunt-cobra-cave", "por ver"), ("boss-alptramun-2", "por ver")):
+        m = cx.mission(mid)
+        out.append("| #%d | %s | %s | %s |" % (m["number"], m["name"], codex_module.format_bonus_line(m["bonus"]), seen))
+    out += ["", "Gold dos degraus (`SX.stepGold`, omissao do cliente; o servidor pode mudar por `codexconfig`): I gratis, "
+            "II %s, III %s, tier Epico dos sets %s — **o II confirmado pelo Andre a 21/09/2026 (50 M)**; o III e o Epico ficam "
+            "como omissao do cliente, coerente com o II." % tuple(_md_num(g / 1e6, 0) + " M" for g in codex_module.STEP_GOLD[1:]),
+            "Soma de todos os bonus de hunts e bosses por stat = `B5e` a menos do arredondamento: max desvio %s."
+            % _md_num(max(abs(v - codex_module.BUDGET.get(k, 0)) for k, v in cx.total_budget().items()), 3)]
     out += ["", "## 2. A curva de DPS do guia vs o DPS do ciclo do simulador", "",
             "Curva do guia: `%s x nivel^%s` (%s). E uma referencia sem vocacao, hunt nem equipamento; a razao "
             "mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz." % (

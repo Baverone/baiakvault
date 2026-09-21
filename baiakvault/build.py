@@ -23,6 +23,7 @@ from . import html as h
 from . import notes
 from . import pages_builds
 from . import pages_charms
+from . import pages_codex
 
 DEFAULT_OUT = Path(__file__).resolve().parent.parent / "docs"
 # A validacao cruzada (`docs/builds/validacao.md`) e gerada pelo build a partir de `validation.py`
@@ -112,7 +113,10 @@ def render_index(cat, characters, generated_at, advice_by_slug=None):
                  "numeros do simulador; a build «melhor» (equilibrada) e as builds por objectivo (tank, cura, "
                  'support) ficam la tambem; <a href="builds/validacao.html">validacao cruzada</a> com o guia</li>' % links)
     parts.append('<li><a href="hunts/index.html">Hunts</a> — as %d hunts pelos indices do jogo</li>'
-                 '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li></ul>'
+                 '<li><a href="charms/index.html">Charms</a> — o guia dos %d charms</li>'
+                 '<li><a href="codex/index.html">Codex</a> — o plano de ordenacao das missoes pelo ganho de DPS da party por '
+                 "hora (as recompensas calculam-se no cliente; confirmadas no ecra a 21/09/2026), com o Auto Collect de agora, "
+                 "a rotacao das Livrarias, bosses, sets e os degraus II/III</li></ul>"
                  % (len(cat.hunts), len(cat.charms)))
     parts.append('<p class="mudo"><small>Catalogo do jogo visto a %s. Gerado a %s.</small></p>'
                  % (h.esc(cat.seen_at()), h.esc(generated_at)))
@@ -631,6 +635,13 @@ def build(out_dir=None, db_path=None, catalog_dir=None, now=None, plans=None, wi
             for hid in sorted(hid for s, hid in print_keys if s == slug):
                 written.append(_write(out / "print" / ("charms-%s-%s.html" % (slug, hid)),
                                       pages_charms.render_print(cat, c, by_hunt[hid], generated_at)))
+        # o Codex (ordem 11): o plano pelo valor de DPS da party por hora, com o progresso dele da BD
+        vips = [c.get("vip") for c in characters]
+        vip = True if any(v == 1 for v in vips) else (None if all(v is None for v in vips) else False)
+        codex_report = pages_codex.compute(cat, planner, characters, advice_by_slug, vault.codex_progress(), vip)
+        written.append(_write(out / "codex" / "index.html", pages_codex.render_index(cat, codex_report, generated_at)))
+        written.append(_write(out / "codex" / "missoes.html", pages_codex.render_missions(cat, codex_report, generated_at)))
+        written.append(_write(out / "print" / "codex-plano.html", pages_codex.render_print(cat, codex_report, generated_at)))
         if with_builds:
             plans = plans or build_plans(cat, planner)
             written.append(_write(out / "builds" / "index.html", pages_builds.render_index(cat, plans, generated_at)))

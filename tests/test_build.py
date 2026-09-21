@@ -75,7 +75,7 @@ class BuildEmptyVault(unittest.TestCase):
     def test_hunts_index_warns_about_indices(self):
         text = (self.out / "hunts" / "index.html").read_text(encoding="utf-8")
         self.assertIn("eficiencia, nao XP/h", text)
-        self.assertEqual(text.count('<a href="') - 4, 79)  # 4 do menu + 79 hunts
+        self.assertEqual(text.count('<a href="') - 5, 79)  # 5 do menu (Codex desde a ordem 11) + 79 hunts
 
     def test_charms_page_has_all_24(self):
         text = (self.out / "charms" / "index.html").read_text(encoding="utf-8")
