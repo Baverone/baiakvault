@@ -66,6 +66,63 @@ def cheapest_avatar_level(vocation):
     return best + AVATAR_COST, avatar["id"]
 
 
+def same_stat_violations(cat, vocation, plan):
+    """Repete os passos da build e, a cada rank comprado nas etapas 4-7 (crit/attack/critdmg/
+    element), procura um no da mesma categoria e com os mesmos stats, ligado e a caber, cujo
+    proximo rank rendesse mais por ponto (efeito / custo, caminho incluido). Os ranks de caminho
+    (categoria diferente da etapa) somam-se ao custo do rank que os pediu. Lista de mensagens."""
+    node_by_id = {n["id"]: n for n in cat.tree_by_vocation[vocation]["nos"]}
+    adj = builds._adjacency(cat, vocation)
+    info = plan["priority"]
+    category, elements = info["category"], frozenset(info["elements"])
+    budget = F.tree_budget(plan["level"])
+
+    def signature(nid):
+        return tuple(sorted((node_by_id[nid].get("efeito_por_rank") or {}).keys()))
+
+    def per_point(nid, ranks, stage):
+        node = node_by_id[nid]
+        if ranks.get(nid, 0) >= (node.get("rank_maximo") or 1):
+            return None
+        path = builds.unlock_path(node, ranks, adj, node_by_id)
+        if path is None:
+            return None
+        c = sum(F.tree_rank_cost(node_by_id[p], ranks.get(p, 0)) for p in path) + F.tree_rank_cost(node, ranks.get(nid, 0))
+        return builds._effect_value(node, stage, elements) / c, c
+
+    out = []
+    ranks = {}
+    before_path, path_cost = None, 0    # o estado antes dos ranks de caminho da compra em curso
+    for st in plan["steps"]:
+        stage = st.stage
+        if stage in ("crit", "attack", "critdmg", "element") and category.get(st.node_id) == stage and not getattr(st, "link", False):
+            start = before_path if before_path is not None else dict(ranks)
+            cost = path_cost + st.cost
+            mine = builds._effect_value(node_by_id[st.node_id], stage, elements) / cost
+            spent = builds._spent(cat, start)
+            for nid in node_by_id:
+                if category[nid] != stage or nid == st.node_id or signature(nid) != signature(st.node_id):
+                    continue
+                pp = per_point(nid, start, stage)
+                if pp is None or spent + pp[1] > budget:
+                    continue
+                if pp[0] > mine * 1.0001:
+                    out.append("%s %d %s: %s rank %d (%d pts, %.3f/pt) com %s rank %d a %.3f/pt por %d pts" % (
+                        vocation, plan["level"], stage, node_by_id[st.node_id]["nome"], st.rank, cost, mine,
+                        node_by_id[nid]["nome"], start.get(nid, 0) + 1, pp[0], pp[1]))
+                    break
+            before_path, path_cost = None, 0
+        elif stage in ("crit", "attack", "critdmg", "element"):
+            # um rank de caminho (categoria diferente, ou marcado `link`): o custo e da compra seguinte
+            if before_path is None:
+                before_path = dict(ranks)
+            path_cost += st.cost
+        else:
+            before_path, path_cost = None, 0
+        ranks[st.node_id] = st.rank
+    return out
+
+
 class PriorityBuilds(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -246,6 +303,21 @@ class PriorityBuilds(unittest.TestCase):
                     cost += F.tree_rank_cost(node, tree_c.get(nid, 0))
                     self.assertGreater(cost, lower, (voc, stage, node["nome"], tree_c.get(nid, 0), cost, lower))
 
+    def test_same_stat_ranks_are_bought_by_effect_per_point(self):
+        """Ordem 9c: nas 5 ao nivel dele e nos 8 niveis representativos, dentro de cada etapa
+        4-7 nenhum passo compra um rank de um no da categoria quando havia, ligado e a caber,
+        um rank de OUTRO no com o mesmo stat a render mais por ponto (custo `custo x n` mais o
+        caminho). Antes da correccao o knight 548 comprava Warlust 5 (15 pontos por 2,5 %) com
+        Warlord's Edge 3 (3 pontos por 1,5 %) por comprar."""
+        _, all_plans = helpers.planner()
+        plans = [(voc, b) for voc, b in self.plans.items()]
+        plans += [(voc, b) for (voc, goal, _lv), b in all_plans.items() if goal == "priority"]
+        plans += [(voc, b["avatar_plan"]) for voc, b in self.plans.items() if b.get("avatar_plan")]
+        bad = []
+        for voc, b in plans:
+            bad.extend(same_stat_violations(self.cat, voc, b))
+        self.assertEqual(bad, [], "\n".join(bad))
+
     def test_client_rules_and_clickable_order_and_codes(self):
         """(c) e (d), nas 5 builds e na do nivel do Avatar do paladin."""
         plans = list(self.plans.values()) + [p["avatar_plan"] for p in self.plans.values() if p.get("avatar_plan")]
@@ -352,6 +424,75 @@ class RouteChoiceOnAHandMadeTree(unittest.TestCase):
         keep, dropped = builds._dominated_routes([(2, ["k_hp0", "k_hp1"]), (1, ["k_hp0"]), (2, ["k_exp0", "k_hp1"])], category)
         self.assertEqual(dropped, 1)
         self.assertEqual(sorted(keep), [(1, ["k_hp0"]), (2, ["k_exp0", "k_hp1"])])
+
+
+class SameStatOnAHandMadeTree(unittest.TestCase):
+    """Ordem 9c: dois nos de tier 0 com o mesmo stat (atkPct 1,5/rank a custo 1 e 2,5/rank a custo
+    3) — a etapa compra pela conta por stat (Barato 1, 2, 3, Caro 1 (0,83), Barato 4 (0,375),
+    Caro 2 (0,417) antes de Barato 4...), mesmo com um simulador a dizer o contrario; um notable
+    com outro stat (atkPct + armor) so entra quando o simulador o prefere a um pacote do
+    mesmo tamanho de ranks baratos."""
+
+    def setUp(self):
+        self.cheap = _node("k_cheap", "Barato", 0, {"atkPct": 1.5}, custo=1)
+        self.dear = _node("k_dear", "Caro", 0, {"atkPct": 2.5}, custo=3)
+        self.notable = _node("k_big", "Notable", 1, {"atkPct": 8, "armorFlat": 8}, ["k_cheap"], custo=10, tipo="notable", rank_max=1)
+        nodes = [self.cheap, self.dear, self.notable]
+        self.node_by_id = {n["id"]: n for n in nodes}
+        self.adj = {"k_cheap": {"k_big"}, "k_dear": set(), "k_big": {"k_cheap"}}
+        self.category = {nid: "attack" for nid in self.node_by_id}
+        self.steps = []
+
+    def run_stage(self, budget, score_fn):
+        tree = {}
+
+        def buy(nid, is_link):
+            tree[nid] = tree.get(nid, 0) + 1
+            self.steps.append((nid, tree[nid], is_link))
+        builds._stage_by_effect(self.node_by_id, self.adj, tree, budget, self.category, "attack", frozenset(), buy,
+                                score_fn=score_fn)
+        return tree
+
+    def test_same_stat_by_effect_per_point_even_against_a_noisy_simulator(self):
+        # o simulador «gosta» do Caro (ruido): nao pode contar, e o mesmo stat
+        def noisy(tree):
+            return 100.0 + tree.get("k_dear", 0) * 50.0 + tree.get("k_cheap", 0) * 0.1 - tree.get("k_big", 0) * 1000
+        tree = self.run_stage(12, noisy)
+        # 12 pontos: Barato 1 (1,5/pt), Caro 1 (0,83), Barato 2 (0,75), Barato 3 (0,5) = 9; Barato 4 (4) e Caro 2 (6) nao cabem
+        # nos 3 que sobram; o Notable (11 com o caminho) cabia ao principio e o simulador recusou-o
+        self.assertEqual(tree, {"k_cheap": 3, "k_dear": 1})
+        self.assertEqual([s[:2] for s in self.steps], [("k_cheap", 1), ("k_dear", 1), ("k_cheap", 2), ("k_cheap", 3)])
+        self.assertEqual(same_stat_order_ok(self.node_by_id, self.steps), [])
+
+    def test_a_different_stat_is_decided_by_the_simulator_on_equal_packages(self):
+        # o simulador vale a armadura: com 10 pontos o Notable (8 % + armor) bate 10 pontos de Barato/Caro
+        def likes_armor(tree):
+            return 100.0 + tree.get("k_cheap", 0) * 1.5 + tree.get("k_dear", 0) * 2.5 + tree.get("k_big", 0) * 30.0
+        tree = self.run_stage(11, likes_armor)
+        self.assertEqual(tree.get("k_big"), 1)
+        self.assertIn(("k_cheap", 1, True), self.steps)   # o caminho para o Notable
+        # e quando o simulador lhe da menos (6 % em 10 pontos contra 7 % em 9 de smalls), fica fora
+        self.steps = []
+        def by_stat(tree):
+            return 100.0 + tree.get("k_cheap", 0) * 1.5 + tree.get("k_dear", 0) * 2.5 + tree.get("k_big", 0) * 6.0
+        tree = self.run_stage(11, by_stat)
+        self.assertEqual(tree.get("k_big", 0), 0)
+        self.assertEqual(tree, {"k_cheap": 3, "k_dear": 1})   # 9 pontos; Barato 4 (4) e Caro 2 (6) nao cabem nos 2 que sobram
+
+
+def same_stat_order_ok(node_by_id, steps):
+    """Na arvore a mao: cada compra (nao caminho) rende por ponto pelo menos tanto como a seguinte do mesmo stat."""
+    out = []
+    per = []
+    for nid, rank, is_link in steps:
+        if is_link:
+            continue
+        node = node_by_id[nid]
+        per.append((nid, rank, node["efeito_por_rank"]["atkPct"] / F.tree_rank_cost(node, rank - 1)))
+    for a, b in zip(per, per[1:]):
+        if b[2] > a[2] * 1.0001:
+            out.append((a, b))
+    return out
 
 
 class SchemaV6(unittest.TestCase):

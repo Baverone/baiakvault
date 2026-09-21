@@ -81,6 +81,15 @@ AVATAR_NODE = {"knight": "k_avatar_steel", "paladin": "p_avatar_light", "sorcere
 PRIORITY_ROUTE_MAX_DELAY = 5     # abaixo do Avatar: a rota escolhida nao o atrasa mais de N niveis face a mais barata
 PRIORITY_ROUTE_MAX_ENUM = 2000   # acima disto poda-se por dominancia antes de avaliar (regista-se em `routes_pruned`)
 PRIORITY_ROUTE_SIM_TIES = 8      # rotas empatadas no vector por stat que o simulador desempata (as demais: mais barata)
+# Dentro de uma categoria (etapas 4-7; ordem 9c, 21/09/2026): entre ranks que dao o MESMO stat
+# decide a conta por stat (efeito por ponto exacto, com o caminho que faltar no custo), sem
+# simulador; o simulador so decide entre os melhores ranks de stats diferentes da mesma
+# categoria e entre empates. Causa: o guloso de `optimize_tree` media cada rank na grelha de
+# 60 s e o ruido (o mesmo +1,5 % de ataque saia de -0,03 % a +0,15 % por ponto) mandava mais do
+# que o custo — o knight 548 comprou Warlust 5 (15 pontos por 2,5 %) com Warlord's Edge 3 (3
+# pontos por 1,5 %) por comprar. False = o guloso do simulador da ordem 9.
+PRIORITY_GREEDY_BY_STAT = True
+PRIORITY_STAT_SIM_TIE = 0.02     # ganhos do simulador a menos de 2 % um do outro sao empate: fica o mais barato
 # Tecto de gold/h dos supplies (pocoes em regime + runas) na escolha da rotacao: existe como
 # parametro (`Planner(gold_cap=…)`, `choose_rotation(gold_cap=…)`) mas a omissao e SEM tecto
 # — «nao importa o custo» (Andre, 16/09/2026 13:30).
@@ -640,9 +649,9 @@ def unlock_path(node, ranks, adj, node_by_id, exclude=()):
 
 
 class TreeStep:
-    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point", "saving", "stage")
+    __slots__ = ("node_id", "rank", "cost", "cumulative", "level", "score", "gain_per_point", "saving", "stage", "link")
 
-    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point, saving=None, stage=None):
+    def __init__(self, node_id, rank, cost, cumulative, level, score, gain_per_point, saving=None, stage=None, link=False):
         self.node_id, self.rank, self.cost = node_id, rank, cost
         self.cumulative, self.level, self.score, self.gain_per_point = cumulative, level, score, gain_per_point
         # so no passo que fecha uma poupanca longa: {"wait", "from_level", "gain_pct",
@@ -651,6 +660,8 @@ class TreeStep:
         self.saving = saving
         # a etapa das prioridades (PRIORITY_ORDER) em que o rank entrou; None nas outras builds
         self.stage = stage
+        # so nas prioridades: o rank entrou como caminho de desbloqueio de outro (o custo e desse)
+        self.link = link
 
 
 def optimize_tree(cat, vocation, goal, budget, equipment_at, rotation_at, target_at, start_ranks=None,
@@ -1615,27 +1626,75 @@ def _effect_value(node, stage, elements=()):
     return total
 
 
-def _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, buy):
+def _stat_signature(node):
+    """Os stats de um no, para saber quando dois ranks dao «o mesmo»: so entao a conta por
+    stat os compara (ordem 9c). Berserk Mastery (atkPct+critDmg) nao e o mesmo que Fury (atkPct)."""
+    return tuple(sorted((node.get("efeito_por_rank") or {}).keys()))
+
+
+def _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements, buy, score_fn=None):
     """Uma etapa pelo efeito por ponto (com o caminho que faltar no custo), ate nao caber
-    mais nenhum rank da categoria. `buy(nid, is_link)` poe um rank e regista o passo."""
+    mais nenhum rank da categoria. `buy(nid, is_link)` poe um rank e regista o passo.
+    Com `score_fn(tree)` (ordem 9c, etapas 4-7): entre ranks com o MESMO stat decide a
+    conta por stat; o simulador so decide entre os melhores de stats diferentes da mesma
+    categoria (atkPct vs spellDmgPct; um notable que traz outra coisa) — o `optimize_tree`
+    media cada rank de +1,5 % de ataque na grelha de 60 s e o ruido (de -0,03 % a +0,15 %
+    por ponto para o mesmo stat) mandava mais do que o custo. Sem `score_fn` (Exp/Loot)
+    tudo se compara pelo efeito por ponto, como na ordem 9. Entre stats diferentes o
+    simulador mede pacotes do MESMO tamanho (o rank mais caro dos candidatos contra os
+    ranks do mesmo stat dos outros ate igualar o custo): a +1,5 % de Fury contra os 50
+    pontos de Combat Mastery ainda era ruido; 50 pontos de Fury/Warlord/Cleave nao."""
     spent = sum(F.tree_total_cost(node_by_id[k], v) for k, v in tree.items())
-    while True:
-        best = None
+
+    def candidates(state, spent_state):
+        """assinatura de stats -> (efeito/ponto, no, caminho, custo) do melhor rank dela em `state`"""
+        groups = {}
         for nid, node in node_by_id.items():
-            if category[nid] != stage or tree.get(nid, 0) >= (node.get("rank_maximo") or 1):
+            if category[nid] != stage or state.get(nid, 0) >= (node.get("rank_maximo") or 1):
                 continue
-            path = unlock_path(node, tree, adj, node_by_id)
+            path = unlock_path(node, state, adj, node_by_id)
             if path is None:
                 continue
-            c = sum(F.tree_rank_cost(node_by_id[p], tree.get(p, 0)) for p in path) + F.tree_rank_cost(node, tree.get(nid, 0))
-            if spent + c > budget:
+            c = sum(F.tree_rank_cost(node_by_id[p], state.get(p, 0)) for p in path) + F.tree_rank_cost(node, state.get(nid, 0))
+            if spent_state + c > budget:
                 continue
             value = _effect_value(node, stage, elements) / c
-            if best is None or value > best[0]:
-                best = (value, nid, path, c)
-        if best is None:
+            key = _stat_signature(node) if score_fn else ()
+            cur = groups.get(key)
+            # empate no efeito por ponto: o mais barato (fica mais para os outros), depois o id
+            if cur is None or (-value, c, nid) < (-cur[0], cur[3], cur[1]):
+                groups[key] = (value, nid, path, c)
+        return groups
+
+    while True:
+        groups = candidates(tree, spent)
+        if not groups:
             return
-        _, nid, path, c = best
+        if len(groups) == 1:
+            _, nid, path, c = next(iter(groups.values()))
+        else:
+            base = max(1e-9, score_fn(tree))
+            size = max(g[3] for g in groups.values())
+            best = None
+            for key, (value, nid, path, c) in groups.items():
+                trial = dict(tree)
+                for p in path + [nid]:
+                    trial[p] = trial.get(p, 0) + 1
+                pkg = c
+                # o pacote: mais ranks do mesmo stat, pela mesma conta, ate ao tamanho do rank mais caro
+                while pkg < size:
+                    nxt = candidates(trial, spent + pkg).get(key)
+                    if nxt is None or pkg + nxt[3] > size:
+                        break
+                    for p in nxt[2] + [nxt[1]]:
+                        trial[p] = trial.get(p, 0) + 1
+                    pkg += nxt[3]
+                gain = (score_fn(trial) / base - 1.0) / pkg
+                # empate no simulador (ate PRIORITY_STAT_SIM_TIE, relativo): o mais barato, depois o id
+                tol = abs(best[0]) * PRIORITY_STAT_SIM_TIE + 1e-12 if best else 0.0
+                if best is None or gain > best[0] + tol or (gain >= best[0] - tol and (c, nid) < (best[3], best[1])):
+                    best = (gain, nid, path, c)
+            _, nid, path, c = best
         for p in path:
             buy(p, True)
         buy(nid, False)
@@ -1778,8 +1837,10 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
     1 a rota mais util ate ao Avatar (`choose_avatar_route`, ordem 9b) + o Avatar — se o
     Avatar nao couber, compra-se a rota na mesma (e o plano B: gastar agora e importar
     a build com o Avatar ao nivel em que cabe) e diz-se o nivel; 2 Exp e 3 Loot pelo
-    efeito por ponto (com o caminho que faltar no custo); 4-7 pelo guloso de DPS
-    restrito a categoria; 8 o resto pelo guloso de DPS e a poda so aqui. `route` forca
+    efeito por ponto (com o caminho que faltar no custo); 4-7 o mesmo stat pela conta por
+    stat e stats diferentes da categoria pelo simulador (ordem 9c; desligado,
+    `PRIORITY_GREEDY_BY_STAT`, o guloso de DPS restrito a categoria da ordem 9); 8 o
+    resto pelo guloso de DPS e a poda so aqui. `route` forca
     a rota (a build do nivel do Avatar usa a mesma que se escolheu abaixo dele).
     Devolve (arvore, passos com etapa, info) — info: avatar (bool), avatar_level (o da
     rota escolhida), avatar_path (= a rota), route {...} (a escolha e a mais barata),
@@ -1802,7 +1863,7 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
         node = node_by_id[nid]
         c = F.tree_rank_cost(node, tree.get(nid, 0))
         tree[nid] = tree.get(nid, 0) + 1
-        steps.append(TreeStep(nid, tree[nid], c, spent(), level, 0.0, 0.0, stage=stage))
+        steps.append(TreeStep(nid, tree[nid], c, spent(), level, 0.0, 0.0, stage=stage, link=is_link))
         if is_link and tree[nid] == 1 and category[nid] != stage:
             link.add(nid)
 
@@ -1825,11 +1886,18 @@ def priority_tree(cat, vocation, level, eq, target, hunt_rot, boss_rot, heal, el
                          lambda nid, is_link, stage=stage: buy(nid, stage, is_link=is_link))
         info["stage_points"][stage] = spent() - before
 
-    # 4-7. pelo ganho de DPS por ponto medido no simulador, restrito aos nos da categoria
+    # 4-7. dentro da categoria: o mesmo stat pela conta por stat, stats diferentes pelo simulador
+    # (ordem 9c); ou, desligado, o guloso de DPS por ponto medido no simulador, restrito a categoria
+    def score_tree(trial):
+        return _score_tree(cat, vocation, "damage", level, trial, eq, target, hunt_rot, boss_rot, heal)
+
     for stage in ("crit", "attack", "critdmg", "element"):
         before = spent()
         only = {nid for nid, c in category.items() if c == stage}
-        if only and spent() < budget:
+        if only and spent() < budget and PRIORITY_GREEDY_BY_STAT:
+            _stage_by_effect(node_by_id, adj, tree, budget, category, stage, elements,
+                             lambda nid, is_link, stage=stage: buy(nid, stage, is_link=is_link), score_fn=score_tree)
+        elif only and spent() < budget:
             start = dict(tree)
             tree, st = optimize_tree(cat, vocation, "damage", budget,
                                      equipment_at=lambda lv, ranks: eq, rotation_at=lambda lv, p: hunt_rot,
