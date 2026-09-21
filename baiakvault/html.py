@@ -108,7 +108,8 @@ def nav(root, here=""):
     links = (("index.html", "Inicio", "inicio"),
              ("builds/index.html", "Builds", "builds"),
              ("hunts/index.html", "Hunts", "hunts"),
-             ("charms/index.html", "Charms", "charms"))
+             ("charms/index.html", "Charms", "charms"),
+             ("codex/index.html", "Codex", "codex"))
     parts = []
     for href, label, key in links:
         cls = ' class="aqui"' if key == here else ""

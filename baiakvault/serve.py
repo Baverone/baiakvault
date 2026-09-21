@@ -168,9 +168,72 @@ def page_index(cat, vault, local, token, msg=None, err=None):
                        '<label>vocacao <select name="vocation">%s</select></label></p>'
                        % _options([(v, VOCATION_LABEL[v]) for v in db_module.GOALS_BY_VOCATION]),
                        local, token, "Criar"))
+    parts.append("<h2>Codex (por conta)</h2>")
+    parts.append(_codex_form(cat, vault, local, token))
     if local and token:
         parts.append('<p class="mudo"><small>Token para escrever a partir do telemovel: <code>%s</code></small></p>' % h.esc(token))
     return h.page("Edicao — BaiakVault", "".join(parts), root="/", here="", extra_head=EDIT_CSS)
+
+
+def _codex_form(cat, vault, local, token):
+    """O progresso do Codex (ordem 11): a missao pelo numero do ecra (#131) ou pelo id, concluida ou
+    nao, e as contagens coladas na ordem da lista («599/3.500» ou so «599», uma por linha ou separadas
+    por virgulas; em branco = nao mexe)."""
+    from . import codex as codex_module
+    cx = codex_module.Codex(cat)
+    rows = vault.codex_progress()
+    out = []
+    if rows:
+        trs = []
+        for mid, r in rows.items():
+            m = cx.mission(mid)
+            trs.append("<tr><td>#%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s · %s</td></tr>" % (
+                h.fmt(m["number"]) if m else h.UNKNOWN, h.esc(m["name"] if m else mid), "concluida" if r["done"] else "em curso",
+                h.esc(", ".join(h.fmt(v) for v in r["progress"])) if r["progress"] else "—", h.esc(r["source"]), h.esc(r["seen_at"])))
+        out.append('<div class="tabela"><table><tr><th>#</th><th>missao</th><th>estado</th><th>contagens</th><th>fonte</th></tr>%s</table></div>' % "".join(trs))
+    else:
+        out.append('<p class="mudo">Sem progresso do Codex registado.</p>')
+    body = ('<p><label>missao (#130 ou id) <input type="text" name="mission" required placeholder="#131"></label>'
+            '<label>estado <select name="done"><option value="">nao mexe</option><option value="0">em curso</option>'
+            '<option value="1">concluida</option></select></label>%s</p>'
+            '<p><label>contagens, na ordem da lista do ecra (599/3.500 ou 599; por linha ou virgulas; em branco = nao mexe)<br>'
+            '<textarea name="progress" rows="4" cols="40"></textarea></label></p>'
+            '<p class="mudo"><small>Os ids: <code>hunt-&lt;hunt&gt;</code>, <code>-2</code>/<code>-3</code> para os degraus II/III; '
+            '<code>boss-&lt;monstro&gt;-1..3</code>; <code>set-&lt;set&gt;-0..3</code> — ou o numero do ecra.</small></p>' % _seen_at_field())
+    out.append(_form("/editar/codex", body, local, token, "Gravar progresso"))
+    return "".join(out)
+
+
+def _codex_post(cat, vault, fields):
+    from . import codex as codex_module
+    cx = codex_module.Codex(cat)
+    ref = (_one(fields, "mission") or "").strip()
+    if not ref:
+        raise FormError("a missao precisa de numero ou id")
+    mission = None
+    if ref.startswith("#") or ref.isdigit():
+        try:
+            number = int(ref.lstrip("#"))
+        except ValueError:
+            raise FormError("numero de missao invalido: %r" % ref)
+        mission = next((m for m in cx.missions() if m["number"] == number), None)
+    else:
+        mission = cx.mission(ref)
+    if mission is None:
+        raise FormError("missao do Codex desconhecida: %r" % ref)
+    done_raw = _one(fields, "done")
+    done = None if done_raw in (None, "") else int(done_raw)
+    raw = (_one(fields, "progress") or "").strip()
+    progress = None
+    if raw:
+        progress = []
+        for tok in [t.strip() for t in raw.replace("\n", ",").replace(";", ",").split(",") if t.strip()]:
+            first = tok.split("/")[0].strip().replace(".", "").replace(" ", "")
+            if not first.isdigit():
+                raise FormError("contagem invalida: %r" % tok)
+            progress.append(int(first))
+    vault.set_codex_progress(mission["id"], done=done, progress=progress, source="manual", seen_at=_date(fields))
+    return "", "Codex: #%d %s gravado" % (mission["number"], mission["name"])
 
 
 def _character_form(cat, ch, local, token):
@@ -391,6 +454,8 @@ def apply_post(cat, vault, path, fields):
         cid = vault.upsert_character(name, vocation=_one(fields, "vocation"), source="manual",
                                      seen_at=dt.date.today().isoformat())
         return vault.character(cid)["slug"], "criado %s" % name
+    if parts == ["editar", "codex"]:
+        return _codex_post(cat, vault, fields)
     if len(parts) < 3 or parts[0] != "editar":
         raise FormError("nao existe: %s" % path)
     slug, action = parts[1], "/".join(parts[2:])
@@ -624,7 +689,7 @@ def make_handler(cfg):
                 # o sqlite3.Error e a rede de seguranca: uma restricao do esquema que a
                 # validacao nao apanhou sai como «nao gravado» legivel, nao como resposta partida
                 parts = [p for p in path.split("/") if p]
-                back = "/editar/%s" % parts[1] if len(parts) >= 2 and parts[1] != "novo" else "/editar"
+                back = "/editar/%s" % parts[1] if len(parts) >= 2 and parts[1] not in ("novo", "codex") else "/editar"
                 return self._send(h.page("Nao gravado — BaiakVault",
                                          '<h1>Nao gravado</h1><p class="aviso">%s</p><p><a href="%s">voltar</a></p>'
                                          % (h.esc(str(e)), h.esc(back)), root="/", extra_head=EDIT_CSS), 400)

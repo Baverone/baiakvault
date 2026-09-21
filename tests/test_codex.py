@@ -156,5 +156,87 @@ class Progress(unittest.TestCase):
         conn.close()
 
 
+class Pages(unittest.TestCase):
+    """O plano com a fixture (1 personagem): valor, horas, XP perdida, paginas dentro dos tectos e sem
+    None/nan/undefined; o `serve` grava o progresso pelo numero do ecra."""
+
+    @classmethod
+    def setUpClass(cls):
+        import time
+        from baiakvault import build, pages_codex
+        cls.conn, cls.vault, cls.db_path = helpers.temp_vault(with_fixture=True)
+        cls.vault.set_codex_progress("hunt-livrariafire-cave", done=1, source="captura", seen_at="2026-09-21")
+        cls.vault.set_codex_progress("hunt-livrariafire-cave-2", progress=[7000, 3500, 3059], source="captura", seen_at="2026-09-21")
+        planner, _ = helpers.planner()
+        cat = helpers.real_catalog()
+        chars = cls.vault.characters()
+        advice = {c["slug"]: build.character_advice(cat, cls.vault, c, planner) for c in chars}
+        started = time.perf_counter()
+        cls.report = pages_codex.compute(cat, planner, chars, advice, cls.vault.codex_progress(), None)
+        cls.seconds = time.perf_counter() - started
+        cls.pages = {"index": pages_codex.render_index(cat, cls.report, "2026-09-21 15:00:00"),
+                     "missoes": pages_codex.render_missions(cat, cls.report, "2026-09-21 15:00:00"),
+                     "print": pages_codex.render_print(cat, cls.report, "2026-09-21 15:00:00")}
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.conn.close()
+
+    def test_values_and_costs(self):
+        r = self.report
+        self.assertEqual(len(r["chars"]), 1)
+        self.assertLess(self.seconds, 20.0)   # 79 hunts x 2 simulacoes por personagem
+        by = r["by_id"]
+        fire1, fire2 = by["hunt-livrariafire-cave"], by["hunt-livrariafire-cave-2"]
+        self.assertEqual(fire1["status"], "concluida")
+        self.assertEqual(fire2["status"], "em curso")
+        self.assertGreater(fire2["value_pct"], 0)             # +0,654 % magia e +0,233 % atk rendem dano em qualquer vocacao
+        self.assertEqual(fire2["bottleneck"], "purple tome")
+        # a hunt ao alcance do personagem da horas e XP perdida; a de nivel 610 «ainda nao»
+        level = r["party_level"]
+        reachable = [x for x in r["missions"] if x["mission"]["cat"] == "hunt" and x["hunt"]["min_level"] <= level]
+        self.assertTrue(all(x["hours"] is not None or x["status"] == "concluida" or x["unknown"] for x in reachable))
+        far = [x for x in r["missions"] if x["mission"]["cat"] == "hunt" and x["hunt"]["min_level"] > level
+               and x["status"] not in ("concluida", "em curso")]
+        self.assertTrue(far)
+        self.assertTrue(all(x["hours"] is None and x["status"].startswith("ainda nao") for x in far))
+        self.assertIsNotNone(r["best_xp"])
+        best = by["hunt-" + r["best_xp"]["id"]]
+        self.assertEqual(best["xp_lost"], 0.0)               # a melhor hunt de XP nao perde XP
+        # um Trofeu I e so resistencia: valor 0 e utilidade a dizer
+        alp1 = by["boss-alptramun-1"]
+        self.assertEqual(alp1["value_pct"], 0.0)
+        self.assertEqual([s for s, el, v in alp1["utility"]], ["absorbPct"])
+        # a ordenacao geral e por valor por hora, decrescente
+        vph = [x["value_per_hour"] for x in r["plan"]["ranked"]]
+        self.assertEqual(vph, sorted(vph, reverse=True))
+        self.assertTrue(r["plan"]["now"] and r["plan"]["now"][0]["mission"]["hunt_id"] == r["current_hunt"])
+
+    def test_pages_clean_and_within_limits(self):
+        import re
+        forbidden = re.compile(r"\b(None|nan|NaN|undefined|null)\b")
+        for name, html in self.pages.items():
+            self.assertIsNone(forbidden.search(html), name)
+            self.assertLess(len(html.encode("utf-8")), 320 * 1024, name)
+        self.assertIn("Dano de magia +0,654%", self.pages["missoes"])
+        self.assertIn('id="m130"', self.pages["missoes"])
+        self.assertIn("Auto Collect", self.pages["index"])
+        self.assertIn("codex/index.html", self.pages["index"])   # o menu tem a entrada Codex
+        self.assertNotIn("estilo.css", self.pages["print"])
+
+    def test_serve_codex_post(self):
+        from baiakvault import serve
+        _, msg = serve.apply_post(helpers.real_catalog(), self.vault, "/editar/codex",
+                                  {"mission": ["#73"], "done": [""], "progress": ["12/700, 3\n4"], "seen_at": ["2026-09-21"]})
+        self.assertIn("#73", msg)
+        row = self.vault.codex_progress()["hunt-cobra-cave"]
+        self.assertEqual(row["progress"], [12, 3, 4])
+        self.assertEqual(row["done"], 0)
+        with self.assertRaises(serve.FormError):
+            serve.apply_post(helpers.real_catalog(), self.vault, "/editar/codex", {"mission": ["#99999"]})
+        with self.assertRaises(serve.FormError):
+            serve.apply_post(helpers.real_catalog(), self.vault, "/editar/codex", {"mission": ["#73"], "progress": ["abc"]})
+
+
 if __name__ == "__main__":
     unittest.main()

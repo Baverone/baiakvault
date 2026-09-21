@@ -94,6 +94,19 @@ A regra precisada pelo Andre («Avatar, Exp, Loot, e tu decides o resto»): a Ex
 | Druid (ED) | 22,0 / 22,0 | 165 | 6,4 / 6,4 | 16 | 4 / 5 pontos | sim | sim |
 | Monk | 5,0 / 5,0 | 100 | 5,0 / 5,0 | 100 | 77 / nenhum por comprar | sim | sim |
 
+## 1g. O Codex: tres numeros para comparar no ecra (ordem 11, 21/09/2026)
+
+A recompensa de cada missao calcula-se no cliente (`qX`: FNV-1a do id da cadeia -> triplo de stats; `Lq[stat] = B5e[stat] / soma(peso x (3 - i))` sobre as 174 entradas; valor = round(Lq x peso x 1000)/1000). Formato do ecra (`_D`): 3 casas decimais, virgula. **#130 e #131 confirmados na captura do Andre de 21/09/2026.**
+
+| # | missao | o que a pagina diz | confirmado no ecra |
+|---|---|---|---|
+| #130 | Domínio: Livraria FIRE I | Dano de magia +0,654% | sim (21/09/2026) |
+| #73 | Domínio: Cobras I | Dano crítico +0,397% | por ver |
+| #242 | Troféu de Alptramun II | Resistência elemental ice +1,111% · Dano elemental ice +1,250% | por ver |
+
+Gold dos degraus (`SX.stepGold`, omissao do cliente; o servidor pode mudar por `codexconfig`): I gratis, II 50 M, III 500 M, tier Epico dos sets 1.000 M — **o II confirmado pelo Andre a 21/09/2026 (50 M)**; o III e o Epico ficam como omissao do cliente, coerente com o II.
+Soma de todos os bonus de hunts e bosses por stat = `B5e` a menos do arredondamento: max desvio 0,020.
+
 ## 2. A curva de DPS do guia vs o DPS do ciclo do simulador
 
 Curva do guia: `7,012 x nivel^0,948` (guiabaiakidle.com/_astro/character-planner.D0n3Vxn3.js — `F=7.012,I=.948` (lido a 2026-09-16)). E uma referencia sem vocacao, hunt nem equipamento; a razao mostra quanto cada build se afasta dela — nao ha «certo» aqui, ha o que cada um diz.

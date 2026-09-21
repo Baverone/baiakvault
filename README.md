@@ -67,6 +67,16 @@ O que ja la esta (v0.1):
   em destaque e as 5 hunts vizinhas em nivel; cada uma com um **cartao**
   (`print/charms-<personagem>-<hunt>.html`, 390 px, nomes do jogo) para tirar
   screenshot e copiar para o jogo. Nas builds, os charms ideais por nivel.
+- **Codex** (`codex/index.html`) — o plano de ordenacao das missoes pelo
+  **ganho de DPS da party por hora**, com a XP perdida ao lado: (a) o Auto
+  Collect de agora com o que falta (kills e horas, com os contadores do ecra),
+  (b) a rotacao das quatro Livrarias, (c) as hunts 600-610 «quando subirem»,
+  (d) os bosses pelos elementos das rotacoes, (e) os sets ao tier Comum, (f) os
+  degraus II e III com o gold e as horas (x5, x15). As recompensas
+  **calculam-se no cliente** (deterministicas; `codex.py` transcreve-as, e a
+  validacao cruzada da tres numeros para comparar no ecra) e os bonus sao por
+  conta (por confirmar). `codex/missoes.html` tem as 686 missoes com filtro por
+  categoria e stat; `print/codex-plano.html` e o cartao.
 
 ## Adicionar ou corrigir um personagem
 
@@ -76,7 +86,9 @@ e abrir `http://127.0.0.1:8774/editar` no PC. Formularios simples, sem
 JavaScript: personagem (vocacao, nivel, hunt, VIP, objectivo), arvore (rank
 por no), equipamento (item por slot com lista filtrada, upgrade, imbuements,
 atributos da forja), charms (tier e criatura, charm points, echoes, o limite
-«X/Y monstros com charm» do ecra e se tens a Charm Expansion) e bestiario. Cada
+«X/Y monstros com charm» do ecra e se tens a Charm Expansion), bestiario e, por
+conta, o progresso do Codex (o numero da missao no ecra e as contagens coladas
+«599/3.500» na ordem da lista). Cada
 gravacao valida contra o catalogo (nome errado = erro, nada gravado), fica com
 fonte «manual» e a data «visto a», e regenera o site. **Em branco e «nao sei»,
 nunca 0.** Apagar um personagem exige escrever o nome exacto.
